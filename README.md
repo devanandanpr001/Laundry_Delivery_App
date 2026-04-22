@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # ziya_laundry_deliveryapp
 
 A new Flutter project.
@@ -18,3 +19,6 @@ samples, guidance on mobile development, and a full API reference.
 =======
 # Laundry_Delivery_App
 >>>>>>> a4520edb1aaf612ce20c0f86cea7f43ba4dfa065
+=======
+# Laundry_Delivery_App
+>>>>>>> 77b912ab646f348e62fd83e1ff7921a2e96904dc
