@@ -1,0 +1,105 @@
+import 'package:flutter/material.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/data/model/user_model.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/data/repositories/auth_repository.dart';
+import '../../Constants/validators/signup_validators.dart';
+import 'base_viewmodel.dart';
+
+class SignupViewModel extends BaseViewModel {
+  final AuthRepository _repository = AuthRepository();
+  final UserModel _signupModel = UserModel();
+
+  String? signupNameError;
+  String? signupMobileError;
+  String? signupPasswordError;
+  String? confirmPasswordError;
+  String? agreementError;
+
+  bool get isAgreed => _signupModel.agreed;
+
+  void updateSignupName(String value) {
+    _signupModel.name = value;
+    signupNameError = null;
+    notifyListeners();
+  }
+
+  void updateSignupMobile(String value) {
+    _signupModel.mobile = value;
+    signupMobileError = null;
+    notifyListeners();
+  }
+
+  void updateSignupPassword(String value) {
+    _signupModel.password = value;
+    signupPasswordError = null;
+    notifyListeners();
+  }
+
+  void updateConfirmPassword(String value) {
+    _signupModel.confirmPassword = value;
+    confirmPasswordError = null;
+    notifyListeners();
+  }
+
+  void toggleAgreement(bool value) {
+    _signupModel.agreed = value;
+    agreementError = null;
+    notifyListeners();
+  }
+
+  bool validateSignup() {
+    signupNameError = SignupValidator.validateName(_signupModel.name);
+    signupMobileError = SignupValidator.validateMobile(_signupModel.mobile);
+    signupPasswordError = SignupValidator.validatePassword(_signupModel.password);
+    confirmPasswordError = SignupValidator.validateConfirmPassword(
+      _signupModel.password,
+      _signupModel.confirmPassword,
+    );
+    agreementError = SignupValidator.validateAgreement(_signupModel.agreed);
+
+    notifyListeners();
+
+    return signupNameError == null &&
+        signupMobileError == null &&
+        signupPasswordError == null &&
+        confirmPasswordError == null &&
+        agreementError == null;
+  }
+
+  Future<bool> submitSignup() async {
+    if (!validateSignup()) return false;
+
+    setLoading(true);
+    try {
+      final success = await _repository.register(_signupModel);
+      if (success) debugPrint('Signup Success');
+      return success;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    setLoading(true);
+    try {
+      if (currentPassword != _signupModel.password) {
+        return "Current password is incorrect";
+      }
+
+      final newPasswordError = SignupValidator.validatePassword(newPassword);
+
+      if (newPasswordError != null) return newPasswordError;
+      if (newPassword != confirmPassword) return "Passwords do not match";
+
+      _signupModel.password = newPassword;
+      notifyListeners();
+
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }
+}
