@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://192.168.0.105:5001/api';
+  static const String baseUrl = 'http://172.30.240.1:5001/api';
   static const String login = '/delivery/auth/login';
   static const String verifyOtp = '/delivery/auth/verify-otp';
   static const String resendOtp = '/delivery/auth/resend-otp';
@@ -9,21 +9,14 @@ class ApiConstants {
   static const String resetPassword = '/delivery/auth/reset-password';
   static const String profile = '/delivery/auth/profile';
   static const String logout = '/delivery/auth/logout';
-}
 
-// verify otp
-// http://localhost:5001/api/delivery/auth/verify-otp
-// resend otp
-// http://localhost:5001/api/delivery/auth/resend-otp
-// Refresh Token
-// http://localhost:5001/api/delivery/auth/refresh-token
-// Forgot Password Flow
-// http://localhost:5001/api/delivery/auth/forgot-password
-// verify otp for pass
-// http://localhost:5001/api/delivery/auth/verify-forgot-otp
-// rest pass
-// http://localhost:5001/api/delivery/auth/reset-password
-// Profile
-// http://localhost:5001/api/delivery/auth/profile
-// Logout
-// http://localhost:5001/api/delivery/auth/logout
+// Orders
+
+  static const String dashboardCounts = '/delivery-session/session/dashboard-counts';
+  static const String deliveryOrders = '/delivery-session/session/delivery-orders';
+  static const String pickupOrders = '/delivery-session/session/pickup-orders';
+  static const String acceptPickup = '/delivery-session/session/accept-pickup';
+  static const String acceptDelivery = '/delivery-session/session/accept-delivery';
+  static const String allOrders = '/delivery-session/session/orders/all';
+  static const String assignedOrders = '/delivery-session/session/orders/assigned';
+}

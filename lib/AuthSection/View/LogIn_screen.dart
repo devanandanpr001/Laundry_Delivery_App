@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/View/SignUp_screen.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
@@ -104,14 +103,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                         InputField(
                                           label: AppText.LoginNameLabel,
                                           hint: AppText.LoginNameHint,
-                                          onChanged: vm.updateLoginName,
+                                          controller: vm.nameController,
+                                          // onChanged: vm.updateLoginName, // Controller handles updates
                                           errorText: vm.loginNameError,
                                         ),
 
                                         InputField(
                                           label: AppText.LoginMobileLabel,
                                           hint: AppText.LoginMobileHint,
-                                          onChanged: vm.updateLoginMobile,
+                                          controller: vm.mobileController,
+                                          // onChanged: vm.updateLoginMobile, // Controller handles updates
                                           errorText: vm.loginMobileError,
                                         ),
 
@@ -119,7 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                           label: AppText.LoginPasswordLabel,
                                           hint: AppText.PasswordHint,
                                           obscure: true,
-                                          onChanged: vm.updateLoginPassword,
+                                          controller: vm.passwordController,
+                                          // onChanged: vm.updateLoginPassword, // Controller handles updates
                                           errorText: vm.loginPasswordError,
                                         ),
                                         SizedBox(height: 10.h),
@@ -165,32 +167,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                           backgroundColor: AppColors.primaryBlue,
                                           onPressed: vm.isLoading ? () {} : () async {
                                             if (await vm.submitLogin()) {
-                                              Navigator.push(
+                                              if (!context.mounted) return;
+                                              final verified = await Navigator.push<bool>(
                                                 context,
                                                 MaterialPageRoute(
                                                   builder: (context) => VerificationScreen(
                                                     title: AppText.VrfTitle,
                                                     subtitle: AppText.VrfSubtitle,
-                                                    onCompleted: (pin) async {
-                                                      final success = await vm.verifyOtp(pin);
-                                                      if (!context.mounted) return success;
-                                                      if (success && context.mounted) {
-                                                        QuickPopupManager.showNotification(
-                                                          context,
-                                                          AppText.LoginSuccess,
-                                                        );
-                                                        Navigator.pushAndRemoveUntil(
-                                                          context,
-                                                          MaterialPageRoute(builder: (context) => const BottomNavigationPage()),
-                                                          (route) => false,
-                                                        );
-                                                      }
-                                                      return success;
-                                                    },
+                                                    onCompleted: (pin) async => await vm.verifyOtp(pin),
                                                     onResend: () => vm.resendOtp(),
                                                   ),
                                                 ),
                                               );
+
+                                              if (verified == true && context.mounted) {
+                                                QuickPopupManager.showNotification(
+                                                  context,
+                                                  AppText.LoginSuccess,
+                                                );
+                                                Navigator.pushAndRemoveUntil(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (context) => const BottomNavigationPage()),
+                                                  (route) => false,
+                                                );
+                                              }
                                             } else {
                                               if (!context.mounted) return;
                                               QuickPopupManager.showNotification(

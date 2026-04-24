@@ -6,44 +6,54 @@ import 'base_viewmodel.dart';
 
 class LoginViewModel extends BaseViewModel {
   final AuthRepository _repository = AuthRepository();
-  final UserModel _loginModel = UserModel();
+  
+  // Controllers for input fields
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController mobileController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool _rememberMe = false; // Directly manage rememberMe state
   
   String? loginNameError;
   String? loginMobileError;
   String? loginPasswordError;
 
-  String get loginName => _loginModel.name;
-  String get loginNumber => _loginModel.mobile;
-  bool get isRememberMe => _loginModel.rememberMe;
+  bool get isRememberMe => _rememberMe;
+  String get loginName => nameController.text;
+  String get loginNumber => mobileController.text;
 
   void updateLoginName(String value) {
-    _loginModel.name = value;
+    nameController.text = value; // Update controller text
     loginNameError = null;
     notifyListeners();
   }
 
   void updateLoginMobile(String value) {
-    _loginModel.mobile = value;
+    mobileController.text = value; 
     loginMobileError = null;
     notifyListeners();
   }
 
   void updateLoginPassword(String value) {
-    _loginModel.password = value;
+    passwordController.text = value; // Update controller text
     loginPasswordError = null;
     notifyListeners();
   }
 
   void toggleRememberMe(bool value) {
-    _loginModel.rememberMe = value;
+    _rememberMe = value;
     notifyListeners();
   }
 
   bool validateLogin() {
-    loginMobileError = SignupValidator.validateMobile(_loginModel.mobile);
+    loginNameError = SignupValidator.validateName(nameController.text);
+    loginMobileError = SignupValidator.validateMobile(mobileController.text);
+    loginPasswordError = SignupValidator.validatePassword(passwordController.text);
 
     notifyListeners();
-    return loginMobileError == null;
+    return loginNameError == null &&
+           loginMobileError == null && 
+           loginPasswordError == null;
   }
 
   Future<bool> submitLogin() async {
@@ -53,7 +63,13 @@ class LoginViewModel extends BaseViewModel {
     setLoading(true);
     try {
       // Logic: Centralized through Repository
-      final result = await _repository.login(_loginModel.mobile);
+      final result = await _repository.login(
+        nameController.text, // Passed with no changes
+        mobileController.text.trim(),
+        passwordController.text, // Do not trim passwords
+      );
+
+      debugPrint("LOGIN RESPONSE: $result");
 
       if (result['success'] == true) {
         return true;
@@ -72,7 +88,7 @@ class LoginViewModel extends BaseViewModel {
   Future<bool> verifyOtp(String pin) async {
     setLoading(true);
     try {
-      final result = await _repository.verifyOtp(loginNumber, pin);
+      final result = await _repository.verifyOtp(mobileController.text, pin);
       if (result['success'] == true) {
         return true;
       } else {
@@ -93,5 +109,13 @@ class LoginViewModel extends BaseViewModel {
       setError(result['msg'] ?? "Failed to resend OTP");
     }
     return result['success'] == true;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    mobileController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 }

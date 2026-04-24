@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/forgot_password_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/validators/signup_validators.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
@@ -16,17 +19,8 @@ class NewPasswordScreen extends StatefulWidget {
 }
 
 class _NewPasswordScreenState extends State<NewPasswordScreen> {
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmController = TextEditingController();
   bool _isNewPasswordObscured = true;
   bool _isConfirmPasswordObscured = true;
-
-  @override
-  void dispose() {
-    _passwordController.dispose();
-    _confirmController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +38,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          body: SafeArea(
+          body: Consumer<ForgotPasswordViewModel>(
+            builder: (context, provider, child) => SafeArea(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 35.w),
               child: Column(
@@ -75,7 +70,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       ),
                       SizedBox(height: 8.h),
                       TextFormField(
-                        controller: _passwordController,
+                        controller: provider.newPasswordController,
                         obscureText: _isNewPasswordObscured,
                         style: TextStyle(
                           fontSize: 14.sp,
@@ -158,7 +153,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       ),
                       SizedBox(height: 8.h),
                       TextFormField(
-                        controller: _confirmController,
+                        controller: provider.confirmPasswordController,
                         obscureText: _isConfirmPasswordObscured,
                         style: TextStyle(
                           fontSize: 14.sp,
@@ -231,43 +226,51 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   ),
                   SizedBox(height: 52.h),
                   _buildSubmitButton(
-                    onPressed: () {
+                    isLoading: provider.isLoading,
+                    onPressed: () async {
                       // 1. Validate Empty
-                      if (_passwordController.text.isEmpty || _confirmController.text.isEmpty) {
-                        QuickPopupManager.showNotification(context, AppText.NewPasswordErrorEmpty, isError: true);
-                        return;
-                      }
-                      // 2. Validate Length
-                      if (_passwordController.text.length < 8) {
-                        QuickPopupManager.showNotification(context, AppText.NewPasswordErrorLength, isError: true);
-                        return;
-                      }
-                      // 3. Validate Match
-                      if (_passwordController.text != _confirmController.text) {
-                        QuickPopupManager.showNotification(context, AppText.NewPasswordErrorMatch, isError: true);
-                        return;
-                      }
-
-                      QuickPopupManager.showNotification(
-                        context, AppText.NewPasswordSuccess
+                      final passErr = SignupValidator.validatePassword(provider.newPasswordController.text);
+                      final confErr = SignupValidator.validateConfirmPassword(
+                        provider.newPasswordController.text, 
+                        provider.confirmPasswordController.text
                       );
 
-                      Future.delayed(const Duration(seconds: 2), () {
-                        if (context.mounted) {
-                          Navigator.pushAndRemoveUntil(
-                              context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
-                        }
-                      });
+                      if (passErr != null || confErr != null) {
+                        QuickPopupManager.showNotification(
+                          context, 
+                          passErr ?? confErr!, 
+                          isError: true
+                        );
+                        return;
+                      }
+
+                      if (await provider.submitReset(widget.phone)) {
+                        if (!context.mounted) return;
+                        QuickPopupManager.showNotification(
+                          context, AppText.NewPasswordSuccess
+                        );
+
+                        Future.delayed(const Duration(seconds: 2), () {
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                                context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
+                          }
+                        });
+                      } else if (context.mounted) {
+                        QuickPopupManager.showNotification(context, provider.errorMessage ?? "Failed to reset password", isError: true);
+                      }
                     },
                   ),
                 ],
               ),
+            ),
             ),
           ));
   }
 
   Widget _buildSubmitButton({
     required VoidCallback onPressed,
+    bool isLoading = false,
   }) {
     return Container(
       width: double.infinity,
@@ -284,7 +287,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       ),
       child: CustomButton(
             text: AppText.SubmitButton,
-            onPressed: onPressed,
+            onPressed: isLoading ? () {} : onPressed,
             height: 48.h,
             elevation: 0,
             borderRadius: 10.r,

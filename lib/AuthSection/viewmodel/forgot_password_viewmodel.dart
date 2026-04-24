@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/repositories/auth_repository.dart';
+import '../../Constants/validators/signup_validators.dart';
 import 'base_viewmodel.dart';
 
 class ForgotPasswordViewModel extends BaseViewModel {
   final AuthRepository _repository = AuthRepository();
 
   final TextEditingController mobileController = TextEditingController();
+  final TextEditingController newPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   Future<bool> sendOtp() async {
     final String phoneNumber = mobileController.text.trim();
@@ -59,6 +62,28 @@ class ForgotPasswordViewModel extends BaseViewModel {
         setError(result['msg'] ?? "Failed to resend OTP");
         return false;
       }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<bool> submitReset(String phone) async {
+    setLoading(true);
+    try {
+      final result = await _repository.resetPassword(
+        phone,
+        newPasswordController.text,
+        confirmPasswordController.text,
+      );
+      if (result['success'] == true) {
+        return true;
+      } else {
+        setError(result['msg'] ?? "Failed to reset password");
+        return false;
+      }
+    } catch (e) {
+      setError("Reset failed");
+      return false;
     } finally {
       setLoading(false);
     }

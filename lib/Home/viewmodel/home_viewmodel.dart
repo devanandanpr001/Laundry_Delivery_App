@@ -15,17 +15,19 @@ class HomeViewModel extends ChangeNotifier {
   bool _isOnline = false;
   bool _isLoading = false;
   String _selectedFilter = "all";
+  int _assignedCount = 0;
+  int _completedCount = 0;
 
   // Getters
   List<OrderModel> get orders => _orders;
   bool get isOnline => _isOnline;
   bool get isLoading => _isLoading;
   String get selectedFilter => _selectedFilter;
+  int get assignedCount => _assignedCount;
+  int get completedCount => _completedCount;
 
   // Logic Getters for UI
   List<OrderModel> get pendingOrders => _orders.where((o) => o.status == OrderStatus.pending).toList();
-  int get completedCount => _orders.where((o) => o.status == OrderStatus.completed).length;
-  int get assignedCount => _orders.where((o) => o.status == OrderStatus.assigned).length;
 
   Future<void> _init() async {
     _isOnline = await _repository.getInitialOnlineStatus();
@@ -36,7 +38,18 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _orders = await _repository.getOrders();
+      // Concurrent fetch for efficiency: Fetch orders and dashboard counts together
+      final results = await Future.wait([
+        _repository.getOrders(),
+        _repository.getDashboardCounts(),
+      ]);
+
+      _orders = results[0] as List<OrderModel>;
+      
+      final countData = results[1] as Map<String, dynamic>;
+      // The service already returns the 'data' part, so we access keys directly
+      _assignedCount = countData['assignedCount'] ?? 0;
+      _completedCount = countData['completedCount'] ?? 0;
     } catch (e) {
       debugPrint("HomeViewModel Error: $e");
     } finally {
@@ -49,7 +62,6 @@ class HomeViewModel extends ChangeNotifier {
     final index = _orders.indexWhere((o) => o.orderId == orderId);
     if (index != -1) {
       final currentOrder = _orders[index];
-      
       // Logic: Differentiate start stage based on OrderType when accepting
       DeliveryStage targetStage = currentOrder.deliveryStage;
       if (status == OrderStatus.assigned && currentOrder.status == OrderStatus.pending) {

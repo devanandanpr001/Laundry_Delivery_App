@@ -20,10 +20,10 @@ class SignupValidator {
   }
 
   static String? validatePassword(String value) {
-    if (value.isEmpty) {
+    if (value.trim().isEmpty) {
       return 'Password is required';
     }
-    if (value.length < 6) {
+    if (value.trim().length < 6) {
       return 'Password must be at least 6 characters';
     }
     return null;

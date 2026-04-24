@@ -1,10 +1,24 @@
 import 'dart:async';
+import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
+import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
 
 class HomeService {
-  // Mock API interaction. Replace with actual http/dio calls.
+  final DioClient _dioClient = DioClient();
+
   Future<List<Map<String, dynamic>>> fetchOrdersFromApi() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return []; // Return raw JSON list from backend
+    final response = await _dioClient.get(ApiConstants.allOrders);
+    if (response != null && response['success'] == true && response['data'] != null) {
+      return List<Map<String, dynamic>>.from(response['data']);
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> getDashboardCountsFromApi() async {
+    final response = await _dioClient.get(ApiConstants.dashboardCounts);
+    if (response != null && response['success'] == true && response['data'] != null) {
+      return Map<String, dynamic>.from(response['data']);
+    }
+    return {};
   }
 
   Future<bool> updateOrderStatusOnApi(String orderId, String status) async {

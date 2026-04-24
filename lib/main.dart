@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/signup_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/SignUp_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/forgot_password_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
@@ -38,7 +39,7 @@ class MyApp extends StatelessWidget {
         return MultiProvider(
            providers: [
              ChangeNotifierProvider(create: (_) => LoginViewModel()),
-            //  ChangeNotifierProvider(create: (_) => SignupViewModel()),
+             ChangeNotifierProvider(create: (_) => SignupViewModel()),
              ChangeNotifierProvider(create: (_) => ForgotPasswordViewModel()),
              
              // Profile Section Dependencies
@@ -50,7 +51,6 @@ class MyApp extends StatelessWidget {
                create: (context) => ProfileViewModel(context.read<ProfileRepository>()),
                update: (_, repository, previous) => (previous ?? ProfileViewModel(repository))..updateRepository(repository),
              ),
-
              // Help & Support Dependencies
              Provider(create: (_) => HelpSupportService()),
              ProxyProvider<HelpSupportService, HelpSupportRepository>(
@@ -93,7 +93,7 @@ class MyApp extends StatelessWidget {
           child: const MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Ziya Laundry DeliveryApp',
-            home:  BottomNavigationPage(),
+            home:  LoginScreen(),
           ),
         );
       },

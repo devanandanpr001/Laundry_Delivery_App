@@ -4,36 +4,60 @@ import '../model/user_model.dart';
 class AuthRepository {
   final IAuthService _authService = AuthService();
 
-  Future<Map<String, dynamic>> login(String phoneNumber) async {
+  Future<Map<String, dynamic>> login(String name, String mobile, String password) async {
     try {
-      return await _authService.login(phoneNumber);
+      return await _authService.login(name, mobile, password);
     } catch (e) {
       return {'success': false, 'msg': e.toString()};
     }
   }
 
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
-    return await _authService.verifyOtp(phone, otp);
+    try {
+      return await _authService.verifyOtp(phone, otp);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> resendOtp(String phone) async {
-    return await _authService.resendOtp(phone);
+    try {
+      return await _authService.resendOtp(phone);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> refreshToken(String token) async {
-    return await _authService.refreshToken(token);
+    try {
+      return await _authService.refreshToken(token);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> forgotPassword(String phone) async {
-    return await _authService.forgotPassword(phone);
+    try {
+      return await _authService.forgotPassword(phone);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> verifyForgotOtp(String phone, String otp) async {
-    return await _authService.verifyForgotOtp(phone, otp);
+    try {
+      return await _authService.verifyForgotOtp(phone, otp);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> resetPassword(String phone, String password, String confirmPassword) async {
-    return await _authService.resetPassword(phone, password, confirmPassword);
+    try {
+      return await _authService.resetPassword(phone, password, confirmPassword);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> getProfile(String token) async {

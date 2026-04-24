@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
+import 'package:ziya_laundry_deliveryapp/core/api_exception.dart';
+import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
+import 'package:ziya_laundry_deliveryapp/core/token_service.dart';
 import '../model/user_model.dart';
 
 abstract class IAuthService {
-  Future<Map<String, dynamic>> login(String phone);
+  Future<Map<String, dynamic>> login(String name, String phone, String password);
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp);
   Future<Map<String, dynamic>> resendOtp(String phone);
   Future<Map<String, dynamic>> refreshToken(String refreshToken);
@@ -18,15 +19,21 @@ abstract class IAuthService {
   Future<bool> registerUser(UserModel user);
 }
 class AuthService implements IAuthService {
+  final DioClient _dioClient = DioClient();
+  final TokenService _tokenService = TokenService();
+
   @override
-  Future<Map<String, dynamic>> login(String phone) async {
+  Future<Map<String, dynamic>> login(String name, String phone, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': phone}),
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.post(ApiConstants.login, data: {
+        'name': name, // Passing name exactly as received with no changes
+        'phone': phone.trim(),
+        'password': password, // Removed trim to support passwords with spaces
+      });
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Server connection failed'};
     }
@@ -35,12 +42,23 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.verifyOtp}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': phone, 'otp': otp}),
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.post(ApiConstants.verifyOtp, data: {
+        'phone': phone.trim(),
+        'otp': otp.trim(),
+      });
+      final response = data as Map<String, dynamic>;
+
+      // Save tokens upon successful verification
+      if (response['token'] != null && response['refreshToken'] != null) {
+        await _tokenService.saveTokens(
+          accessToken: response['token'],
+          refreshToken: response['refreshToken'],
+        );
+      }
+
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -49,13 +67,11 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> resendOtp(String phone) async {
     try {
-      final cleanPhone = phone.trim();
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.resendOtp}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': cleanPhone}),
-      );
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final data = await _dioClient.post(ApiConstants.resendOtp, data: {'phone': phone.trim()});
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -64,12 +80,9 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> refreshToken(String token) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.refreshToken}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refreshToken': token}),
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.post(ApiConstants.refreshToken, data: {'refreshToken': token});
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -78,12 +91,11 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> forgotPassword(String phone) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.forgotPassword}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': phone}),
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.post(ApiConstants.forgotPassword, data: {'phone': phone});
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -92,16 +104,14 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> verifyForgotOtp(String phone, String otp) async {
     try {
-      // Ensure no accidental spaces are sent to the backend
-      final cleanPhone = phone.trim();
-      final cleanOtp = otp.trim();
-
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.verifyForgotOtp}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': cleanPhone, 'otp': cleanOtp}),
-      );
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final data = await _dioClient.post(ApiConstants.verifyForgotOtp, data: {
+        'phone': phone.trim(),
+        'otp': otp.trim(),
+      });
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -110,12 +120,15 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> resetPassword(String phone, String password, String confirmPassword) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.resetPassword}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': phone, 'password': password, 'confirmPassword': confirmPassword}),
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.post(ApiConstants.resetPassword, data: {
+        'phone': phone,
+        'password': password,
+        'confirmPassword': confirmPassword
+      });
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -124,14 +137,11 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> getProfile(String token) async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.profile}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.get(ApiConstants.profile);
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -140,14 +150,11 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> logout(String token) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.logout}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-      return jsonDecode(response.body);
+      final data = await _dioClient.post(ApiConstants.logout);
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};
     }
@@ -155,14 +162,26 @@ class AuthService implements IAuthService {
 
   @override
   Future<bool> sendOtp(String phoneNumber) async {
-    await Future.delayed(const Duration(seconds: 2)); // Mock API Delay
-    return true;
+    try {
+      final result = await _dioClient.post(ApiConstants.resendOtp, data: {'phone': phoneNumber});
+      return true; // Successfully reached without error
+    } catch (e) {
+      return false;
+    }
   }
 
   @override
   Future<bool> registerUser(UserModel user) async {
-    await Future.delayed(const Duration(seconds: 2)); // Mock API Delay
-    // Example: return await dio.post('/register', data: user.toJson());
-    return true;
+    try {
+      final result = await _dioClient.post('/delivery/auth/register', data: {
+        'name': user.name,
+        'phone': user.mobile,
+        'password': user.password,
+        'agreed': user.agreed,
+      });
+      return true; // Successfully reached without error
+    } catch (e) {
+      return false;
+    }
   }
 }
