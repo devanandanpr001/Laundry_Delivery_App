@@ -9,7 +9,10 @@ class OrderRepository {
 
   Future<List<OrderModel>> getOrders() async {
     final data = await _service.fetchOrdersFromApi();
-    return data.map((json) => OrderModel.fromJson(json)).toList();
+    return data.map((json) {
+      final OrderType type = parseOrderType(json['orderType']);
+      return OrderModel.fromJson(json, type);
+    }).toList();
   }
 
   Future<void> updateStatus(String orderId, OrderStatus status) async {

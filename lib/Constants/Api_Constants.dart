@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://172.30.240.1:5001/api';
+  static const String baseUrl = 'http://192.168.0.105:5001/api';
   static const String login = '/delivery/auth/login';
   static const String verifyOtp = '/delivery/auth/verify-otp';
   static const String resendOtp = '/delivery/auth/resend-otp';

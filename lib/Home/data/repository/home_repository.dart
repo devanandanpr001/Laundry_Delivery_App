@@ -1,26 +1,25 @@
 import 'package:ziya_laundry_deliveryapp/Home/data/service/home_service.dart';
-import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/data/model/Bundle_Model.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/DeliveryStage.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/data/model/order_model.dart';
 
 class HomeRepository {
-  final HomeService _service;
+  final HomeService _homeService = HomeService();
 
-  HomeRepository(this._service);
+  Future<bool> getInitialOnlineStatus() async {
+    // Simulate fetching initial online status
+    await Future.delayed(const Duration(milliseconds: 100));
+    return true; // Default to online
+  }
 
-  Future<List<OrderModel>> getOrders() async {
-    final List<Map<String, dynamic>> data = await _service.fetchOrdersFromApi();
-    return data.map((json) => OrderModel.fromJson(json)).toList();
+  // This method will now fetch all orders (pickup and delivery)
+  Future<List<OrderModel>> getAllOrders() async {
+    return await _homeService.fetchAllOrders();
   }
 
   Future<Map<String, dynamic>> getDashboardCounts() async {
-    return await _service.getDashboardCountsFromApi();
+    return await _homeService.getDashboardCountsFromApi();
   }
 
-  Future<bool> updateStatus(String id, OrderStatus status) async {
-    return await _service.updateOrderStatusOnApi(id, status.name);
+  Future<bool> updateStatus(String orderId, OrderStatus status) async {
+    return await _homeService.updateOrderStatusOnApi(orderId, status.name);
   }
-
-  Future<bool> getInitialOnlineStatus() async => await _service.getOnlineStatusFromApi();
 }

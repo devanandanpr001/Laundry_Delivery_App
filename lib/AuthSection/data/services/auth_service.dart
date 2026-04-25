@@ -28,9 +28,17 @@ class AuthService implements IAuthService {
       final data = await _dioClient.post(ApiConstants.login, data: {
         'name': name, // Passing name exactly as received with no changes
         'phone': phone.trim(),
-        'password': password, // Removed trim to support passwords with spaces
+        'password': password, 
       });
       final response = data as Map<String, dynamic>;
+
+      // If login returns tokens directly, save them here
+      if (response['token'] != null) {
+        await _tokenService.saveTokens(
+          accessToken: response['token'],
+          refreshToken: response['refreshToken'],
+        );
+      }
       return {'success': true, ...response};
     } on ApiException catch (e) {
       return {'success': false, 'msg': e.message};

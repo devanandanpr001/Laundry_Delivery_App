@@ -12,6 +12,8 @@ import 'package:ziya_laundry_deliveryapp/Home/widgets/status_count_card.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/welcome_section.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/order_type_toggle.dart';
 import '../../AuthSection/viewmodel/login_viewmodel.dart';
+import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
+import '../../core/dio_client.dart';
 import '../../Orders/widget/OrderCard.dart' as order_card_widget;
 import '../viewmodel/home_viewmodel.dart';
 import '../data/model/home_models.dart';
@@ -25,11 +27,57 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  OrderType _selectedOrderType = OrderType.pickup; // Default to pickup
+
+  @override
+  void initState() {
+    super.initState();
+    // Connect the DioClient session expired listener
+    DioClient.onSessionExpired = () {
+      if (mounted) {
+        _showSessionExpiredDialog();
+      }
+    };
+  }
+
+  void _showSessionExpiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Force user to acknowledge
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
+        title: Text(
+          "Session Expired",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: AppColors.errorRed),
+        ),
+        content: Text(
+          "Your session has expired. Please login again to continue.",
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Navigate back to login and clear the entire history
+              Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+                '/login', // Ensure this route is defined in your MaterialApp
+                (route) => false,
+              );
+            },
+            child: Text("Login Again", style: TextStyle(color: AppColors.primaryBlue)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final homeVM = context.watch<HomeViewModel>();
 
-    final newOrders = homeVM.pendingOrders;
+    // Filter pending orders by the selected order type
+    final newOrders = homeVM.pendingOrders
+        .where((order) => order.orderType == _selectedOrderType)
+        .toList();
     int completedOrdersCount = homeVM.completedCount;
     int assignedCount = homeVM.assignedCount;
     bool hasAssignedOrder = homeVM.orders.any(
@@ -54,10 +102,14 @@ class _HomepageState extends State<Homepage> {
               ),
               SizedBox(height: 20.h),
               Expanded(
-                child: SingleChildScrollView(
+                child: CustomSmartRefresher(
+                  onRefresh: () => homeVM.refreshOrders(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
-                      WelcomeSection(name: authVM.loginName),
+                      // Fallback for name if user data is missing/null
+                      WelcomeSection(name: authVM.loginName.isEmpty ? "Delivery Partner" : authVM.loginName),
                       SizedBox(height: 20.h),
 
                       /// Assigned & Completed Status Cards
@@ -93,8 +145,9 @@ class _HomepageState extends State<Homepage> {
                       SizedBox(height: 20.h),
 
                       OrderTypeToggle(
-                        onToggle: (index) {
-                          // Handle filtering logic here (0: Pick Up, 1: Delivery)
+                        onToggle: (index) { // 0: Pick Up, 1: Delivery
+                          setState(() => _selectedOrderType = index == 0 ? OrderType.pickup : OrderType.delivery);
+                          homeVM.refreshOrders(); // Refresh orders to get the latest for the selected type
                         },
                       ),
                       // const TodaysEarningsCard(amount: "\$473"),
@@ -110,6 +163,7 @@ class _HomepageState extends State<Homepage> {
                             padding: EdgeInsets.only(bottom: 12.h),
                             child: order_card_widget.OrderCard(
                               orderid: order.orderId,
+                              orderNumber: order.orderNumber,
                               name: order.name,
                               by: order.by,
                               address: order.address,
@@ -182,6 +236,7 @@ class _HomepageState extends State<Homepage> {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ],

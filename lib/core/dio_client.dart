@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
 import 'package:ziya_laundry_deliveryapp/core/api_exception.dart';
@@ -89,6 +90,8 @@ class DioClient {
                 return handler.resolve(await _dio.fetch(e.requestOptions));
               }
             }
+            // If status is not 200, throw to the catch block
+            throw DioException(requestOptions: e.requestOptions);
           } catch (_) {
             await _tokenService.deleteTokens();
             onSessionExpired?.call();

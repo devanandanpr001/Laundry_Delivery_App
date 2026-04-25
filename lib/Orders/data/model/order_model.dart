@@ -3,6 +3,7 @@ import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/DeliveryStage.dart';
 
 class OrderModel {
   final String orderId;
+  final String orderNumber;
   final String name;
   final String by;
   final String address;
@@ -16,6 +17,7 @@ class OrderModel {
 
   OrderModel({
     required this.orderId,
+    required this.orderNumber,
     required this.name,
     required this.by,
     required this.address,
@@ -28,22 +30,57 @@ class OrderModel {
     required this.items,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) {
+  factory OrderModel.fromJson(Map<String, dynamic> json, OrderType type) {
+    final user = json['user'] as Map<String, dynamic>?;
+    
+    // Look for details in either 'Pickup' or 'Delivery' keys based on backend response
+    final details = (json['Pickup'] ?? json['Delivery']) as Map<String, dynamic>?;
+    final addressData = details?['address'] as Map<String, dynamic>?;
+    
+    final orderItems = json['OrderItems'] as List?;
+
+    // Determine 'by' field dynamically (Removes static hardcoded reliance)
+    // Prioritize root-level 'by' or 'unitType' from backend, fallback to "By Weight"
+    String byValue = json['by']?.toString() ?? json['unitType']?.toString() ?? "By Weight";
+
+    if (orderItems != null && orderItems.isNotEmpty) {
+      // Use a robust check for 'piece' types to handle singular/plural and variations (e.g., piece, pieces, pcs)
+      final hasPiece = orderItems.any((item) => 
+        item['unitType']?.toString().toLowerCase().contains('piece') == true || 
+        item['unitType']?.toString().toLowerCase() == 'pcs');
+        
+      if (hasPiece) {
+        byValue = "Per Piece";
+      }
+    }
+
+    // Construct the full address string from multiple fields
+    final addressParts = [
+      addressData?['addressLine'],
+      addressData?['landmark'],
+      addressData?['city'],
+      addressData?['state'],
+      addressData?['pincode'],
+    ];
+    final fullAddress = addressParts.where((part) => part != null && part.toString().trim().isNotEmpty).join(', ');
+
     return OrderModel(
-      orderId: json['orderId'] ?? '',
-      name: json['name'] ?? '',
-      by: json['by'] ?? '',
-      address: json['address'] ?? '',
-      isPaid: json['isPaid'] ?? false,
-      status: parseOrderStatus(json['status']),
-      orderType: parseOrderType(json['orderType']),
-      deliveryStage: json['deliveryStage'] ?? DeliveryStage.startPickup,
+      orderId: json['id']?.toString() ?? '', 
+      orderNumber: json['orderNumber']?.toString() ?? '',
+      name: user?['name'] ?? '',
+      by: byValue,
+      address: fullAddress.isEmpty ? 'No Address Provided' : fullAddress,
+      isPaid: json['paymentStatus'] == 'SUCCESS',
+      status: parseOrderStatus(json['status']), // Map new statuses to existing enum
+      orderType: type, // Explicitly set based on API call
+      deliveryStage: type == OrderType.pickup ? DeliveryStage.startPickup : DeliveryStage.startDelivery, // Default stage based on order type
       pickedImages: [],
       bundles: [],
-      items: (json['items'] as List? ?? [])
+      items: (orderItems ?? [])
           .map((i) => OrderItem(
-                name: i['name'] ?? '',
-                qty: i['qty'] ?? '',
+                name: i['title'] ?? '',
+                qty: i['quantity']?.toString() ?? '', // Quantity is int, convert to string
+                unit: i['unitType']?.toString() ?? '',
               ))
           .toList(),
     );
@@ -51,6 +88,7 @@ class OrderModel {
 
   OrderModel copyWith({
     String? orderId,
+    String? orderNumber,
     String? name,
     String? by,
     String? address,
@@ -64,6 +102,7 @@ class OrderModel {
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
+      orderNumber: orderNumber ?? this.orderNumber,
       name: name ?? this.name,
       by: by ?? this.by,
       address: address ?? this.address,
@@ -81,10 +120,12 @@ class OrderModel {
 class OrderItem {
   final String name;
   final String qty;
+  final String unit;
 
   OrderItem({
     required this.name,
     required this.qty,
+    this.unit = '',
   });
 }
 
@@ -103,6 +144,9 @@ OrderStatus parseOrderStatus(dynamic status) {
       return OrderStatus.assigned;
     case "COMPLETED":
       return OrderStatus.completed;
+    case "SCHEDULED": // New status for pending pickup orders
+    case "OUT_FOR_DELIVERY": // New delivery tasks should appear as 'pending' to be accepted
+      return OrderStatus.pending;
     default:
       return OrderStatus.pending;
   }

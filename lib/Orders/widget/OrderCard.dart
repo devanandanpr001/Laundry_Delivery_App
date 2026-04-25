@@ -17,6 +17,7 @@ import 'Bundle_Dialog.dart';
 
 class OrderCard extends StatelessWidget {
   final String orderid;
+  final String orderNumber;
   final String name;
   final String by;
   final String address;
@@ -34,6 +35,7 @@ class OrderCard extends StatelessWidget {
   const OrderCard({
     super.key,
     required this.orderid,
+    required this.orderNumber,
     required this.name,
     required this.by,
     required this.address,
@@ -53,13 +55,17 @@ class OrderCard extends StatelessWidget {
     // Optimized: Only rebuild if the specific order or online status changes
     final isOnline = context.select<HomeViewModel, bool>((vm) => vm.isOnline);
     
-    final currentOrder = context.select<HomeViewModel, OrderModel>(
-      (vm) => vm.orders.firstWhere(
-        (o) => o.orderId == orderid, 
-        // Fallback to avoid crashes if an order is removed while the widget is still in the tree
-        orElse: () => vm.orders.isNotEmpty ? vm.orders.first : vm.orders[0] 
-      )
+    // Safely look up the order. If the list is empty or order is missing, return null.
+    final currentOrder = context.select<HomeViewModel, OrderModel?>(
+      (vm) {
+        final index = vm.orders.indexWhere((o) => o.orderId == orderid);
+        return index != -1 ? vm.orders[index] : null;
+      }
     );
+
+    // If the order data is missing (e.g. after a logout or failed refresh), 
+    // don't try to render the card to avoid RangeErrors.
+    if (currentOrder == null) return const SizedBox.shrink();
     
     final isPending = currentOrder.status == OrderStatus.pending;
     final stage = currentOrder.status == OrderStatus.completed 
@@ -76,7 +82,7 @@ class OrderCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             if (!isPending) ...[OrderAssignedHeader(stage: stage, orderType: currentOrder.orderType), SizedBox(height: 5.h)],
-            OrderIdRow(orderId: orderid),
+            OrderIdRow(orderId: orderNumber.isNotEmpty ? "#$orderNumber" : orderid),
             if (!isPending) ...[SizedBox(height: 10.h), OrderStepper(stage: stage, orderType: currentOrder.orderType), SizedBox(height: 10.h)],
             SizedBox(height: 5.h),
             OrderInfoRow(icon: AppImages.iconProfile, label: AppText.LoginNameLabel, value: name, trailing: by.isNotEmpty ? OrderStatusBadge(text: by) : null),

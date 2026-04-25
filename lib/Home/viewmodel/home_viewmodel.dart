@@ -3,6 +3,7 @@ import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.da
 import '../../Orders/data/model/order_model.dart';
 import '../../Orders/viewmodel/DeliveryStage.dart';
 import '../../Orders/data/model/Bundle_Model.dart';
+import '../../core/dio_client.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final HomeRepository _repository;
@@ -40,11 +41,15 @@ class HomeViewModel extends ChangeNotifier {
     try {
       // Concurrent fetch for efficiency: Fetch orders and dashboard counts together
       final results = await Future.wait([
-        _repository.getOrders(),
+        _repository.getAllOrders(), // Use the new method to get all orders
         _repository.getDashboardCounts(),
       ]);
 
       _orders = results[0] as List<OrderModel>;
+      
+      // DEBUG LOGS
+      debugPrint("TOTAL ORDERS LOADED: ${_orders.length}");
+      debugPrint("PENDING PICKUPS: ${_orders.where((o) => o.status == OrderStatus.pending && o.orderType == OrderType.pickup).length}");
       
       final countData = results[1] as Map<String, dynamic>;
       // The service already returns the 'data' part, so we access keys directly
@@ -52,6 +57,15 @@ class HomeViewModel extends ChangeNotifier {
       _completedCount = countData['completedCount'] ?? 0;
     } catch (e) {
       debugPrint("HomeViewModel Error: $e");
+      // Ensure safe defaults if data fetching fails
+      _orders = [];
+      _assignedCount = 0;
+      _completedCount = 0;
+      
+      // If we get an auth error explicitly, trigger session expired callback
+      if (e.toString().contains("No token") || e.toString().contains("401")) {
+        DioClient.onSessionExpired?.call();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();

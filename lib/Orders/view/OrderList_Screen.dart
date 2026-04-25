@@ -276,6 +276,7 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                                   Navigator.of(context, rootNavigator: true).pop();
                                 },
                                 orderid: order.orderId,
+                                orderNumber: order.orderNumber,
                                 name: order.name,
                                 by: order.by,
                                 address: order.address,
