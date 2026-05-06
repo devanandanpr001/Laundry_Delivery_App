@@ -1,6 +1,11 @@
+import 'package:flutter/material.dart';
 import '../model/order_model.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
+import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
 
 class OrderService {
+  final DioClient _dioClient = DioClient();
+
   /// Mock data simulating an API response
   Future<List<Map<String, dynamic>>> fetchOrdersFromApi() async {
     await Future.delayed(const Duration(milliseconds: 800)); // Simulate network lag
@@ -92,5 +97,21 @@ class OrderService {
 
   Future<void> updateOrderStatusOnApi(String orderId, OrderStatus status) async {
     await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  /// Fetches completed orders from the real API
+  Future<List<Map<String, dynamic>>> fetchCompletedOrders() async {
+    try {
+      final response = await _dioClient.get(ApiConstants.completedOrders);
+      
+      if (response != null && response['success'] == true) {
+        // The API response has a 'data' field which is a list of orders
+        return List<Map<String, dynamic>>.from(response['data']);
+      }
+      return [];
+    } catch (e) {
+      debugPrint("OrderService fetchCompletedOrders error: $e");
+      return [];
+    }
   }
 }

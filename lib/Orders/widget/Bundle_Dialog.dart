@@ -1,30 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import '../../Home/viewmodel/home_viewmodel.dart';
 
 import '../data/model/Bundle_Model.dart';
 
 class BundleDialog extends StatefulWidget {
-  const BundleDialog({super.key});
+  final String orderId;
+  const BundleDialog({super.key, required this.orderId});
 
   @override
   State<BundleDialog> createState() => _BundleDialogState();
 }
 
 class _BundleDialogState extends State<BundleDialog> {
-  List<String> services = AppText.DefaultServices;
+  final TextEditingController _weightController = TextEditingController();
+  double _unitPrice = 0.0;
+  double _totalAmount = 0.0;
 
   List<String> selectedServices = [];
   bool showDropdown = false;
 
-  String selectedType = AppText.PerWeightLabel;
-  String? selectedService;
+  @override
+  void initState() {
+    super.initState();
+    // Efficiently trigger fetching services from the VM if not already loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final homeVM = Provider.of<HomeViewModel>(context, listen: false);
+      if (homeVM.services.isEmpty) {
+        homeVM.fetchServices(widget.orderId);
+      }
+    });
+    _weightController.addListener(_updateTotal);
+  }
+
+  void _updateTotal() {
+    final homeVM = Provider.of<HomeViewModel>(context, listen: false);
+    final weightStr = _weightController.text.trim().replaceAll(',', '.');
+    final weight = double.tryParse(weightStr) ?? 0.0;
+    
+    double priceSum = 0.0;
+
+    for (var serviceName in selectedServices) {
+      final serviceData = homeVM.availableServices.firstWhere(
+        (s) => s['name'] == serviceName,
+        orElse: () => <String, dynamic>{},
+      );
+      
+      if (serviceData.isNotEmpty) {
+        // Robust parsing of service rates from backend
+        final dynamic rawRate = serviceData['price'] ?? 
+                                serviceData['unitPrice'] ?? 
+                                serviceData['rate'] ?? 
+                                serviceData['pricePerKg'] ?? 0.0;
+                                
+        double rate = 0.0;
+        if (rawRate is num) {
+          rate = rawRate.toDouble();
+        } else if (rawRate != null) {
+          rate = double.tryParse(rawRate.toString().replaceAll(',', '.')) ?? 0.0;
+        }
+        priceSum += rate;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _unitPrice = priceSum;
+        _totalAmount = weight * priceSum;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _weightController.removeListener(_updateTotal);
+    _weightController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Watch the HomeViewModel for service updates
+    final homeVM = context.watch<HomeViewModel>();
+    final services = homeVM.services;
+
     return Dialog(
       backgroundColor: AppColors.white,
       shape: RoundedRectangleBorder(
@@ -34,6 +98,7 @@ class _BundleDialogState extends State<BundleDialog> {
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
 
@@ -110,7 +175,7 @@ class _BundleDialogState extends State<BundleDialog> {
                       GestureDetector(
                         onTap: () {
                           setState(() {
-                            showDropdown = !showDropdown;
+                            if (services.isNotEmpty) showDropdown = !showDropdown;
                           });
                         },
                         child: Container(
@@ -121,17 +186,23 @@ class _BundleDialogState extends State<BundleDialog> {
                           ),
                           child: Row(
                             children: [
+                              if (homeVM.isFetchingServices)
+                                SizedBox(
+                                  width: 16.w, height: 16.h,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                                )
+                              else
                               Expanded(
-                                child: Text(style: GoogleFonts.poppins(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600
-                                ),
+                                child: Text(
                                   selectedServices.isEmpty
                                       ? AppText.SelectServicesHint
-                                      : AppText.SelectServicesHint
+                                      : "${selectedServices.length} ${AppText.SelectedSuffix}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14.sp, fontWeight: FontWeight.w600
+                                  ),
                                 ),
                               ),
-                              Icon(showDropdown
+                              Icon(showDropdown 
                                   ? Icons.keyboard_arrow_up
                                   : Icons.keyboard_arrow_down),
                             ],
@@ -147,31 +218,32 @@ class _BundleDialogState extends State<BundleDialog> {
                             border: Border.all(color: AppColors.divider),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: SizedBox(
-                            height: 180.h,
-                            child: Stack(
-                              children: [
-                             ListView(
-                                shrinkWrap: true,
-                              children: services.map((service) {
-                                return CheckboxListTile(
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  title: Text(service),
-                                  value: selectedServices.contains(service),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      if (value!) {
-                                        selectedServices.add(service);
-                                      } else {
-                                        selectedServices.remove(service);
-                                      }
-                                    });
-                                  },
-                                );
-                              }).toList(),
-                                                      ),
-                            ],
-                        ),),),
+                          constraints: BoxConstraints(maxHeight: 180.h),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: services.length,
+                            padding: EdgeInsets.zero,
+                            itemBuilder: (context, index) {
+                              final service = services[index];
+                              return CheckboxListTile(
+                                controlAffinity: ListTileControlAffinity.leading,
+                                title: Text(service, style: GoogleFonts.poppins(fontSize: 13.sp)),
+                                value: selectedServices.contains(service),
+                                activeColor: AppColors.primaryBlue,
+                                onChanged: (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      selectedServices.add(service);
+                                    } else {
+                                      selectedServices.remove(service);
+                                    }
+                                  });
+                                  _updateTotal();
+                                },
+                              );
+                            },
+                          ),
+                        ),
                       if (selectedServices.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -197,13 +269,21 @@ class _BundleDialogState extends State<BundleDialog> {
               /// WEIGHT FIELD
               Row(
                 children: [
-                  const Text(AppText.WeightLabel),
+                  Text(
+                    AppText.WeightLabel,
+                    style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
+                      controller: _weightController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: GoogleFonts.poppins(fontSize: 14.sp),
                       decoration: InputDecoration(
                         hintText: AppText.PerKgHint,
-                        border: OutlineInputBorder(),
+                        hintStyle: GoogleFonts.poppins(fontSize: 13.sp, color: AppColors.hintGrey),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
                       ),
                     ),
                   )
@@ -213,9 +293,19 @@ class _BundleDialogState extends State<BundleDialog> {
               const SizedBox(height: 20),
 
               /// TOTAL
-              Align(
-                alignment: Alignment.centerLeft,
-                child: const Text(AppText.TotalAmountLabel),
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Column(
+                  children: [
+                    _buildAmountRow("Rate per KG", "₹ ${_unitPrice.toStringAsFixed(2)}", isTotal: false),
+                    SizedBox(height: 8.h),
+                    _buildAmountRow(AppText.TotalAmountLabel, "₹ ${_totalAmount.toStringAsFixed(2)}", isTotal: true),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -224,11 +314,13 @@ class _BundleDialogState extends State<BundleDialog> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: selectedServices.isEmpty ? null :() {
+                  onPressed: (selectedServices.isEmpty || _totalAmount <= 0 || _unitPrice <= 0) ? null : () {
                     final bundle = BundleModel(
-                      id: 1,
-                      price: 473,
-                      services: selectedServices,
+                      id: '1',
+                      price: _unitPrice,
+                      services: List.from(selectedServices),
+                      name: 'Bundle ${selectedServices.length}',
+                      weight: _weightController.text,
                     );
                     Navigator.pop(context, bundle);
                   },
@@ -243,6 +335,30 @@ class _BundleDialogState extends State<BundleDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAmountRow(String label, String value, {required bool isTotal}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14.sp,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.w400,
+            color: isTotal ? Colors.black : Colors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: isTotal ? 16.sp : 14.sp,
+            fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
+            color: isTotal ? AppColors.primaryBlue : Colors.black,
+          ),
+        ),
+      ],
     );
   }
 }

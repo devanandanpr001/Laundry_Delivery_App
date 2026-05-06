@@ -1,43 +1,62 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/data/models/profile_model.dart';
-import '../data/repository/profile_repository.dart';
+import 'package:ziya_laundry_deliveryapp/Profile/data/repository/profile_repository.dart';
 
 class ProfileViewModel extends ChangeNotifier {
-  ProfileRepository _repository;
-  ProfileModel? _userProfile;
+  final ProfileRepository _repository;
+
+  ProfileViewModel(this._repository) {
+    _init();
+  }
+
   File? _selectedImage;
   bool _isLoading = false;
   String? _errorMessage;
+  Map<String, dynamic>? _userProfile; // Holds the fetched profile data
 
-  ProfileViewModel(this._repository) {
-    // Use a post-frame callback or check if data exists to avoid rebuild loops in ProxyProvider
-    Future.microtask(() => loadProfile());
-  }
-
-  void updateRepository(ProfileRepository repository) {
-    _repository = repository;
-  }
-
-  ProfileModel? get userProfile => _userProfile;
   File? get selectedImage => _selectedImage;
-  bool get isLoading => _isLoading;
+  bool get isLoading => _isLoading; // This getter was already present
   String? get errorMessage => _errorMessage;
+  Map<String, dynamic>? get userProfile => _userProfile;
 
-  Future<void> loadProfile() async {
-    if (_isLoading || _userProfile != null) return;
+  // Getter for the profile image URL from the fetched profile data
+  String get profileImageUrl {
+    // Ensure it doesn't return "null" string if the value is actually null
+    return _userProfile?['profileImage']?.toString() ?? '';
+  }
+
+  // Getter for user name (example)
+  String get userName => _userProfile?['name']?.toString() ?? 'User'; // This getter was already present
+
+  // Getter for user phone number (example)
+  String get userPhone => _userProfile?['phone']?.toString() ?? '0000000000';
+
+
+  Future<void> _init() async {
+    await fetchProfileData(); // Fetch initial profile data when ViewModel is created
+  }
+
+  void setPickedImage(File image) {
+    _selectedImage = image;
+    notifyListeners();
+  }
+
+  // Method to fetch profile data from the repository
+  Future<void> fetchProfileData() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _userProfile = await _repository.getProfile();
+      _userProfile = await _repository.getProfile(); // Call repository method
     } catch (e) {
       _errorMessage = e.toString();
+      debugPrint("ProfileViewModel: Error fetching profile data: $_errorMessage");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
+
 
   Future<void> uploadProfileImage() async {
     if (_selectedImage == null) return;
@@ -45,32 +64,49 @@ class ProfileViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final newImageUrl = await _repository.updateProfileImage(_selectedImage!);
-      
-      // Update local model with new URL after successful backend upload
-      if (_userProfile != null) {
-        _userProfile = ProfileModel(
-          name: _userProfile!.name,
-          phone: _userProfile!.phone,
-          profileImageUrl: newImageUrl,
-        );
+      final newUrl = await _repository.updateProfileImage(_selectedImage!);
+
+      // Optimistic update: If the server returned a URL, update local state immediately
+      if (newUrl.isNotEmpty) {
+        if (_userProfile != null) {
+          final updatedProfile = Map<String, dynamic>.from(_userProfile!);
+          updatedProfile['profileImage'] = newUrl;
+          _userProfile = updatedProfile;
+        }
+        notifyListeners();
       }
-      _selectedImage = null; // Clear selection after successful upload
+
+      // Re-fetch to synchronize everything else (name, etc)
+      await fetchProfileData();
+      
+      // CRITICAL: Only clear the local preview if the VM now has a valid network URL
+      // This prevents reverting to dummy if the fetch is slow or returned null
+      if (profileImageUrl.isNotEmpty) {
+        _selectedImage = null;
+      } else {
+        debugPrint("Warning: Fetch returned empty image after upload. Keeping local preview.");
+        // We keep _selectedImage so the user still sees their new photo locally
+      }
+      
+      _errorMessage = null; // Clear any previous error
     } catch (e) {
       _errorMessage = e.toString();
+      debugPrint("ProfileViewModel: Error uploading profile image: $_errorMessage");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  void setPickedImage(File img) {
-    _selectedImage = img;
+  // You might want a method to clear the selected image if the user cancels the upload
+  void clearSelectedImage() {
+    _selectedImage = null;
     notifyListeners();
   }
 
-  void clearImage() {
-    _selectedImage = null;
+  // You might also want a method to clear the error message after it's displayed
+  void clearErrorMessage() {
+    _errorMessage = null;
     notifyListeners();
   }
 }

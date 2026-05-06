@@ -32,6 +32,10 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
+    // Trigger initial data fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeViewModel>().refreshOrders();
+    });
     // Connect the DioClient session expired listener
     DioClient.onSessionExpired = () {
       if (mounted) {
@@ -80,9 +84,6 @@ class _HomepageState extends State<Homepage> {
         .toList();
     int completedOrdersCount = homeVM.completedCount;
     int assignedCount = homeVM.assignedCount;
-    bool hasAssignedOrder = homeVM.orders.any(
-      (o) => o.status == OrderStatus.assigned,
-    );
     final authVM = Provider.of<LoginViewModel>(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -179,14 +180,6 @@ class _HomepageState extends State<Homepage> {
                                 if (!homeVM.isOnline) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text(AppText.UrOffline)),
-                                  );
-                                  return;
-                                }
-                                if (hasAssignedOrder) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(AppText.FinishOrderMsg),
-                                    ),
                                   );
                                   return;
                                 }

@@ -14,8 +14,9 @@ import '../../Home/viewmodel/home_viewmodel.dart';
 import 'custom_widgets.dart';
 import 'order_card_elements.dart';
 import 'Bundle_Dialog.dart';
+import 'add_item_dialog.dart'; // Import the new AddItemDialog
 
-class OrderCard extends StatelessWidget {
+class OrderCard extends StatefulWidget {
   final String orderid;
   final String orderNumber;
   final String name;
@@ -51,6 +52,19 @@ class OrderCard extends StatelessWidget {
   });
 
   @override
+  State<OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<OrderCard> {
+  final TextEditingController _mismatchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _mismatchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Optimized: Only rebuild if the specific order or online status changes
     final isOnline = context.select<HomeViewModel, bool>((vm) => vm.isOnline);
@@ -58,7 +72,7 @@ class OrderCard extends StatelessWidget {
     // Safely look up the order. If the list is empty or order is missing, return null.
     final currentOrder = context.select<HomeViewModel, OrderModel?>(
       (vm) {
-        final index = vm.orders.indexWhere((o) => o.orderId == orderid);
+        final index = vm.orders.indexWhere((o) => o.orderId == widget.orderid);
         return index != -1 ? vm.orders[index] : null;
       }
     );
@@ -79,50 +93,70 @@ class OrderCard extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: isPending ? 10.h : 12.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             if (!isPending) ...[OrderAssignedHeader(stage: stage, orderType: currentOrder.orderType), SizedBox(height: 5.h)],
-            OrderIdRow(orderId: orderNumber.isNotEmpty ? "#$orderNumber" : orderid),
+            OrderIdRow(orderId: widget.orderNumber.isNotEmpty ? "#${widget.orderNumber}" : widget.orderid),
             if (!isPending) ...[SizedBox(height: 10.h), OrderStepper(stage: stage, orderType: currentOrder.orderType), SizedBox(height: 10.h)],
             SizedBox(height: 5.h),
-            OrderInfoRow(icon: AppImages.iconProfile, label: AppText.LoginNameLabel, value: name, trailing: by.isNotEmpty ? OrderStatusBadge(text: by) : null),
+            OrderInfoRow(icon: AppImages.iconProfile, label: AppText.LoginNameLabel, value: widget.name, trailing: widget.by.isNotEmpty ? OrderStatusBadge(text: widget.by) : null),
             SizedBox(height: 5.h),
             OrderInfoRow(icon: AppImages.iconLocation, label: AppText.PickupAddress),
-            OrderIndentText(text: address),
+            OrderIndentText(text: widget.address),
             SizedBox(height: 5.h),
-            OrderInfoRow(icon: AppImages.iconPay, label: AppText.CashOnDelivery),
-            Padding(padding: EdgeInsets.only(left: 29.w), child: OrderStatusBadge(text: isPaid ? AppText.AmountPaid : AppText.NotYetPaid, width: 103.w)),
+            OrderInfoRow(
+              icon: AppImages.iconPay,
+              label: currentOrder.paymentMethod == "ONLINE"
+                  ? "Online Payment"
+                  : currentOrder.paymentMethod == "COD"
+                      ? "Cash on Delivery"
+                      : "Not Available",
+              trailing: isPending 
+                  ? OrderStatusBadge(text: "Total \$${currentOrder.totalAmount}")
+                  : null,
+            ),
+            if (!isPending)
+              Padding(
+                  padding: EdgeInsets.only(left: 29.w),
+                  child: OrderStatusBadge(
+                    text: widget.isPaid
+                        ? AppText.AmountPaid
+                        : "Total Amount: \$${currentOrder.totalAmount}",
+                  )),
             SizedBox(height: 10.h),
             if (isPending) ...[
-              if (items.isNotEmpty) OrderItemsList(items: items),
-              if (currentOrder.orderType == OrderType.delivery) ...[
-                if (by != "Per Piece" && currentOrder.bundles.isNotEmpty)
-                  BundleSection(
-                    bundles: currentOrder.bundles,
-                    onAddTap: () {}, // Read-only for pending delivery
-                    onDelete: (_) {},
-                    isReadOnly: true,
-                  ),
-                if (currentOrder.pickedImages.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 10.h),
-                    child: ImageGallerySection(
-                      pickedImages: currentOrder.pickedImages,
-                      onSeeMore: () => _showImagePickerGrid(context, true),
+              if (widget.isDetailsPage) ...[
+                OrderInfoRow(icon: AppImages.iconItems, label: AppText.ItemsLabel),
+                _buildVerificationList(context, currentOrder, true),
+                if (currentOrder.orderType == OrderType.delivery) ...[
+                  if (widget.by != "Per Piece" && currentOrder.bundles.isNotEmpty)
+                    BundleSection(
+                      bundles: currentOrder.bundles,
+                      onAddTap: () {}, // Read-only for pending delivery
+                      onDelete: (_) {},
+                      isReadOnly: true,
                     ),
-                  ),
+                  if (currentOrder.pickedImages.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 10.h),
+                      child: ImageGallerySection(
+                        pickedImages: currentOrder.pickedImages,
+                        onSeeMore: () => _showImagePickerGrid(context, true),
+                      ),
+                    ),
+                ],
               ],
               SizedBox(height: 10.h),
-              isDetailsPage 
-                ? OrderProgressButton(text: AppText.BtnAccept, stage: currentOrder.orderType == OrderType.delivery ? DeliveryStage.startDelivery : DeliveryStage.startPickup, onPressed: onAccept ?? () {}) 
-                : AcceptViewActionRow(isOnline: isOnline, onView: onViewTap ?? () {}, onAccept: onAccept),
+              widget.isDetailsPage 
+                ? OrderProgressButton(text: AppText.BtnAccept, stage: currentOrder.orderType == OrderType.delivery ? DeliveryStage.startDelivery : DeliveryStage.startPickup, onPressed: widget.onAccept ?? () {})
+                : AcceptViewActionRow(isOnline: isOnline, onView: widget.onViewTap ?? () {}, onAccept: widget.onAccept),
             ] else ...[
-              if (by == "Per Piece" && items.isNotEmpty) OrderItemsList(items: items),
-              if (stage != DeliveryStage.startPickup && by != "Per Piece" || currentOrder.orderType == OrderType.delivery)
+              if (widget.by == "Per Piece" && widget.items.isNotEmpty) _buildVerificationList(context, currentOrder, false),
+              if (stage != DeliveryStage.startPickup && widget.by != "Per Piece" || currentOrder.orderType == OrderType.delivery)
                 BundleSection(
                   bundles: currentOrder.bundles,
                   onAddTap: currentOrder.orderType == OrderType.delivery ? () {} : () => _openBundleDialog(context),
-                  onDelete: currentOrder.orderType == OrderType.delivery ? (_) {} : (i) => context.read<HomeViewModel>().removeOrderBundle(orderid, i),
+                  onDelete: currentOrder.orderType == OrderType.delivery ? (_) {} : (i) => context.read<HomeViewModel>().removeOrderBundle(widget.orderid, i),
                   isReadOnly: currentOrder.status == OrderStatus.completed || currentOrder.orderType == OrderType.delivery,
                 ),
               SizedBox(height: 15.h),
@@ -135,10 +169,157 @@ class OrderCard extends StatelessWidget {
     );
   }
 
+  Widget _buildVerificationList(BuildContext context, OrderModel order, bool isPending) {
+    final isPickup = order.orderType == OrderType.pickup;
+    // Disable buttons if already verified
+    final isInteractive = !isPending && order.status == OrderStatus.assigned && isPickup && !order.isVerified;
+    final displayItems = order.items.isEmpty ? widget.items : order.items;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...displayItems.map((item) => Padding(
+          padding: EdgeInsets.symmetric(vertical: 4.h),
+          child: Row(
+            children: [
+              if (isInteractive || (!isPending && order.isVerified))
+                Checkbox(
+                  value: item.isVerified,
+                  activeColor: AppColors.primaryBlue,
+                  onChanged: isInteractive ? (_) => context.read<HomeViewModel>().toggleItemVerification(widget.orderid, item.id) : null,
+                ),
+              Expanded(
+                child: Text(
+                  "${item.name} x ${item.qty} ${item.unit}",
+                  style: GoogleFonts.poppins(fontSize: 14.sp, decoration: item.isVerified ? TextDecoration.lineThrough : null),
+                ),
+              ),
+              if (isInteractive)
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 20.sp),
+                  onPressed: () => context.read<HomeViewModel>().deleteItemFromOrder(widget.orderid, item.id),
+                ),
+            ],
+          ),
+        )),
+        if (isInteractive) ...[
+          Padding(
+            padding: EdgeInsets.only(top: 12.h, bottom: 8.h),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 136.w,
+                  height: 32.h,
+                  child: OutlinedButton( // This is the "Add" button
+                    onPressed: () => _showAddItemDialog(context),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.primaryBlue, width: 1.r),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                      padding: EdgeInsets.all(8.w),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, size: 16.sp, color: AppColors.primaryBlue),
+                        SizedBox(width: 8.w),
+                        Text("Add", style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.primaryBlue, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                SizedBox(
+                  width: 136.w,
+                  height: 32.h,
+                  child: ElevatedButton(
+                    onPressed: () => context.read<HomeViewModel>().verifyOrder(widget.orderid),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                      padding: EdgeInsets.all(8.w),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 16.sp, color: Colors.white),
+                        SizedBox(width: 8.w),
+                        Text("Checked", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.only(bottom: 12.h),
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              border: Border.all(color: AppColors.errorRed.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Report Item Mismatch", style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w600, color: AppColors.errorRed)),
+                SizedBox(height: 10.h),
+                TextField(
+                  controller: _mismatchController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: "Type mismatch details here...",
+                    hintStyle: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.grey),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: BorderSide(color: AppColors.grey.withOpacity(0.5))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: const BorderSide(color: AppColors.primaryBlue)),
+                    contentPadding: EdgeInsets.all(10.w),
+                  ),
+                  style: GoogleFonts.poppins(fontSize: 13.sp),
+                ),
+                SizedBox(height: 10.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _mismatchController.clear(),
+                        style: OutlinedButton.styleFrom(side: BorderSide(color: AppColors.grey), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r))),
+                        child: Text("Cancel", style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.grey, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_mismatchController.text.trim().isNotEmpty) {
+                            context.read<HomeViewModel>().reportItemMismatch(
+                                  widget.orderid,
+                                  _mismatchController.text.trim(),
+                                );
+                            _mismatchController.clear();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r))),
+                        child: Text("Enter", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+        Divider(color: AppColors.grey.withOpacity(0.5)),
+      ],
+    );
+  }
+
   void _openBundleDialog(BuildContext context) async {
-    final result = await showDialog(context: context, builder: (context) => const BundleDialog());
+    final result = await showDialog(
+      context: context, 
+      builder: (context) => BundleDialog(orderId: widget.orderid));
     if (result != null) {
-      context.read<HomeViewModel>().addOrderBundle(orderid, result);
+      context.read<HomeViewModel>().addOrderBundle(widget.orderid, result);
     }
   }
 
@@ -146,7 +327,7 @@ class OrderCard extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => GalleryScreen(
-        orderId: orderid,
+        orderId: widget.orderid,
         isReadOnly: isReadOnly,
       )),
     );
@@ -154,7 +335,7 @@ class OrderCard extends StatelessWidget {
 
   Future<void> _handleProgressAction(BuildContext context) async {
     final homeVM = context.read<HomeViewModel>();
-    final currentOrder = homeVM.orders.firstWhere((o) => o.orderId == orderid);
+    final currentOrder = homeVM.orders.firstWhere((o) => o.orderId == widget.orderid);
     final stage = currentOrder.deliveryStage;
     final ImagePicker picker = ImagePicker();
 
@@ -163,30 +344,30 @@ class OrderCard extends StatelessWidget {
       if (!context.mounted) return;
       if (result == true) {
         final nextStage = currentOrder.by == "Per Piece" ? DeliveryStage.orderPicked : DeliveryStage.uploadImages;
-        homeVM.updateOrderStage(orderid, nextStage);
+        homeVM.updateOrderStage(widget.orderid, nextStage);
       }
     } else if (stage == DeliveryStage.uploadImages) {
       final images = await picker.pickMultiImage();
       if (!context.mounted) return;
       if (images.isNotEmpty) {
         homeVM.addOrderImages(currentOrder.orderId, images.map((i) => i.path).toList());
-        homeVM.updateOrderStage(orderid, DeliveryStage.orderPicked);
+        homeVM.updateOrderStage(widget.orderid, DeliveryStage.orderPicked);
       }
     } else if (stage == DeliveryStage.orderPicked) {
       await _showStatusDialog(context, AppImages.orderPickedGif, AppText.OrderPickedTitle);
       if (!context.mounted) return;
-      homeVM.updateOrderStatus(orderid, OrderStatus.completed);
+      homeVM.updateOrderStatus(widget.orderid, OrderStatus.completed);
       homeVM.setSelectedFilter("completed");
     } else if (stage == DeliveryStage.startDelivery) {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const DeliveryLocationScreen()));
       if (!context.mounted) return;
       if (result == true) {
-        homeVM.updateOrderStage(orderid, DeliveryStage.reachedDelivery);
+        homeVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
       }
     } else if (stage == DeliveryStage.reachedDelivery) {
       await _showStatusDialog(context, AppImages.successGif, AppText.OrderDeliveredTitle);
       if (!context.mounted) return;
-      homeVM.updateOrderStatus(orderid, OrderStatus.completed);
+      homeVM.updateOrderStatus(widget.orderid, OrderStatus.completed);
       homeVM.setSelectedFilter("completed");
     }
   }
@@ -199,5 +380,23 @@ class OrderCard extends StatelessWidget {
     ])));
     await Future.delayed(const Duration(seconds: 3));
     if (context.mounted) Navigator.pop(context);
+  }
+
+  // Method to show the AddItemDialog and handle the result
+  void _showAddItemDialog(BuildContext context) async {
+    final results = await showDialog<List<Map<String, dynamic>>>(
+      context: context,
+      builder: (context) => AddItemDialog(orderId: widget.orderid),
+    );
+    if (results != null && context.mounted) {
+      for (var result in results) {
+        await context.read<HomeViewModel>().addItemToOrder(
+              widget.orderid,
+              result['item'],
+              price: (result['price'] as num?)?.toDouble() ?? 0.0,
+              serviceName: result['serviceName'],
+            );
+      }
+    }
   }
 }

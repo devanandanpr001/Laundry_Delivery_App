@@ -33,15 +33,34 @@ class OrderInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Image.asset(icon, height: 24.h, width: 24.w),
         SizedBox(width: 10.w),
-        Text(label, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400, color: AppColors.primaryBlue)),
-        if (value != null) ...[
-          SizedBox(width: 5.w),
-          Text(value!, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400)),
+        Expanded(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400, color: AppColors.primaryBlue)),
+              ),
+              if (value != null) ...[
+                SizedBox(width: 5.w),
+                Flexible(
+                  child: Text(value!,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400)),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (trailing != null) ...[
+          SizedBox(width: 10.w),
+          trailing!,
         ],
-        if (trailing != null) ...[const Spacer(), trailing!],
       ],
     );
   }
@@ -56,9 +75,16 @@ class OrderStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 30.h, width: width ?? 87.w,
-      decoration: BoxDecoration(color: AppColors.badgeBlue, borderRadius: BorderRadius.circular(15.w)),
-      child: Center(child: Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w500))),
+      constraints: BoxConstraints(minHeight: 30.h, minWidth: width ?? 87.w),
+      width: width,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+      decoration: BoxDecoration(
+          color: AppColors.badgeBlue, borderRadius: BorderRadius.circular(15.w)),
+      child: Center(
+          child: Text(text,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                  fontSize: 14.sp, fontWeight: FontWeight.w500))),
     );
   }
 }

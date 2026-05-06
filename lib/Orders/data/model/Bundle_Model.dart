@@ -1,12 +1,15 @@
 class BundleModel {
-  int id;
-  double price;
-  List<String> services;
+  final String id;
+  final String name;
+  final String weight;
+  final double price;
+  final List<String> services;
 
   BundleModel({
     required this.id,
+    required this.name,
+    required this.weight,
     required this.price,
-    required this.services,
+    this.services = const [],
   });
 }
-

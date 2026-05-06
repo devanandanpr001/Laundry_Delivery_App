@@ -12,7 +12,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 class VerificationScreen extends StatefulWidget {
   final String title;
   final String subtitle;
-  final Future<bool> Function(String pin) onCompleted;
+  final Future<dynamic> Function(String pin) onCompleted;
   final VoidCallback onResend;
 
   const VerificationScreen({
@@ -169,7 +169,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                           setState(() => _isLoading = true);
                           
                           // Ensure we treat the result as a boolean
-                          widget.onCompleted(value).then((result) async {
+                          widget.onCompleted(value).then((dynamic result) async {
                             if (!mounted) return;
                             
                             // Explicitly check for true to avoid Map vs Bool type issues

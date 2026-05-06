@@ -61,17 +61,21 @@ class BundleSection extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(radius: 12.w, backgroundColor: AppColors.cyanBlue, child: Text("${bundle.id}", style: GoogleFonts.poppins(color: AppColors.white))),
+                      CircleAvatar(radius: 12.w, backgroundColor: AppColors.cyanBlue, child: Text("${index + 1}", style: GoogleFonts.poppins(color: AppColors.white, fontSize: 11.sp))),
                       SizedBox(width: 10.w),
                       Text(AppText.BundleLabel, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400)),
-                      SizedBox(width: 10.w),
+                      SizedBox(width: 8.w),
+                      Text("${bundle.weight} KG", style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.grey)),
+                      const Spacer(),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                         decoration: BoxDecoration(color: AppColors.priceBadgeBg, borderRadius: BorderRadius.circular(20.w)),
-                        child: Text("\$${bundle.price}", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400)),
+                        child: Text(
+                          "₹ ${(bundle.price * (double.tryParse(bundle.weight) ?? 0)).toStringAsFixed(2)}",
+                          style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
+                        ),
                       ),
                       if (!isReadOnly) ...[
-                        const Spacer(),
                         GestureDetector(
                           onTap: () => onDelete(index),
                           child: Container(

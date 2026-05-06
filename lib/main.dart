@@ -20,7 +20,6 @@ import 'package:ziya_laundry_deliveryapp/Profile/data/service/profile_service.da
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/help_support_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/bottom_navigation_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -49,7 +48,7 @@ class MyApp extends StatelessWidget {
              ),
              ChangeNotifierProxyProvider<ProfileRepository, ProfileViewModel>(
                create: (context) => ProfileViewModel(context.read<ProfileRepository>()),
-               update: (_, repository, previous) => (previous ?? ProfileViewModel(repository))..updateRepository(repository),
+               update: (context, repository, previous) => previous ?? ProfileViewModel(repository), // Fixed: Removed .updateRepository and simplified
              ),
              // Help & Support Dependencies
              Provider(create: (_) => HelpSupportService()),

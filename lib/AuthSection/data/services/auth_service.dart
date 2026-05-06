@@ -147,7 +147,10 @@ class AuthService implements IAuthService {
     try {
       final data = await _dioClient.get(ApiConstants.profile);
       final response = data as Map<String, dynamic>;
-      return {'success': true, ...response};
+      if (response['success'] == true && response['user'] != null) {
+        return response['user'] as Map<String, dynamic>;
+      }
+      return {'success': false, 'msg': 'User profile not found'};
     } on ApiException catch (e) {
       return {'success': false, 'msg': e.message};
     } catch (e) {

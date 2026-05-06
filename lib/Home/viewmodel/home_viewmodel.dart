@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
 import '../../Orders/data/model/order_model.dart';
 import '../../Orders/viewmodel/DeliveryStage.dart';
-import '../../Orders/data/model/Bundle_Model.dart';
+import '../../Constants/Api_Constants.dart';
 import '../../core/dio_client.dart';
+import 'package:dio/dio.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final HomeRepository _repository;
@@ -14,18 +15,34 @@ class HomeViewModel extends ChangeNotifier {
 
   List<OrderModel> _orders = [];
   bool _isOnline = false;
+  List<Map<String, dynamic>> _availableServices = [];
+  final Map<String, List<dynamic>> _serviceItemsMap = {};
   bool _isLoading = false;
+  bool _isFetchingServices = false;
   String _selectedFilter = "all";
   int _assignedCount = 0;
   int _completedCount = 0;
-
-  // Getters
+  String _userName = "";
+  String _profileImage = "";
+  String? _errorMessage;// Getters
   List<OrderModel> get orders => _orders;
   bool get isOnline => _isOnline;
+  List<Map<String, dynamic>> get availableServices => _availableServices;
+  Map<String, List<dynamic>> get serviceItemsMap => _serviceItemsMap;
   bool get isLoading => _isLoading;
+  bool get isFetchingServices => _isFetchingServices;
   String get selectedFilter => _selectedFilter;
+  String? get errorMessage => _errorMessage;
   int get assignedCount => _assignedCount;
   int get completedCount => _completedCount;
+  String get userName => _userName;
+  String get profileImage => _profileImage;
+
+  /// Getter to provide service names as a simple list for dropdowns
+  List<String> get services => _availableServices
+      .map((s) => s['name']?.toString() ?? "")
+      .where((name) => name.isNotEmpty)
+      .toList();
 
   // Logic Getters for UI
   List<OrderModel> get pendingOrders => _orders.where((o) => o.status == OrderStatus.pending).toList();
@@ -36,38 +53,171 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshOrders() async {
+    if (_isLoading) return; // Performance: Prevent multiple simultaneous refreshes
     _isLoading = true;
     notifyListeners();
     try {
       // Concurrent fetch for efficiency: Fetch orders and dashboard counts together
-      final results = await Future.wait([
-        _repository.getAllOrders(), // Use the new method to get all orders
+      final results = await Future.wait<dynamic>([
+        _repository.getAllOrders(), // Existing call for active orders
         _repository.getDashboardCounts(),
+        _repository.getCompletedOrders(), // NEW: Fetch completed orders
+        _repository.getProfile(), // NEW: Fetch profile data
+        fetchAvailableServices(), // Fetch services directly via API
       ]);
 
-      _orders = results[0] as List<OrderModel>;
+      final activeOrders = (results[0] as List<OrderModel>?) ?? [];
+      final completedOrders = (results[2] as List<OrderModel>?) ?? [];
       
-      // DEBUG LOGS
-      debugPrint("TOTAL ORDERS LOADED: ${_orders.length}");
-      debugPrint("PENDING PICKUPS: ${_orders.where((o) => o.status == OrderStatus.pending && o.orderType == OrderType.pickup).length}");
+      final fetchedOrders = [...activeOrders, ...completedOrders];
       
-      final countData = results[1] as Map<String, dynamic>;
+      // Professional Merge Logic: Preserve local progress state (deliveryStage)
+      // so the UI doesn't "reset" to Start Pickup after adding items/bundles/images.
+      _orders = fetchedOrders.map((newOrder) {
+        final existingOrder = _orders.cast<OrderModel?>().firstWhere(
+          (o) => o?.orderId == newOrder.orderId,
+          orElse: () => null,
+        );
+        return existingOrder != null 
+            ? newOrder.copyWith(deliveryStage: existingOrder.deliveryStage)
+            : newOrder;
+      }).toList();
+      
+      final countData = (results[1] as Map<String, dynamic>?) ?? {};
       // The service already returns the 'data' part, so we access keys directly
       _assignedCount = countData['assignedCount'] ?? 0;
       _completedCount = countData['completedCount'] ?? 0;
+
+      final profileData = results[3] as Map<String, dynamic>?;
+      if (profileData != null) {
+        _userName = profileData['name']?.toString() ?? "User";
+        
+        // Ensure a null profileImage from backend doesn't show up as the string "null"
+        _profileImage = profileData['profileImage']?.toString() ?? ""; // Use the getter from ProfileViewModel
+        _isOnline = profileData['isOnline'] ?? _isOnline;
+      }
+
+      _availableServices = (results[4] as List<Map<String, dynamic>>?) ?? [];
     } catch (e) {
       debugPrint("HomeViewModel Error: $e");
       // Ensure safe defaults if data fetching fails
       _orders = [];
       _assignedCount = 0;
       _completedCount = 0;
-      
-      // If we get an auth error explicitly, trigger session expired callback
-      if (e.toString().contains("No token") || e.toString().contains("401")) {
-        DioClient.onSessionExpired?.call();
-      }
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Dedicated method to fetch services independently of the main dashboard refresh
+  Future<void> fetchServices(String orderId) async {
+    if (_isFetchingServices) return;
+    
+    _isFetchingServices = true;
+    notifyListeners();
+    
+    try {
+      _availableServices = await fetchAvailableServices(orderId: orderId);
+    } catch (e) {
+      debugPrint("HomeViewModel fetchServices Error: $e");
+    } finally {
+      _isFetchingServices = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAvailableServices({String? orderId}) async {
+    try {
+      // Direct API call to fetch services using the established DioClient pattern
+      String url = ApiConstants.serviceAvailability;
+      if (orderId != null) {
+        // Suffix with /:orderId/verify as per API requirements
+        url = "$url/$orderId/verify";
+      }
+      
+      final response = await DioClient().get(url);
+      
+      if (response != null && response['success'] == true && response['data'] is List) {
+        return List<Map<String, dynamic>>.from(response['data']);
+      }
+    } catch (e) {
+      debugPrint("HomeViewModel fetchAvailableServices Error: $e");
+    }
+    return [];
+  }
+
+  Future<void> fetchItemsForService(String serviceId) async {
+    if (_serviceItemsMap.containsKey(serviceId)) return;
+    debugPrint("HomeViewModel: Fetching items for service: $serviceId");
+    try {
+      final response = await DioClient().get(
+        ApiConstants.selact_Items.replaceAll(':serviceId', serviceId),
+      );
+      if (response != null && response['success'] == true && response['data'] != null) {
+        // Resilient parsing: handle if data is the list or contains the list under 'items'
+        final List<dynamic> items = (response['data'] is Map) 
+            ? (response['data']['items'] ?? []) 
+            : (response['data'] ?? []);
+            
+        _serviceItemsMap[serviceId] = List<dynamic>.from(items);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("HomeViewModel fetchItemsForService Error: $e");
+    }
+  }
+
+  Future<void> fetchItemsForMultipleServices(List<String> serviceIds) async {
+    final idsToFetch = serviceIds.where((id) => !_serviceItemsMap.containsKey(id)).toList();
+    if (idsToFetch.isEmpty) return;
+
+    try {
+      final response = await DioClient().post(
+        ApiConstants.multipleServiceItems,
+        data: {'serviceIds': idsToFetch},
+      );
+
+      if (response != null && response['success'] == true && response['data'] != null) {
+        // Resilient parsing: handle if data is the list or contains the list under 'items'
+        final List<dynamic> items = (response['data'] is Map) 
+            ? (response['data']['items'] ?? []) 
+            : (response['data'] is List ? response['data'] : []);
+        
+        // Initialize map for these IDs to mark them as "fetched" to avoid re-fetching
+        for (var id in idsToFetch) {
+          _serviceItemsMap[id] = [];
+        }
+
+        for (var item in items) {
+          if (item is! Map) continue;
+          final List itemServices = item['services'] as List? ?? [];
+          for (var s in itemServices) {
+            if (s is! Map) continue;
+            final sId = s['serviceId']?.toString() ?? s['id']?.toString();
+            if (sId != null) {
+              // Robust grouping: Compare IDs to ensure items are added to the correct service lists in cache
+              for (var targetId in idsToFetch) {
+                if (targetId.toLowerCase() == sId.toLowerCase()) {
+                  _serviceItemsMap[targetId]?.add(item);
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Fallback: Ensure keys are added even on empty/failed response to stop UI loading state
+        for (var id in idsToFetch) {
+          _serviceItemsMap[id] = [];
+        }
+      }
+    } catch (e) {
+      debugPrint("HomeViewModel fetchItemsForMultipleServices Error: $e");
+      // Safety: Mark as fetched even on error so UI can proceed and stop showing "Loading"
+      for (var id in idsToFetch) {
+        if (!_serviceItemsMap.containsKey(id)) _serviceItemsMap[id] = [];
+      }
+    } finally {
       notifyListeners();
     }
   }
@@ -76,27 +226,169 @@ class HomeViewModel extends ChangeNotifier {
     final index = _orders.indexWhere((o) => o.orderId == orderId);
     if (index != -1) {
       final currentOrder = _orders[index];
-      // Logic: Differentiate start stage based on OrderType when accepting
-      DeliveryStage targetStage = currentOrder.deliveryStage;
-      if (status == OrderStatus.assigned && currentOrder.status == OrderStatus.pending) {
-        targetStage = currentOrder.orderType == OrderType.delivery 
-            ? DeliveryStage.startDelivery 
-            : DeliveryStage.startPickup;
-      } else if (status == OrderStatus.completed) {
-        targetStage = DeliveryStage.delivered;
-      }
 
-      _orders[index] = _orders[index].copyWith(
-        status: status,
-        deliveryStage: targetStage,
-      );
-      notifyListeners();
+      if (status == OrderStatus.assigned && currentOrder.status == OrderStatus.pending) {
+        _isLoading = true;
+        notifyListeners();
+        try {
+          bool success = false;
+          if (currentOrder.orderType == OrderType.pickup) {
+            success = await _repository.acceptPickupOrder(orderId);
+          } else {
+            success = await _repository.acceptDeliveryOrder(orderId);
+          }
+
+          if (success) {
+            // Refreshing ensures the UI matches the server state exactly
+            await refreshOrders();
+          }
+        } catch (e) {
+          debugPrint("Failed to accept order: $e");
+        } finally {
+          _isLoading = false;
+          notifyListeners();
+        }
+      } else if (status == OrderStatus.completed) {
+        await _repository.updateStatus(orderId, status);
+        await refreshOrders();
+      }
     }
+  }
+
+  void toggleItemVerification(String orderId, String itemId) {
+    // Local UI state for ticking off items during pickup
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex != -1) {
+      final items = List<OrderItem>.from(_orders[orderIndex].items);
+      final itemIndex = items.indexWhere((i) => i.id == itemId);
+      if (itemIndex != -1) {
+        items[itemIndex] = items[itemIndex].copyWith(isVerified: !items[itemIndex].isVerified);
+        _orders[orderIndex] = _orders[orderIndex].copyWith(items: items);
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> deleteItemFromOrder(String orderId, String itemId) async {
+    debugPrint("--- CONSOLE: DELETE ITEM START ---");
+    debugPrint("OrderId: $orderId, ItemId: $itemId");
     
     try {
-      await _repository.updateStatus(orderId, status);
+      final response = await DioClient().delete(
+        "${ApiConstants.orderItem}/$orderId/item",
+        data: {"itemId": itemId},
+      );
+      
+      debugPrint("CONSOLE: Delete Success Response: $response");
+      if (response['success'] == true) {
+        await refreshOrders();
+      }
     } catch (e) {
-      debugPrint("Backend sync failed: $e");
+      debugPrint("CONSOLE: Delete Error: $e");
+      _errorMessage = "Failed to delete item: $e";
+      notifyListeners();
+    }
+  }
+
+  // Clear error message after it's shown in the UI
+  void clearErrorMessage() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Helper to check if more items can be added (Max 3)
+  bool canAddMoreItems(String orderId) {
+    final index = _orders.indexWhere((o) => o.orderId == orderId);
+    if (index == -1) return false;
+    return _orders[index].items.length < 3;
+  }
+
+  // Check if a service is already in the order (Useful for Checkbox state)
+  bool isServiceSelected(String orderId, String serviceId) {
+    final index = _orders.indexWhere((o) => o.orderId == orderId);
+    if (index == -1) return false;
+    return _orders[index].items.any((item) => item.id == serviceId);
+  }
+
+  // Toggle logic: ideal for Checkboxes
+  void toggleService(String orderId, OrderItem service) {
+    if (isServiceSelected(orderId, service.id)) {
+      deleteItemFromOrder(orderId, service.id);
+    } else {
+      addItemToOrder(orderId, service);
+    }
+  }
+
+  Future<void> addItemToOrder(String orderId, OrderItem newItem, {double price = 0, String? serviceName}) async {
+    debugPrint("--- CONSOLE: ADD ITEM START ---");
+    // Split service and title from the string returned by AddItemDialog
+    final nameParts = newItem.name.split(" - ");
+    final serviceType = serviceName ?? (nameParts.isNotEmpty ? nameParts[0] : "General");
+    final title = nameParts.length > 1 ? nameParts[1] : newItem.name;
+
+    final payload = {
+      "title": title,
+      "serviceType": [serviceType], // Converted to array as requested
+      "unitType": newItem.unit.toUpperCase(),
+      "quantity": int.tryParse(newItem.qty) ?? 1,
+      "unitPrice": price,
+    };
+
+    debugPrint("Payload: $payload");
+
+    try {
+      final response = await DioClient().post(
+        "${ApiConstants.orderItem}/$orderId/item",
+        data: payload,
+      );
+
+      debugPrint("CONSOLE: Add Item Success Response: $response");
+      if (response['success'] == true) {
+        await refreshOrders();
+      }
+    } catch (e) {
+      debugPrint("CONSOLE: Add Item Error: $e");
+      _errorMessage = "Failed to add item: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> reportItemMismatch(String orderId, String details) async {
+    debugPrint("--- CONSOLE: REPORT MISMATCH START ---");
+    try {
+      // Endpoint: POST /api/delivery-session/session/orders/:orderId/verify-items
+      final response = await DioClient().post(
+        "${ApiConstants.verifyItems}/$orderId/verify-items",
+        data: {"message": details},
+      );
+
+      debugPrint("CONSOLE: Report Success Response: $response");
+      if (response['success'] == true) {
+        await refreshOrders();
+      }
+    } catch (e) {
+      debugPrint("CONSOLE: Report Error: $e");
+      _errorMessage = "Failed to report mismatch: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> verifyOrder(String orderId) async {
+    debugPrint("--- CONSOLE: VERIFY ORDER START ---");
+    try {
+      // Endpoint: PATCH /api/delivery/session/orders/:orderId/verify
+      final response = await DioClient().patch(
+        "/delivery-session/session/orders/$orderId/verify",
+      );
+
+      debugPrint("CONSOLE: Verify Success Response: $response");
+      if (response['success'] == true) {
+        await refreshOrders();
+      }
+    } catch (e) {
+      debugPrint("CONSOLE: Verify Error: $e");
+      _errorMessage = "Failed to verify order: $e";
+      notifyListeners();
     }
   }
 
@@ -113,14 +405,29 @@ class HomeViewModel extends ChangeNotifier {
     // _isLoading = false; notifyListeners();
   }
 
-  void addOrderImages(String orderId, List<String> images) {
-    final index = _orders.indexWhere((o) => o.orderId == orderId);
-    if (index != -1) {
-      final currentImages = List<String>.from(_orders[index].pickedImages);
-      currentImages.addAll(images);
-      _orders[index] = _orders[index].copyWith(pickedImages: currentImages);
-      notifyListeners();
+  Future<void> addOrderImages(String orderId, List<String> images) async {
+    debugPrint("--- CONSOLE: UPLOAD IMAGES START ---");
+    _isLoading = true;
+    notifyListeners();
+
+    for (String path in images) {
+      try {
+        String fileName = path.split('/').last;
+        FormData formData = FormData.fromMap({
+          "image": await MultipartFile.fromFile(path, filename: fileName),
+        });
+
+        debugPrint("Uploading Image: $fileName for Order: $orderId");
+        final response = await DioClient().post(
+          "${ApiConstants.uploadOrderImage}/$orderId/upload-image",
+          data: formData,
+        );
+        debugPrint("CONSOLE: Upload Success: $response");
+      } catch (e) {
+        debugPrint("CONSOLE: Upload Error for $path: $e");
+      }
     }
+    await refreshOrders();
   }
 
   void removeOrderImage(String orderId, int imageIndex) {
@@ -133,23 +440,43 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  void addOrderBundle(String orderId, dynamic bundle) {
-    final index = _orders.indexWhere((o) => o.orderId == orderId);
-    if (index != -1) {
-      final currentBundles = List<BundleModel>.from(_orders[index].bundles);
-      currentBundles.add(bundle);
-      _orders[index] = _orders[index].copyWith(bundles: currentBundles);
+  Future<void> addOrderBundle(String orderId, dynamic bundle) async {
+    debugPrint("--- CONSOLE: ADD BUNDLE (WEIGHT) START ---");
+    
+    // Map bundle data to the same payload format as Per Piece items
+    final payload = {
+      "title": bundle.name ?? "Weight Bundle",
+      "serviceType": (bundle.services is List && (bundle.services as List).isNotEmpty) ? bundle.services : ["Wash & Fold"],
+      "unitType": "KG",
+      "quantity": double.tryParse(bundle.weight.toString()) ?? 1,
+      "unitPrice": bundle.price ?? 0,
+    };
+
+    try {
+      final response = await DioClient().post(
+        "${ApiConstants.orderItem}/$orderId/item",
+        data: payload,
+      );
+
+      debugPrint("CONSOLE: Add Bundle Success Response: $response");
+      if (response['success'] == true) {
+        await refreshOrders();
+      }
+    } catch (e) {
+      debugPrint("CONSOLE: Add Bundle Error: $e");
+      _errorMessage = "Failed to add bundle: $e";
       notifyListeners();
     }
   }
 
-  void removeOrderBundle(String orderId, int bundleIndex) {
+  Future<void> removeOrderBundle(String orderId, int bundleIndex) async {
+    debugPrint("--- CONSOLE: REMOVE BUNDLE START ---");
     final index = _orders.indexWhere((o) => o.orderId == orderId);
     if (index != -1) {
-      final currentBundles = List<BundleModel>.from(_orders[index].bundles);
-      currentBundles.removeAt(bundleIndex);
-      _orders[index] = _orders[index].copyWith(bundles: currentBundles);
-      notifyListeners();
+      final bundleId = _orders[index].bundles[bundleIndex].id;
+      if (bundleId.isNotEmpty) {
+        await deleteItemFromOrder(orderId, bundleId);
+      }
     }
   }
 
@@ -158,8 +485,26 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleOnlineStatus() {
-    _isOnline = !_isOnline;
+  Future<void> toggleOnlineStatus() async {
+    final newStatus = !_isOnline;
+    // Optimistic UI update
+    _isOnline = newStatus;
     notifyListeners();
+
+    try {
+      // Changed method to PATCH to fix 404 error
+      final response = await DioClient().patch(
+        ApiConstants.onlineStatus,
+        data: {"isOnline": newStatus},
+      );
+
+      if (response == null || response['success'] != true) {
+        throw Exception("Failed to update status");
+      }
+    } catch (e) {
+      _isOnline = !newStatus; // Revert on failure
+      notifyListeners();
+      debugPrint("Error updating online status: $e");
+    }
   }
 }

@@ -30,6 +30,7 @@ class DioClient {
       LogInterceptor(
         requestBody: true,
         responseBody: true,
+        request: true,
         requestHeader: true,
       ),
     );
@@ -127,6 +128,17 @@ class DioClient {
   Future<dynamic> put(String path, {dynamic data}) async {
     try {
       final response = await _dio.put(path, data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
+
+  Future<dynamic> patch(String path, {dynamic data}) async {
+    try {
+      final response = await _dio.patch(path, data: data);
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);

@@ -1,18 +1,20 @@
 import 'dart:io';
-import 'package:ziya_laundry_deliveryapp/Profile/data/models/profile_model.dart';
-import '../service/profile_service.dart';
+import 'package:ziya_laundry_deliveryapp/Profile/data/service/profile_service.dart';
 
 class ProfileRepository {
-  final ProfileService _service;
+  final ProfileService _profileService;
 
-  ProfileRepository(this._service);
+  ProfileRepository(
+    this._profileService,
+  ); // Constructor now accepts ProfileService
 
-  Future<ProfileModel> getProfile() async {
-    final data = await _service.fetchProfileData();
-    return ProfileModel.fromJson(data);
+  // Method to fetch the complete profile data
+  Future<Map<String, dynamic>> getProfile() async {
+    return await _profileService.fetchProfileData();
   }
 
+  // Method to upload the profile image
   Future<String> updateProfileImage(File image) async {
-    return await _service.uploadProfileImage(image);
+    return await _profileService.uploadProfileImage(image);
   }
 }

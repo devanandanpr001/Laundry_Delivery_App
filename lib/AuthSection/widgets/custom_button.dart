@@ -4,8 +4,9 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed; // Made nullable to allow disabling the button
   final Color? backgroundColor;
+  final Color? textColor; // Added textColor parameter
   final FontWeight? fontWeight;
   final double? height;
   final double? borderRadius;
@@ -15,8 +16,9 @@ class CustomButton extends StatelessWidget {
   const CustomButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    this.onPressed, // No longer required, can be null to disable
     this.backgroundColor,
+    this.textColor, // Added to constructor
     this.fontWeight,
     this.height,
     this.borderRadius,
@@ -43,7 +45,7 @@ class CustomButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: fontWeight ?? FontWeight.w600,
-            color: AppColors.white,
+            color: textColor ?? AppColors.white, // Use textColor if provided, else default to white
             fontFamily: fontFamily,
           ),
         ),

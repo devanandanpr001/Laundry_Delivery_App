@@ -28,7 +28,7 @@ class OnlineToggle extends StatelessWidget {
               alignment: isOnline ? Alignment.centerLeft : Alignment.centerRight,
               child: SizedBox(width: 80.w, child: FittedBox(fit: BoxFit.scaleDown, child: Text(isOnline ? AppText.Online : AppText.Offline, style: GoogleFonts.poppins(color: AppColors.white, fontSize: 16.sp, fontWeight: FontWeight.w500)))),
             ),
-            AnimatedAlign(duration: const Duration(milliseconds: 300), curve: Curves.easeOut, alignment: isOnline ? Alignment.centerRight : Alignment.centerLeft, child: Container(height: 26.w, width: 26.w, decoration: const BoxDecoration(color: AppColors.white, shape: BoxShape.circle))),
+            AnimatedAlign(  duration: const Duration(milliseconds: 300), curve: Curves.easeOut, alignment: isOnline ? Alignment.centerRight : Alignment.centerLeft, child: Container(height: 26.w, width: 26.w, decoration: const BoxDecoration(color: AppColors.white, shape: BoxShape.circle))),
           ],
         ),
       ),

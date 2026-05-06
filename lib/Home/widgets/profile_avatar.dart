@@ -12,8 +12,8 @@ class ProfileAvatar extends StatelessWidget {
     return Consumer<ProfileViewModel>(builder: (context, provider, _) {
       final imageWidget = provider.selectedImage != null
           ? Image.file(provider.selectedImage!, fit: BoxFit.cover)
-          : (provider.userProfile?.profileImageUrl != null && provider.userProfile!.profileImageUrl!.isNotEmpty)
-              ? Image.network(provider.userProfile!.profileImageUrl!, fit: BoxFit.cover)
+          : (provider.profileImageUrl.isNotEmpty) // Use the getter from ViewModel
+              ? Image.network(provider.profileImageUrl, fit: BoxFit.cover) // Use the getter
               : Image.network(AppImages.defaultProfile, fit: BoxFit.cover);
 
       return Container(
