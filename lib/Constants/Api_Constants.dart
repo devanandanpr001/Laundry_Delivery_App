@@ -22,11 +22,21 @@ class ApiConstants {
   static const String acceptPickup = '/delivery-session/session/accept-pickup';
   static const String acceptDelivery = '/delivery-session/session/accept-delivery';
   static const String allOrders = '/delivery-session/session/orders/all';
-  static const String markDelivered = '/delivery-session/session/orders/mark-delivered'; // Assuming this endpoint for completing orders
+  // static const String markDelivered = '/delivery-session/session/orders/mark-delivered'; // Assuming this endpoint for completing orders
   static const String assignedOrders = '/delivery-session/session/orders/assigned';
   static const String completedOrders = '/delivery-session/session/orders/completed';
   
-  // Item Management
+  // NEW SPECIFIC ORDER ENDPOINTS
+  
+  static const String pickupAssignedOrders = '/delivery-session/session/pickup/assigned';
+  static const String pickupCompletedOrders = '/delivery-session/session/pickup/completed';
+  static const String deliveryAssignedOrders = '/delivery-session/session/delivery/assigned';
+  static const String deliveryCompletedOrders = '/delivery-session/session/delivery/completed';
+  static const String confirmPickup = '/delivery-session/session/orders/:orderId/confirm-pickup';
+  static const String mismatch      = '/delivery-session/session/orders/:orderId/add-mismatch-reason';
+  
+  // Item ManagementType: String
+  
   static const String orderItem = '/delivery-session/session/orders'; // Suffix with /:orderId/item
   static const String uploadOrderImage = '/delivery-session/session/orders'; // Suffix with /:orderId/upload-image
   static const String verifyOrder = '/delivery-session/session/orders'; // Suffix with /:orderId/verify

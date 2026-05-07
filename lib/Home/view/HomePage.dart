@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart';
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart' as order_card_widget;
 import 'package:ziya_laundry_deliveryapp/Home/widgets/notification_bell.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/online_toggle.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/profile_avatar.dart';
@@ -15,6 +17,7 @@ import '../../AuthSection/viewmodel/login_viewmodel.dart';
 import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../../core/dio_client.dart';
 import '../../Orders/widget/OrderCard.dart' as order_card_widget;
+import '../viewmodel/OrderCard.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../data/model/home_models.dart';
 

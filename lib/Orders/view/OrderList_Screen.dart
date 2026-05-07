@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart';
 import '../../Home/viewmodel/home_viewmodel.dart';
 import '../../Home/data/model/home_models.dart';
@@ -220,9 +221,14 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
 
   Future<void> _handleAcceptOrder(BuildContext context, HomeViewModel vm, OrderModel order, bool isOnline) async {
     if (!isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppText.UrOffline)));
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(SnackBar(content: Text(AppText.UrOffline)));
       return;
     }
+
+    // Capture the navigator reference BEFORE the async gap (await)
+    // to avoid the "deactivated widget's ancestor" error later.
+    final navigator = Navigator.of(context, rootNavigator: true);
 
     vm.updateOrderStatus(order.orderId, OrderStatus.assigned);
     vm.setSelectedFilter("assigned");
@@ -245,7 +251,11 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     );
 
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    
+    // Use the captured navigator instead of looking it up again via context
+    if (mounted) {
+      navigator.pop();
+    }
   }
  }
 //                 ),

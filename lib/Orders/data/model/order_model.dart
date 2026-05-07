@@ -12,6 +12,7 @@ class OrderModel {
   final OrderType orderType;
   final DeliveryStage deliveryStage;
   final List<String> pickedImages;
+  final List<String> pickedImageIds;
   final List<BundleModel> bundles;
   final List<OrderItem> items;
   final String totalAmount;
@@ -29,6 +30,7 @@ class OrderModel {
     required this.orderType,
     this.deliveryStage = DeliveryStage.startPickup,
     this.pickedImages = const [],
+    this.pickedImageIds = const [],
     this.bundles = const [],
     required this.items,
     required this.totalAmount,
@@ -36,11 +38,11 @@ class OrderModel {
     this.isVerified = false,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json, OrderType type, {bool forceAssigned = false}) {
+  factory OrderModel.fromJson(Map<String, dynamic> json, OrderType type, {bool forceAssigned = false, bool forceCompleted = false}) {
     final user = json['user'] as Map<String, dynamic>?;
     
     // Look for details in either 'Pickup' or 'Delivery' keys based on backend response
-    final details = (json['Pickup'] ?? json['Delivery']) as Map<String, dynamic>?;
+    final details = (json['Pickup'] ?? json['Delivery'] ?? json['pickup'] ?? json['delivery']) as Map<String, dynamic>?;
 
     // Resilient address map detection: Check root 'address' (common in assigned orders) 
     // and nested 'address' (common in new pickup/delivery orders).
@@ -51,11 +53,20 @@ class OrderModel {
       addressMap = details!['address'] as Map<String, dynamic>;
     }
 
-    final orderItemsList = (json['OrderItems'] ?? json['items']) as List?;
+    final orderItemsList = (json['OrderItems'] ?? json['items'] ?? details?['OrderItems'] ?? details?['items']) as List?;
+
+    final rawImages = (json['pickedImages'] ?? json['images'] ?? details?['pickedImages'] ?? details?['images']) as List?;
 
     // Determine 'by' field dynamically (Removes static hardcoded reliance)
-    // Prioritize root-level 'by' or 'unitType' from backend, fallback to "By Weight"
-    String byValue = json['by']?.toString() ?? json['unitType']?.toString() ?? "By Weight";
+    // Prioritize root-level 'orderType', 'by', or 'unitType' from backend
+    String rawType = (json['orderType'] ?? json['by'] ?? json['unitType'] ?? details?['orderType'] ?? "").toString().toUpperCase();
+    
+    String byValue = "By Weight"; // Default
+    if (rawType.contains("PIECE")) {
+      byValue = "Per Piece";
+    } else if (rawType.contains("KG") || rawType.contains("WEIGHT")) {
+      byValue = "By Weight";
+    }
 
     if (orderItemsList != null && orderItemsList.isNotEmpty) {
       // Use a robust check for 'piece' types to handle singular/plural and variations (e.g., piece, pieces, pcs)
@@ -86,18 +97,28 @@ class OrderModel {
     final String fullAddress = constructedAddress.isNotEmpty ? constructedAddress : (json['address'] is String ? json['address'] as String : details?['address'] is String ? details!['address'] as String : '');
 
     return OrderModel(
-      orderId: json['id']?.toString() ?? '', 
-      orderNumber: json['orderNumber']?.toString() ?? '',
-      name: json['customerName'] ?? user?['name'] ?? '',
+      orderId: json['id']?.toString() ?? '',
+      orderNumber: (json['orderId'] ?? json['orderNumber'])?.toString() ?? '',
+      name: json['customerName'] ?? user?['name'] ?? details?['customerName'] ?? '',
       by: byValue,
       address: fullAddress.isEmpty ? 'No Address Provided' : fullAddress,
-      isPaid: json['paymentStatus'] == 'SUCCESS',
-      status: forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status']), // Map new statuses to existing enum
+      isPaid: (json['paymentStatus'] ?? details?['paymentStatus']) == 'SUCCESS',
+      status: forceCompleted ? OrderStatus.completed : (forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status'] ?? details?['status'])), // Map new statuses to existing enum
       orderType: type, // Explicitly set based on API call
       deliveryStage: type == OrderType.pickup ? DeliveryStage.startPickup : DeliveryStage.startDelivery, // Default stage based on order type
-      pickedImages: [],
+      pickedImages: (rawImages ?? []).map<String>((e) {
+        if (e is Map) return (e['imageUrl'] ?? e['filePath'] ?? e['path'] ?? '').toString();
+        return e.toString();
+      }).where((e) => e.isNotEmpty).toList(),
+      pickedImageIds: (rawImages ?? []).map<String>((e) {
+        if (e is Map) return (e['id'] ?? e['_id'] ?? '').toString();
+        return '';
+      }).toList(),
       bundles: (orderItemsList ?? [])
-          .where((i) => i['unitType']?.toString().toUpperCase() == 'KG')
+          .where((i) {
+            final unitType = i['unitType']?.toString().toUpperCase() ?? "";
+            return unitType == 'KG' || unitType == 'WEIGHT' || unitType == 'BUNDLE';
+          })
           .map((i) => BundleModel(
                 id: i['id']?.toString() ?? '',
                 name: i['title'] ?? 'Weight Bundle',
@@ -106,7 +127,10 @@ class OrderModel {
               ))
           .toList(),
       items: (orderItemsList ?? [])
-          .where((i) => i['unitType']?.toString().toUpperCase() != 'KG')
+          .where((i) {
+            final unitType = i['unitType']?.toString().toUpperCase() ?? "";
+            return unitType != 'KG' && unitType != 'WEIGHT' && unitType != 'BUNDLE';
+          })
           .map((i) => OrderItem(
                 id: i['id']?.toString() ?? '',
                 name: i['title'] ?? '',
@@ -114,9 +138,9 @@ class OrderModel {
                 unit: i['unitType']?.toString() ?? '',
               ))
           .toList(),
-      totalAmount: json['totalAmount']?.toString() ?? '0',
-      isVerified: json['isVerified'] ?? false,
-      paymentMethod: json['paymentMethod']?.toString() ?? '',
+      totalAmount: (json['totalAmount'] ?? details?['totalAmount'])?.toString() ?? '0',
+      isVerified: json['isVerified'] ?? details?['isVerified'] ?? false,
+      paymentMethod: (json['paymentMethod'] ?? details?['paymentMethod'])?.toString() ?? '',
     );
   }
 
@@ -131,6 +155,7 @@ class OrderModel {
     OrderType? orderType,
     DeliveryStage? deliveryStage,
     List<String>? pickedImages,
+    List<String>? pickedImageIds,
     List<BundleModel>? bundles,
     List<OrderItem>? items,
     String? totalAmount,
@@ -148,6 +173,7 @@ class OrderModel {
       orderType: orderType ?? this.orderType,
       deliveryStage: deliveryStage ?? this.deliveryStage,
       pickedImages: pickedImages ?? this.pickedImages,
+      pickedImageIds: pickedImageIds ?? this.pickedImageIds,
       bundles: bundles ?? this.bundles,
       items: items ?? this.items,
       totalAmount: totalAmount ?? this.totalAmount,
@@ -195,7 +221,6 @@ OrderStatus parseOrderStatus(dynamic status) {
   if (status is OrderStatus) return status;
   switch (status?.toString().toUpperCase()) {
     case "ASSIGNED":
-    case "PICKUP":
     case "WASHING":
     case "DRYING":
     case "IRONING":
@@ -205,6 +230,7 @@ OrderStatus parseOrderStatus(dynamic status) {
       return OrderStatus.completed;
     case "SCHEDULED": // New status for pending pickup orders
     case "OUT_FOR_DELIVERY": // New delivery tasks should appear as 'pending' to be accepted
+    case "PICKUP": // Orders with status "PICKUP" are pending acceptance
       return OrderStatus.pending;
     default:
       return OrderStatus.pending;

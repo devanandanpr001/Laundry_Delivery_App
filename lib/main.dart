@@ -73,7 +73,7 @@ class MyApp extends StatelessWidget {
              // Adding dependencies for HomeViewModel
              Provider(create: (_) => HomeService()),
              ProxyProvider<HomeService, HomeRepository>(
-               update: (_, service, previous) => previous ?? HomeRepository(),
+               update: (_, service, previous) => previous ?? HomeRepository(service),
              ),
              ChangeNotifierProxyProvider<HomeRepository, HomeViewModel>(
                create: (context) => HomeViewModel(context.read<HomeRepository>()),

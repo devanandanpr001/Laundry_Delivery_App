@@ -57,19 +57,29 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      // Concurrent fetch for efficiency: Fetch orders and dashboard counts together
+      // Concurrent fetch for efficiency: Fetch all orders, dashboard counts, profile, and available services
       final results = await Future.wait<dynamic>([
-        _repository.getAllOrders(), // Existing call for active orders
+        _repository.getAllOrders(), // Now fetches all orders (pending, assigned, completed, pickup, delivery)
         _repository.getDashboardCounts(),
-        _repository.getCompletedOrders(), // NEW: Fetch completed orders
-        _repository.getProfile(), // NEW: Fetch profile data
+        _repository.getProfile(),
         fetchAvailableServices(), // Fetch services directly via API
       ]);
 
-      final activeOrders = (results[0] as List<OrderModel>?) ?? [];
-      final completedOrders = (results[2] as List<OrderModel>?) ?? [];
+      final allFetchedOrders = (results[0] as List<OrderModel>?) ?? [];
+
+      // Separate into active (pending/assigned) and completed orders
+      final activeOrders = allFetchedOrders.where((o) => o.status != OrderStatus.completed).toList();
+      final completedOrders = allFetchedOrders.where((o) => o.status == OrderStatus.completed).toList();
       
-      final fetchedOrders = [...activeOrders, ...completedOrders];
+      // Deduplicate fetched orders by orderId, preferring completed/assigned state
+      final Map<String, OrderModel> uniqueMap = {};
+      for (var order in activeOrders) {
+        uniqueMap[order.orderId] = order;
+      }
+      for (var order in completedOrders) {
+        uniqueMap[order.orderId] = order;
+      }
+      final fetchedOrders = uniqueMap.values.toList();
       
       // Professional Merge Logic: Preserve local progress state (deliveryStage)
       // so the UI doesn't "reset" to Start Pickup after adding items/bundles/images.
@@ -84,11 +94,11 @@ class HomeViewModel extends ChangeNotifier {
       }).toList();
       
       final countData = (results[1] as Map<String, dynamic>?) ?? {};
-      // The service already returns the 'data' part, so we access keys directly
+      // The service already returns the 'data' part, so we access keys directly.
       _assignedCount = countData['assignedCount'] ?? 0;
       _completedCount = countData['completedCount'] ?? 0;
 
-      final profileData = results[3] as Map<String, dynamic>?;
+      final profileData = results[2] as Map<String, dynamic>?; // Index changed due to removal of getCompletedOrders
       if (profileData != null) {
         _userName = profileData['name']?.toString() ?? "User";
         
@@ -97,7 +107,7 @@ class HomeViewModel extends ChangeNotifier {
         _isOnline = profileData['isOnline'] ?? _isOnline;
       }
 
-      _availableServices = (results[4] as List<Map<String, dynamic>>?) ?? [];
+      _availableServices = (results[3] as List<Map<String, dynamic>>?) ?? []; // Corrected index
     } catch (e) {
       debugPrint("HomeViewModel Error: $e");
       // Ensure safe defaults if data fetching fails
@@ -356,10 +366,10 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> reportItemMismatch(String orderId, String details) async {
     debugPrint("--- CONSOLE: REPORT MISMATCH START ---");
     try {
-      // Endpoint: POST /api/delivery-session/session/orders/:orderId/verify-items
-      final response = await DioClient().post(
-        "${ApiConstants.verifyItems}/$orderId/verify-items",
-        data: {"message": details},
+      // Endpoint: POST /api/delivery-session/session/orders/:orderId/add-mismatch-reason
+      final response = await DioClient().put(
+        ApiConstants.mismatch.replaceAll(':orderId', orderId),
+        data: {"mismatchReason": details},
       );
 
       debugPrint("CONSOLE: Report Success Response: $response");
@@ -373,12 +383,32 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> confirmPickup(String orderId) async {
+    debugPrint("--- CONSOLE: CONFIRM PICKUP START ---");
+    try {
+      final success = await _repository.confirmPickupOrder(orderId);
+      if (success) {
+        await refreshOrders(); // Refresh to get the updated status from the backend
+        return true;
+      } else {
+        _errorMessage = "Failed to confirm pickup.";
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint("CONSOLE: Confirm Pickup Error: $e");
+      _errorMessage = "Failed to confirm pickup: $e";
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> verifyOrder(String orderId) async {
     debugPrint("--- CONSOLE: VERIFY ORDER START ---");
     try {
-      // Endpoint: PATCH /api/delivery/session/orders/:orderId/verify
+      // Endpoint: PATCH /api/delivery-session/session/orders/:orderId/verify
       final response = await DioClient().patch(
-        "/delivery-session/session/orders/$orderId/verify",
+        "${ApiConstants.verifyOrder}/$orderId/verify",
       );
 
       debugPrint("CONSOLE: Verify Success Response: $response");
@@ -387,6 +417,13 @@ class HomeViewModel extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint("CONSOLE: Verify Error: $e");
+      
+      // If the server says the order is already verified, sync the local state by refreshing.
+      if (e.toString().toLowerCase().contains("already verified")) {
+        await refreshOrders();
+        return;
+      }
+
       _errorMessage = "Failed to verify order: $e";
       notifyListeners();
     }
@@ -430,13 +467,36 @@ class HomeViewModel extends ChangeNotifier {
     await refreshOrders();
   }
 
-  void removeOrderImage(String orderId, int imageIndex) {
+  Future<void> removeOrderImage(String orderId, int imageIndex) async {
     final index = _orders.indexWhere((o) => o.orderId == orderId);
     if (index != -1) {
-      final currentImages = List<String>.from(_orders[index].pickedImages);
-      currentImages.removeAt(imageIndex);
-      _orders[index] = _orders[index].copyWith(pickedImages: currentImages);
-      notifyListeners();
+      final order = _orders[index];
+      if (imageIndex < order.pickedImages.length) {
+        final imageId = (order.pickedImageIds.length > imageIndex) ? order.pickedImageIds[imageIndex] : '';
+
+        if (imageId.isNotEmpty) {
+          try {
+            // Matches DELETE /api/delivery-session/session/orders/:orderId/upload-image/:imageId
+            final url = "${ApiConstants.uploadOrderImage}/$orderId/upload-image/$imageId";
+            final response = await DioClient().delete(url);
+            if (response != null && response['success'] == true) {
+              await refreshOrders();
+              return;
+            }
+          } catch (e) {
+            debugPrint("Error deleting image from server: $e");
+          }
+        }
+
+        // Fallback: Local removal if no ID or API fails
+        final currentImages = List<String>.from(order.pickedImages);
+        final currentIds = List<String>.from(order.pickedImageIds);
+        currentImages.removeAt(imageIndex);
+        if (imageIndex < currentIds.length) currentIds.removeAt(imageIndex);
+
+        _orders[index] = order.copyWith(pickedImages: currentImages, pickedImageIds: currentIds);
+        notifyListeners();
+      }
     }
   }
 

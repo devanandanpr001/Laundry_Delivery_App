@@ -2,45 +2,21 @@ import 'package:ziya_laundry_deliveryapp/Home/data/service/home_service.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/data/model/order_model.dart';
 
 class HomeRepository {
-  final HomeService _homeService = HomeService();
+  final HomeService _service;
 
+  HomeRepository(this._service);
+
+  Future<List<OrderModel>> getAllOrders() => _service.fetchAllOrders();
+  Future<Map<String, dynamic>> getDashboardCounts() => _service.getDashboardCountsFromApi();
+  Future<Map<String, dynamic>?> getProfile() => _service.fetchProfile();
   Future<bool> getInitialOnlineStatus() async {
-    // Simulate fetching initial online status
-    await Future.delayed(const Duration(milliseconds: 100));
-    return true; // Default to online
+    final profile = await _service.fetchProfile();
+    return profile?['isOnline'] ?? false;
   }
-
-  // This method will now fetch all orders (pickup and delivery)
-  Future<List<OrderModel>> getAllOrders() async {
-    return await _homeService.fetchAllOrders();
-  }
-
-  Future<Map<String, dynamic>> getDashboardCounts() async {
-    return await _homeService.getDashboardCountsFromApi();
-  }
-
-  Future<bool> acceptPickupOrder(String orderId) async {
-    return await _homeService.acceptPickupOrder(orderId);
-  }
-
-  Future<bool> acceptDeliveryOrder(String orderId) async {
-    return await _homeService.acceptDeliveryOrder(orderId);
-  }
-
-  Future<bool> updateStatus(String orderId, OrderStatus status) async {
-    // Assuming updateStatus is primarily for marking as completed/delivered
-    return await _homeService.markOrderDeliveredApi(orderId);
-  }
-
-  Future<List<OrderModel>> getCompletedOrders() async {
-    return await _homeService.fetchCompletedOrders();
-  }
-
-  Future<Map<String, dynamic>?> getProfile() async {
-    return await _homeService.fetchProfile();
-  }
-
-  Future<bool> updateOnlineStatus(bool isOnline) async {
-    return await _homeService.updateOnlineStatusApi(isOnline);
+  Future<bool> acceptPickupOrder(String orderId) => _service.acceptPickupOrder(orderId);
+  Future<bool> acceptDeliveryOrder(String orderId) => _service.acceptDeliveryOrder(orderId);
+  Future<bool> confirmPickupOrder(String orderId) => _service.confirmPickupOrder(orderId);
+  Future<void> updateStatus(String orderId, OrderStatus status) async {
+    // This method needs to be implemented in HomeService if it's a real API call
   }
 }
