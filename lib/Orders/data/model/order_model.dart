@@ -18,6 +18,7 @@ class OrderModel {
   final String totalAmount;
   final bool isVerified;
   final String paymentMethod;
+  final String? mismatchReason;
 
   OrderModel({
     required this.orderId,
@@ -36,6 +37,7 @@ class OrderModel {
     required this.totalAmount,
     this.paymentMethod = '',
     this.isVerified = false,
+    this.mismatchReason,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json, OrderType type, {bool forceAssigned = false, bool forceCompleted = false}) {
@@ -82,6 +84,7 @@ class OrderModel {
     // Construct the full address string from multiple fields
     final addressParts = [
       addressMap?['addressLine'],
+      addressMap?['address'], // Support for flattened address key
       addressMap?['landmark'],
       addressMap?['city'],
       addressMap?['state'],
@@ -94,14 +97,15 @@ class OrderModel {
     // 1. Detailed construction from parts
     // 2. Flat string from root 'address' (if it's a String)
     // 3. Flat string from nested 'address' (if it's a String)
-    final String fullAddress = constructedAddress.isNotEmpty ? constructedAddress : (json['address'] is String ? json['address'] as String : details?['address'] is String ? details!['address'] as String : '');
+    String fullAddress = constructedAddress.isNotEmpty ? constructedAddress : (json['address'] is String ? json['address'] as String : details?['address'] is String ? details!['address'] as String : '');
+    if (fullAddress.isEmpty || fullAddress.toLowerCase() == "null") fullAddress = 'No Address Provided';
 
     return OrderModel(
-      orderId: json['id']?.toString() ?? '',
+      orderId: (json['id'] ?? json['_id'])?.toString() ?? '',
       orderNumber: (json['orderId'] ?? json['orderNumber'])?.toString() ?? '',
-      name: json['customerName'] ?? user?['name'] ?? details?['customerName'] ?? '',
+      name: _sanitizeString(json['customerName'] ?? user?['name'] ?? details?['customerName'], "Customer"),
       by: byValue,
-      address: fullAddress.isEmpty ? 'No Address Provided' : fullAddress,
+      address: fullAddress,
       isPaid: (json['paymentStatus'] ?? details?['paymentStatus']) == 'SUCCESS',
       status: forceCompleted ? OrderStatus.completed : (forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status'] ?? details?['status'])), // Map new statuses to existing enum
       orderType: type, // Explicitly set based on API call
@@ -141,6 +145,7 @@ class OrderModel {
       totalAmount: (json['totalAmount'] ?? details?['totalAmount'])?.toString() ?? '0',
       isVerified: json['isVerified'] ?? details?['isVerified'] ?? false,
       paymentMethod: (json['paymentMethod'] ?? details?['paymentMethod'])?.toString() ?? '',
+      mismatchReason: json['mismatchReason']?.toString() ?? details?['mismatchReason']?.toString(),
     );
   }
 
@@ -161,6 +166,7 @@ class OrderModel {
     String? totalAmount,
     bool? isVerified,
     String? paymentMethod,
+    String? mismatchReason,
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
@@ -179,7 +185,14 @@ class OrderModel {
       totalAmount: totalAmount ?? this.totalAmount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       isVerified: isVerified ?? this.isVerified,
+      mismatchReason: mismatchReason ?? this.mismatchReason,
     );
+  }
+
+  static String _sanitizeString(dynamic value, [String defaultValue = '']) {
+    if (value == null) return defaultValue;
+    final s = value.toString();
+    return (s.isEmpty || s.toLowerCase() == "null") ? defaultValue : s;
   }
 }
 
@@ -224,12 +237,12 @@ OrderStatus parseOrderStatus(dynamic status) {
     case "WASHING":
     case "DRYING":
     case "IRONING":
+    case "OUT_FOR_DELIVERY": 
       return OrderStatus.assigned;
     case "COMPLETED":
     case "DELIVERED":
       return OrderStatus.completed;
     case "SCHEDULED": // New status for pending pickup orders
-    case "OUT_FOR_DELIVERY": // New delivery tasks should appear as 'pending' to be accepted
     case "PICKUP": // Orders with status "PICKUP" are pending acceptance
       return OrderStatus.pending;
     default:

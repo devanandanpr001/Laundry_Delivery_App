@@ -11,7 +11,7 @@ Map<String, dynamic> _mapOrderImages(Map<String, dynamic> json) {
   final numericFields = [
     'totalAmount', 'paidAmount', 'payableAmount', 'unitPrice', 
     'totalPrice', 'collectedAmount', 'orderNumber', 'quantity',
-    'pricePerKg' // Added pricePerKg for completeness
+    'pricePerKg', 'itemsCount'
   ];
   
   void sanitize(Map<String, dynamic> data) {
@@ -161,11 +161,12 @@ class HomeService {
       for (var orderList in results) {
         for (var order in orderList) {
           // Cast to OrderModel to access properties
-          final OrderModel? existingOrder = orderMap[order.orderId];
+          final String key = "${order.orderId}_${order.orderType}";
+          final OrderModel? existingOrder = orderMap[key];
           if (existingOrder == null ||
               (order.status == OrderStatus.assigned && existingOrder.status == OrderStatus.pending) ||
               (order.status == OrderStatus.completed && (existingOrder.status == OrderStatus.pending || existingOrder.status == OrderStatus.assigned))) {
-            orderMap[order.orderId] = order;
+            orderMap[key] = order;
           }
         }
       }
@@ -265,5 +266,20 @@ class HomeService {
       return List<Map<String, dynamic>>.from(response['data']);
     }
     return [];
+  }
+
+  Future<bool> sendDeliveryOtp(String orderId) async {
+    final response = await _dioClient.post(
+      ApiConstants.deliverysendotp.replaceAll(':orderId', orderId),
+    );
+    return response != null && response['success'] == true;
+  }
+
+  Future<bool> verifyDeliveryOtp(String orderId, String otp) async {
+    final response = await _dioClient.post(
+      ApiConstants.deliveryverifyotp.replaceAll(':orderId', orderId),
+      data: {'otp': otp},
+    );
+    return response != null && response['success'] == true;
   }
 }

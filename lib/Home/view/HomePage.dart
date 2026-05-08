@@ -5,8 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart' as order_card_widget;
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart' as home_order_card;
 import 'package:ziya_laundry_deliveryapp/Home/widgets/notification_bell.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/online_toggle.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/profile_avatar.dart';
@@ -16,8 +15,6 @@ import 'package:ziya_laundry_deliveryapp/Home/widgets/order_type_toggle.dart';
 import '../../AuthSection/viewmodel/login_viewmodel.dart';
 import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../../core/dio_client.dart';
-import '../../Orders/widget/OrderCard.dart' as order_card_widget;
-import '../viewmodel/OrderCard.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../data/model/home_models.dart';
 
@@ -165,11 +162,13 @@ class _HomepageState extends State<Homepage> {
 
                           return Padding(
                             padding: EdgeInsets.only(bottom: 12.h),
-                            child: order_card_widget.OrderCard(
+                            child: home_order_card.OrderCard(
+                              key: ValueKey("${order.orderId}_${order.orderType}"),
                               orderid: order.orderId,
                               orderNumber: order.orderNumber,
                               name: order.name,
                               by: order.by,
+                              orderType: order.orderType,
                               address: order.address,
                               isPaid: order.isPaid,
                               isDetailsPage: false,

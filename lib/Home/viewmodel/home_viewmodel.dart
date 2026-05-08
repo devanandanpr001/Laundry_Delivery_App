@@ -46,6 +46,8 @@ class HomeViewModel extends ChangeNotifier {
 
   // Logic Getters for UI
   List<OrderModel> get pendingOrders => _orders.where((o) => o.status == OrderStatus.pending).toList();
+  List<OrderModel> get assignedOrders => _orders.where((o) => o.status == OrderStatus.assigned).toList();
+  List<OrderModel> get completedOrders => _orders.where((o) => o.status == OrderStatus.completed).toList();
 
   Future<void> _init() async {
     _isOnline = await _repository.getInitialOnlineStatus();
@@ -74,10 +76,10 @@ class HomeViewModel extends ChangeNotifier {
       // Deduplicate fetched orders by orderId, preferring completed/assigned state
       final Map<String, OrderModel> uniqueMap = {};
       for (var order in activeOrders) {
-        uniqueMap[order.orderId] = order;
+        uniqueMap["${order.orderId}_${order.orderType}"] = order;
       }
       for (var order in completedOrders) {
-        uniqueMap[order.orderId] = order;
+        uniqueMap["${order.orderId}_${order.orderType}"] = order;
       }
       final fetchedOrders = uniqueMap.values.toList();
       
@@ -85,7 +87,7 @@ class HomeViewModel extends ChangeNotifier {
       // so the UI doesn't "reset" to Start Pickup after adding items/bundles/images.
       _orders = fetchedOrders.map((newOrder) {
         final existingOrder = _orders.cast<OrderModel?>().firstWhere(
-          (o) => o?.orderId == newOrder.orderId,
+          (o) => o?.orderId == newOrder.orderId && o?.orderType == newOrder.orderType,
           orElse: () => null,
         );
         return existingOrder != null 
@@ -259,8 +261,13 @@ class HomeViewModel extends ChangeNotifier {
           notifyListeners();
         }
       } else if (status == OrderStatus.completed) {
-        await _repository.updateStatus(orderId, status);
-        await refreshOrders();
+        // For explicit completion requests, use the correct repo method based on order type
+        if (currentOrder.orderType == OrderType.pickup) {
+          await confirmPickup(orderId);
+        } else {
+          // Delivery completion is handled via verifyDeliveryOtp directly
+          await refreshOrders();
+        }
       }
     }
   }
@@ -363,7 +370,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> reportItemMismatch(String orderId, String details) async {
+  Future<bool> reportItemMismatch(String orderId, String details) async {
     debugPrint("--- CONSOLE: REPORT MISMATCH START ---");
     try {
       // Endpoint: POST /api/delivery-session/session/orders/:orderId/add-mismatch-reason
@@ -373,13 +380,16 @@ class HomeViewModel extends ChangeNotifier {
       );
 
       debugPrint("CONSOLE: Report Success Response: $response");
-      if (response['success'] == true) {
+      if (response != null && response['success'] == true) {
         await refreshOrders();
+        return true;
       }
+      return false;
     } catch (e) {
       debugPrint("CONSOLE: Report Error: $e");
       _errorMessage = "Failed to report mismatch: $e";
       notifyListeners();
+      return false;
     }
   }
 
@@ -388,7 +398,7 @@ class HomeViewModel extends ChangeNotifier {
     try {
       final success = await _repository.confirmPickupOrder(orderId);
       if (success) {
-        await refreshOrders(); // Refresh to get the updated status from the backend
+        await refreshOrders(); // Professional sync: get final OrderStatus.completed from server
         return true;
       } else {
         _errorMessage = "Failed to confirm pickup.";
@@ -565,6 +575,35 @@ class HomeViewModel extends ChangeNotifier {
       _isOnline = !newStatus; // Revert on failure
       notifyListeners();
       debugPrint("Error updating online status: $e");
+    }
+  }
+
+  Future<bool> sendDeliveryOtp(String orderId) async {
+    try {
+      final response = await DioClient().post(
+        ApiConstants.deliverysendotp.replaceAll(':orderId', orderId),
+      );
+      return response != null && response['success'] == true;
+    } catch (e) {
+      debugPrint("sendDeliveryOtp Error: $e");
+      return false;
+    }
+  }
+
+  Future<bool> verifyDeliveryOtp(String orderId, String otp) async {
+    try {
+      final response = await DioClient().post(
+        ApiConstants.deliveryverifyotp.replaceAll(':orderId', orderId),
+        data: {"otp": otp},
+      );
+      if (response != null && response['success'] == true) {
+        await refreshOrders();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("verifyDeliveryOtp Error: $e");
+      return false;
     }
   }
 }

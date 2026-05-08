@@ -47,7 +47,7 @@ class DioClient {
           ApiConstants.refreshToken,
         ];
         
-        if (!authPaths.any((path) => options.path.contains(path))) {
+        if (!authPaths.any((path) => options.path == path)) {
           final accessToken = await _tokenService.getAccessToken();
           if (accessToken != null && !options.headers.containsKey('Authorization')) {
             options.headers['Authorization'] = 'Bearer $accessToken';
@@ -65,7 +65,7 @@ class DioClient {
           ApiConstants.refreshToken,
         ];
 
-        final isAuthRequest = authPaths.any((path) => e.requestOptions.path.contains(path));
+        final isAuthRequest = authPaths.any((path) => e.requestOptions.path == path);
 
         if (e.response?.statusCode == 401 && !isAuthRequest) {
           try {

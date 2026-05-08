@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/DeliveryLocation_Screen.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/PickUp_location.dart';
@@ -22,6 +23,7 @@ class OrderCard extends StatefulWidget {
   final String name;
   final String by;
   final String address;
+  final OrderType orderType;
   final bool isPaid;
   final bool isDetailsPage;
   final bool showOnlyItems;
@@ -40,6 +42,7 @@ class OrderCard extends StatefulWidget {
     required this.name,
     required this.by,
     required this.address,
+    required this.orderType,
     required this.isPaid,
     this.isDetailsPage = false,
     this.showOnlyItems = false,
@@ -57,10 +60,21 @@ class OrderCard extends StatefulWidget {
 
 class _OrderCardState extends State<OrderCard> {
   final TextEditingController _mismatchController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
+  bool _otpSent = false;
+  bool _isVerifyingOtp = false;
+  bool _otpVerified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _otpController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
     _mismatchController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -72,7 +86,7 @@ class _OrderCardState extends State<OrderCard> {
     // Safely look up the order. If the list is empty or order is missing, return null.
     final currentOrder = context.select<HomeViewModel, OrderModel?>(
       (vm) {
-        final index = vm.orders.indexWhere((o) => o.orderId == widget.orderid);
+        final index = vm.orders.indexWhere((o) => o.orderId == widget.orderid && o.orderType == widget.orderType);
         return index != -1 ? vm.orders[index] : null;
       }
     );
@@ -85,6 +99,21 @@ class _OrderCardState extends State<OrderCard> {
     final stage = currentOrder.status == OrderStatus.completed 
         ? DeliveryStage.delivered 
         : currentOrder.deliveryStage;
+
+    // Professional Recovery: If images exist, the next logical step is always "Order Picked"
+    // This handles app crashes or restarts after images were uploaded.
+    DeliveryStage effectiveStage = stage;
+    if (stage == DeliveryStage.uploadImages && currentOrder.pickedImages.isNotEmpty) {
+      effectiveStage = DeliveryStage.orderPicked;
+    }
+
+    // Condition: Disable the final delivery button until OTP is verified
+    // Standard Flutter buttons turn gray when onPressed is null.
+    final bool isActionDisabled = 
+        currentOrder.orderType == OrderType.delivery && 
+        effectiveStage == DeliveryStage.reachedDelivery && 
+        !_otpVerified && 
+        (!_otpSent || _otpController.text.length != 4);
 
     return Container(
       width: double.infinity,
@@ -122,11 +151,35 @@ class _OrderCardState extends State<OrderCard> {
                         ? AppText.AmountPaid
                         : "Total Amount: \$${currentOrder.totalAmount}",
                   )),
+            if (currentOrder.status == OrderStatus.completed || (currentOrder.mismatchReason != null && currentOrder.mismatchReason!.isNotEmpty))
+              Padding(
+                padding: EdgeInsets.only(top: 8.h),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: (currentOrder.mismatchReason?.isNotEmpty ?? false) 
+                        ? AppColors.errorRed.withOpacity(0.05) 
+                        : AppColors.grey.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: (currentOrder.mismatchReason?.isNotEmpty ?? false) 
+                        ? AppColors.errorRed.withOpacity(0.3) 
+                        : AppColors.grey.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    "Mismatch Reason: ${currentOrder.mismatchReason?.isNotEmpty == true ? currentOrder.mismatchReason : "Not Recorded"}",
+                    style: GoogleFonts.poppins(
+                        fontSize: 13.sp, 
+                        fontWeight: FontWeight.w500, 
+                        color: (currentOrder.mismatchReason?.isNotEmpty ?? false) ? AppColors.errorRed : AppColors.grey),
+                  ),
+                ),
+              ),
             SizedBox(height: 10.h),
             if (isPending) ...[
               if (widget.isDetailsPage) ...[
-                OrderInfoRow(icon: AppImages.iconItems, label: AppText.ItemsLabel),
-                _buildVerificationList(context, currentOrder, true),
+                if (widget.by == "Per Piece")
+                  _buildVerificationList(context, currentOrder, true),
                 if (currentOrder.orderType == OrderType.delivery) ...[
                   if (widget.by != "Per Piece" && currentOrder.bundles.isNotEmpty)
                     BundleSection(
@@ -151,10 +204,11 @@ class _OrderCardState extends State<OrderCard> {
                 : AcceptViewActionRow(isOnline: isOnline, onView: widget.onViewTap ?? () {}, onAccept: widget.onAccept),
             ] else ...[
               // Show item verification list
-              _buildVerificationList(context, currentOrder, false),
+              if (widget.by == "Per Piece")
+                _buildVerificationList(context, currentOrder, false),
               
               // Show bundles if they exist, or if it's an assigned pickup order requiring bundle input
-              if (currentOrder.bundles.isNotEmpty || (currentOrder.status == OrderStatus.assigned && widget.by != "Per Piece") || currentOrder.status == OrderStatus.completed)
+              if (currentOrder.bundles.isNotEmpty || (widget.by != "Per Piece" && (currentOrder.status == OrderStatus.assigned || currentOrder.status == OrderStatus.completed)))
                 ConstrainedBox(
                   constraints: BoxConstraints(maxHeight: 150.h),
                   child: SingleChildScrollView(
@@ -172,6 +226,12 @@ class _OrderCardState extends State<OrderCard> {
               // Show verification actions (Checked button & Mismatch report) for assigned pickup orders
               if (currentOrder.status == OrderStatus.assigned && currentOrder.orderType == OrderType.pickup)
                 _buildVerificationActions(context, currentOrder),
+
+              // Show OTP section for assigned delivery orders only after arrival
+              if (currentOrder.status == OrderStatus.assigned && 
+                  currentOrder.orderType == OrderType.delivery && 
+                  stage == DeliveryStage.reachedDelivery)
+                _buildDeliveryOTPSection(context, currentOrder),
 
               SizedBox(height: 15.h),
               // Image Gallery Section (only if images exist)
@@ -202,7 +262,17 @@ class _OrderCardState extends State<OrderCard> {
                     ),
                   ),
                 ),
-              OrderProgressButton(stage: stage, onPressed: () => _handleProgressAction(context)),
+              if (currentOrder.status != OrderStatus.completed)
+                IgnorePointer(
+                  ignoring: isActionDisabled,
+                  child: Opacity(
+                    opacity: isActionDisabled ? 0.5 : 1.0,
+                    child: OrderProgressButton(
+                      stage: effectiveStage, 
+                      onPressed: isActionDisabled ? () {} : () => _handleProgressAction(context),
+                    ),
+                  ),
+                ),
             ],
           ],
         ),
@@ -218,42 +288,139 @@ class _OrderCardState extends State<OrderCard> {
 
     if (displayItems.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: 150.h), // Set a max height for the scrollable area
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                ...displayItems.map((item) => Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4.h),
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero, // Figma usually has no padding here
+        leading: Image.asset(AppImages.iconItems, width: 20.sp, height: 20.sp, color: AppColors.primaryBlue),
+        title: Text(
+          AppText.ItemsLabel, // As per Figma and request, just the label
+          style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
+        ),
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 200.h),
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: displayItems.length,
+              itemBuilder: (context, index) {
+                final item = displayItems[index];
+                return Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2.h),
                   child: Row(
                     children: [
                       if (isInteractive || (!isPending && order.isVerified))
                         Checkbox(
                           value: item.isVerified,
                           activeColor: AppColors.primaryBlue,
-                          onChanged: (isInteractive && !order.isVerified) ? (_) => context.read<HomeViewModel>().toggleItemVerification(widget.orderid, item.id) : null,
+                          onChanged: (isInteractive) ? (_) => context.read<HomeViewModel>().toggleItemVerification(widget.orderid, item.id) : null,
                         ),
                       Expanded(
                         child: Text(
                           "${item.name} x ${item.qty} ${item.unit}",
-                          style: GoogleFonts.poppins(fontSize: 14.sp, decoration: item.isVerified ? TextDecoration.lineThrough : null),
+                          style: GoogleFonts.poppins(fontSize: 13.sp, decoration: item.isVerified ? TextDecoration.lineThrough : null),
                         ),
                       ),
                       if (isInteractive)
                         IconButton(
-                          icon: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 20.sp),
-                          onPressed: (isInteractive && !order.isVerified) ? () => context.read<HomeViewModel>().deleteItemFromOrder(widget.orderid, item.id) : null,
+                          icon: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 18.sp),
+                          onPressed: () => context.read<HomeViewModel>().deleteItemFromOrder(widget.orderid, item.id),
                         ),
                     ],
                   ),
-                )),
+                );
+              },
+            ),
+          ),
+          Divider(color: AppColors.grey.withOpacity(0.5)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveryOTPSection(BuildContext context, OrderModel order) {
+    final homeVM = context.read<HomeViewModel>();
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          child: Row(
+            children: [
+              Icon(
+                _otpVerified ? Icons.check_circle_outline : Icons.textsms_outlined,
+                color: _otpVerified ? AppColors.green : AppColors.primaryBlue,
+                size: 20.sp,
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                _otpVerified ? "OTP Verified" : (_otpSent ? "Resend OTP" : "Send OTP"),
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: _otpVerified ? AppColors.green : AppColors.primaryBlue,
+                ),
+              ),
+              if (!_otpVerified) ...[
+                const Spacer(),
+                SizedBox(
+                  width: 133.w,
+                  height: 32.h,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final success = await homeVM.sendDeliveryOtp(order.orderId);
+                      if (success && context.mounted) {
+                        setState(() => _otpSent = true);
+                        QuickPopupManager.show(context, message: AppText.OtpSentSuccess, type: QuickPopupType.success);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9E9F9F),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                      padding: EdgeInsets.all(8.w),
+                    ),
+                    child: Text(_otpSent ? "Resend" : "Send", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (_otpSent && !_otpVerified) // Show OTP input field only if OTP has been sent and not yet verified
+          Padding(
+            padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 166.79.w,
+                  height: 32.h,
+                  child: TextField(
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: "Enter 4 digit OTP",
+                      counterText: "",
+                      hintStyle: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: const BorderSide(color: Color(0xFF000000), width: 1.0)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: const BorderSide(color: Color(0xFF000000), width: 1.0)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: const BorderSide(color: Color(0xFF000000), width: 1.0)),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+                    ),
+                    style: GoogleFonts.poppins(fontSize: 13.sp),
+                  ),
+                ),
               ],
             ),
           ),
-        ),
         Divider(color: AppColors.grey.withOpacity(0.5)),
       ],
     );
@@ -358,12 +525,20 @@ class _OrderCardState extends State<OrderCard> {
                     SizedBox(width: 10.w),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_mismatchController.text.trim().isNotEmpty) {
-                            context.read<HomeViewModel>().reportItemMismatch(
+                            final success = await context.read<HomeViewModel>().reportItemMismatch(
                                   widget.orderid,
                                   _mismatchController.text.trim(),
                                 );
+                            if (success && context.mounted) {
+                              QuickPopupManager.show(
+                                context,
+                                message: "Report successfully sent",
+                                type: QuickPopupType.success,
+                              );
+                              _mismatchController.clear();
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r))),
@@ -371,10 +546,10 @@ class _OrderCardState extends State<OrderCard> {
                       ),
                     ),
                   ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
         Divider(color: AppColors.grey.withOpacity(0.5)),
       ],
     );
@@ -401,9 +576,14 @@ class _OrderCardState extends State<OrderCard> {
   Future<void> _handleProgressAction(BuildContext context) async {
     final homeVM = context.read<HomeViewModel>();
     final currentOrder = homeVM.orders.firstWhere((o) => o.orderId == widget.orderid);
-    final stage = currentOrder.deliveryStage;
-    final ImagePicker picker = ImagePicker();
+    
+    // Use effective logic to determine what action to take
+    DeliveryStage stage = currentOrder.deliveryStage;
+    if (stage == DeliveryStage.uploadImages && currentOrder.pickedImages.isNotEmpty) {
+      stage = DeliveryStage.orderPicked;
+    }
 
+    final ImagePicker picker = ImagePicker();
     if (stage == DeliveryStage.startPickup) {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const PickupLocationScreen())); // Simulate location confirmation
       if (!context.mounted) return;
@@ -416,13 +596,21 @@ class _OrderCardState extends State<OrderCard> {
       if (!context.mounted) return;
       if (images.isNotEmpty) {
         homeVM.addOrderImages(currentOrder.orderId, images.map((i) => i.path).toList());
+        QuickPopupManager.show(
+          context, 
+          message: "Images uploaded successfully", 
+          type: QuickPopupType.success
+        );
+
         homeVM.updateOrderStage(widget.orderid, DeliveryStage.orderPicked);
       }
     } else if (stage == DeliveryStage.orderPicked) {
-      await _showStatusDialog(context, AppImages.orderPickedGif, AppText.OrderPickedTitle);
-      if (!context.mounted) return;
-      homeVM.updateOrderStatus(widget.orderid, OrderStatus.completed);
-      homeVM.setSelectedFilter("completed");
+      // Connect to confirm-pickup API endpoint
+      final success = await homeVM.confirmPickup(widget.orderid);
+      if (success && context.mounted) {
+        await _showStatusDialog(context, AppImages.orderPickedGif, AppText.OrderPickedTitle);
+        homeVM.setSelectedFilter("completed");
+      }
     } else if (stage == DeliveryStage.startDelivery) {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const DeliveryLocationScreen()));
       if (!context.mounted) return;
@@ -430,9 +618,27 @@ class _OrderCardState extends State<OrderCard> {
         homeVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
       }
     } else if (stage == DeliveryStage.reachedDelivery) {
+      // If OTP is not yet verified, attempt to verify it using the input from _otpController
+      if (!_otpVerified) {
+        if (_otpController.text.length != 4) {
+          QuickPopupManager.show(context, message: "Enter 4 digit OTP", type: QuickPopupType.error);
+          return;
+        }
+        setState(() => _isVerifyingOtp = true);
+        final success = await homeVM.verifyDeliveryOtp(currentOrder.orderId, _otpController.text);
+        if (context.mounted) {
+          setState(() => _isVerifyingOtp = false);
+          if (!success) {
+            QuickPopupManager.show(context, message: AppText.InvalidOtp, type: QuickPopupType.error);
+            return; // Stop if OTP verification fails
+          }
+          setState(() => _otpVerified = true); // Mark as verified if successful
+        }
+      }
+      
+      // The backend 'verifyDeliveryOtp' already updates status to DELIVERED and marks it complete.
       await _showStatusDialog(context, AppImages.successGif, AppText.OrderDeliveredTitle);
       if (!context.mounted) return;
-      homeVM.updateOrderStatus(widget.orderid, OrderStatus.completed);
       homeVM.setSelectedFilter("completed");
     }
   }

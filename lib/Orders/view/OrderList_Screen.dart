@@ -5,8 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart';
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart' as home_order_card;
 import '../../Home/viewmodel/home_viewmodel.dart';
 import '../../Home/data/model/home_models.dart';
 
@@ -120,13 +119,15 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                         final order = filteredOrders[index];
                         return Padding(
                           padding: EdgeInsets.only(bottom: 15.h),
-                          child: OrderCard(
+                          child: home_order_card.OrderCard(
+                            key: ValueKey("${order.orderId}_${order.orderType}"),
                             onAccept: () => _handleAcceptOrder(context, homeVM, order, isOnline),
                             orderid: order.orderId,
                             orderNumber: order.orderNumber,
                             name: order.name,
                             by: order.by,
                             address: order.address,
+                            orderType: order.orderType,
                             isPaid: order.isPaid,
                             isDetailsPage: true,
                             showOnlyItems: false,
