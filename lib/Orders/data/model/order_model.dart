@@ -211,12 +211,18 @@ class OrderItem {
     this.isVerified = false,
   });
 
-  OrderItem copyWith({bool? isVerified}) {
+  OrderItem copyWith({
+    String? id,
+    String? name,
+    String? qty,
+    String? unit,
+    bool? isVerified,
+  }) {
     return OrderItem(
-      id: id,
-      name: name,
-      qty: qty,
-      unit: unit,
+      id: id ?? this.id,
+      name: name ?? this.name,
+      qty: qty ?? this.qty,
+      unit: unit ?? this.unit,
       isVerified: isVerified ?? this.isVerified,
     );
   }

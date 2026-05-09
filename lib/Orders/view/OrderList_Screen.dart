@@ -5,9 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart' as home_order_card;
+import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_order_card;
 import '../../Home/viewmodel/home_viewmodel.dart';
 import '../../Home/data/model/home_models.dart';
+import '../widget/OrderCard.dart';
 
 class OrderlistScreen extends StatefulWidget {
   final String initialFilter;
@@ -196,13 +197,20 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     if (filter == "completed") message = AppText.NoCmpltd;
 
     return Center(
-      child: Text(
-        message,
-        style: GoogleFonts.poppins(
-          fontSize: 18.sp,
-          fontWeight: FontWeight.w600,
-          color: AppColors.grey,
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 60.sp, color: AppColors.grey.withOpacity(0.4)),
+          SizedBox(height: 15.h),
+          Text(
+            message,
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.grey,
+            ),
+          ),
+        ],
       ),
     );
   }

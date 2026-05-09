@@ -5,13 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/OrderCard.dart' as home_order_card;
 import 'package:ziya_laundry_deliveryapp/Home/widgets/notification_bell.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/online_toggle.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/profile_avatar.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/status_count_card.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/welcome_section.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/order_type_toggle.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_order_card;
 import '../../AuthSection/viewmodel/login_viewmodel.dart';
 import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../../core/dio_client.dart';
@@ -109,11 +109,8 @@ class _HomepageState extends State<Homepage> {
                     physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
-                      // Fallback for name if user data is missing/null
                       WelcomeSection(name: authVM.loginName.isEmpty ? "Delivery Partner" : authVM.loginName),
                       SizedBox(height: 20.h),
-
-                      /// Assigned & Completed Status Cards
                       Row(
                         children: [
                           Expanded(
@@ -153,7 +150,21 @@ class _HomepageState extends State<Homepage> {
                       ),
                       // const TodaysEarningsCard(amount: "\$473"),
                       SizedBox(height: 20.h),
-                      ListView.builder(
+                      newOrders.isEmpty 
+                      ? Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40.h),
+                          child: Column(
+                            children: [
+                              Icon(Icons.assignment_late_outlined, size: 60.sp, color: AppColors.grey.withOpacity(0.5)),
+                              SizedBox(height: 10.h),
+                              Text(
+                                "No ${_selectedOrderType == OrderType.pickup ? 'Pickup' : 'Delivery'} orders available",
+                                style: GoogleFonts.poppins(color: AppColors.grey, fontSize: 14.sp),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
                         physics: NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         itemCount: newOrders.length,

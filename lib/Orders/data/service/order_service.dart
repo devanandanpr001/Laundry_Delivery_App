@@ -99,7 +99,7 @@ class OrderService {
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  /// Fetches completed orders from the real API
+
   Future<List<Map<String, dynamic>>> fetchCompletedOrders() async {
     try {
       final response = await _dioClient.get(ApiConstants.completedOrders);

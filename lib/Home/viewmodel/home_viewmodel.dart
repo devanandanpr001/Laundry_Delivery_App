@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
 import '../../Orders/data/model/order_model.dart';
 import '../../Orders/viewmodel/DeliveryStage.dart';
+import '../../Orders/data/model/Bundle_Model.dart';
 import '../../Constants/Api_Constants.dart';
 import '../../core/dio_client.dart';
 import 'package:dio/dio.dart';
@@ -81,6 +82,7 @@ class HomeViewModel extends ChangeNotifier {
       for (var order in completedOrders) {
         uniqueMap["${order.orderId}_${order.orderType}"] = order;
       }
+      
       final fetchedOrders = uniqueMap.values.toList();
       
       // Professional Merge Logic: Preserve local progress state (deliveryStage)
@@ -240,14 +242,23 @@ class HomeViewModel extends ChangeNotifier {
       final currentOrder = _orders[index];
 
       if (status == OrderStatus.assigned && currentOrder.status == OrderStatus.pending) {
+        // Optimistic update
+        _orders[index] = currentOrder.copyWith(status: OrderStatus.assigned);
+        notifyListeners();
+
         _isLoading = true;
         notifyListeners();
         try {
           bool success = false;
           if (currentOrder.orderType == OrderType.pickup) {
             success = await _repository.acceptPickupOrder(orderId);
+            // If pickup is accepted, set initial stage
+            if (success) _orders[index] = _orders[index].copyWith(deliveryStage: DeliveryStage.startPickup);
           } else {
             success = await _repository.acceptDeliveryOrder(orderId);
+            // If delivery is accepted, set initial stage
+            if (success) _orders[index] = _orders[index].copyWith(deliveryStage: DeliveryStage.startDelivery);
+
           }
 
           if (success) {
@@ -255,6 +266,8 @@ class HomeViewModel extends ChangeNotifier {
             await refreshOrders();
           }
         } catch (e) {
+          // Revert optimistic update on failure
+          _orders[index] = currentOrder;
           debugPrint("Failed to accept order: $e");
         } finally {
           _isLoading = false;
@@ -279,10 +292,14 @@ class HomeViewModel extends ChangeNotifier {
       final items = List<OrderItem>.from(_orders[orderIndex].items);
       final itemIndex = items.indexWhere((i) => i.id == itemId);
       if (itemIndex != -1) {
-        items[itemIndex] = items[itemIndex].copyWith(isVerified: !items[itemIndex].isVerified);
+        final originalItem = items[itemIndex];
+        // Optimistic update
+        items[itemIndex] = originalItem.copyWith(isVerified: !originalItem.isVerified);
         _orders[orderIndex] = _orders[orderIndex].copyWith(items: items);
         notifyListeners();
+        // No backend call for this as it's a local verification state for pickup
       }
+      // If you need to persist this verification, you'd add an API call here.
     }
   }
 
@@ -290,20 +307,30 @@ class HomeViewModel extends ChangeNotifier {
     debugPrint("--- CONSOLE: DELETE ITEM START ---");
     debugPrint("OrderId: $orderId, ItemId: $itemId");
     
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex == -1) return;
+
+    final originalItems = List<OrderItem>.from(_orders[orderIndex].items);
+    final itemToRemove = originalItems.firstWhere((item) => item.id == itemId);
+
+    // Optimistic update: Remove item locally
+    final updatedItems = originalItems.where((item) => item.id != itemId).toList();
+    _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
+    notifyListeners();
+
     try {
       final response = await DioClient().delete(
         "${ApiConstants.orderItem}/$orderId/item",
         data: {"itemId": itemId},
       );
       
-      debugPrint("CONSOLE: Delete Success Response: $response");
-      if (response['success'] == true) {
-        await refreshOrders();
-      }
+      // Refresh to sync totals and backend state
+      await refreshOrders();
     } catch (e) {
       debugPrint("CONSOLE: Delete Error: $e");
-      _errorMessage = "Failed to delete item: $e";
-      notifyListeners();
+      // Revert optimistic update
+      _orders[orderIndex] = _orders[orderIndex].copyWith(items: originalItems);
+      rethrow;
     }
   }
 
@@ -353,6 +380,15 @@ class HomeViewModel extends ChangeNotifier {
 
     debugPrint("Payload: $payload");
 
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex == -1) return;
+
+    // Optimistic update: Add item locally
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString(); // Temporary ID for optimistic update
+    final optimisticItem = newItem.copyWith(id: tempId, qty: payload['quantity'].toString());
+    _orders[orderIndex] = _orders[orderIndex].copyWith(items: [..._orders[orderIndex].items, optimisticItem]);
+    notifyListeners();
+
     try {
       final response = await DioClient().post(
         "${ApiConstants.orderItem}/$orderId/item",
@@ -360,8 +396,11 @@ class HomeViewModel extends ChangeNotifier {
       );
 
       debugPrint("CONSOLE: Add Item Success Response: $response");
-      if (response['success'] == true) {
-        await refreshOrders();
+      if (response['success'] != true) {
+        throw Exception("API failed to add item");
+      } else {
+        // If successful, refresh to get the actual ID and updated order details
+        await refreshOrders(); 
       }
     } catch (e) {
       debugPrint("CONSOLE: Add Item Error: $e");
@@ -373,6 +412,14 @@ class HomeViewModel extends ChangeNotifier {
   Future<bool> reportItemMismatch(String orderId, String details) async {
     debugPrint("--- CONSOLE: REPORT MISMATCH START ---");
     try {
+      final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+      if (orderIndex == -1) return false;
+
+      final originalMismatchReason = _orders[orderIndex].mismatchReason;
+      // Optimistic update
+      _orders[orderIndex] = _orders[orderIndex].copyWith(mismatchReason: details);
+      notifyListeners();
+
       // Endpoint: POST /api/delivery-session/session/orders/:orderId/add-mismatch-reason
       final response = await DioClient().put(
         ApiConstants.mismatch.replaceAll(':orderId', orderId),
@@ -381,11 +428,13 @@ class HomeViewModel extends ChangeNotifier {
 
       debugPrint("CONSOLE: Report Success Response: $response");
       if (response != null && response['success'] == true) {
-        await refreshOrders();
         return true;
       }
       return false;
     } catch (e) {
+      // Revert optimistic update on failure
+      final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+      if (orderIndex != -1) _orders[orderIndex] = _orders[orderIndex].copyWith(mismatchReason: null); // Revert to null or original
       debugPrint("CONSOLE: Report Error: $e");
       _errorMessage = "Failed to report mismatch: $e";
       notifyListeners();
@@ -396,11 +445,21 @@ class HomeViewModel extends ChangeNotifier {
   Future<bool> confirmPickup(String orderId) async {
     debugPrint("--- CONSOLE: CONFIRM PICKUP START ---");
     try {
+      final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+      if (orderIndex == -1) return false;
+
+      final originalStatus = _orders[orderIndex].status;
+      // Optimistic update
+      _orders[orderIndex] = _orders[orderIndex].copyWith(status: OrderStatus.completed);
+      notifyListeners();
+
       final success = await _repository.confirmPickupOrder(orderId);
       if (success) {
         await refreshOrders(); // Professional sync: get final OrderStatus.completed from server
         return true;
       } else {
+        // Revert optimistic update on failure
+        _orders[orderIndex] = _orders[orderIndex].copyWith(status: originalStatus);
         _errorMessage = "Failed to confirm pickup.";
         notifyListeners();
         return false;
@@ -408,6 +467,9 @@ class HomeViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("CONSOLE: Confirm Pickup Error: $e");
       _errorMessage = "Failed to confirm pickup: $e";
+      // Revert optimistic update on failure
+      final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+      if (orderIndex != -1) _orders[orderIndex] = _orders[orderIndex].copyWith(status: OrderStatus.assigned); // Assuming it was assigned before
       notifyListeners();
       return false;
     }
@@ -416,16 +478,27 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> verifyOrder(String orderId) async {
     debugPrint("--- CONSOLE: VERIFY ORDER START ---");
     try {
+      final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+      if (orderIndex == -1) return;
+
+      final originalIsVerified = _orders[orderIndex].isVerified;
+      // Optimistic update
+      _orders[orderIndex] = _orders[orderIndex].copyWith(isVerified: true);
+      notifyListeners();
+
       // Endpoint: PATCH /api/delivery-session/session/orders/:orderId/verify
       final response = await DioClient().patch(
         "${ApiConstants.verifyOrder}/$orderId/verify",
       );
 
       debugPrint("CONSOLE: Verify Success Response: $response");
-      if (response['success'] == true) {
-        await refreshOrders();
-      }
+      if (response['success'] != true) {
+        throw Exception("API failed to verify order");
+      } // No need to refreshOrders, local state is already updated
     } catch (e) {
+      // Revert optimistic update on failure
+      final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+      if (orderIndex != -1) _orders[orderIndex] = _orders[orderIndex].copyWith(isVerified: false);
       debugPrint("CONSOLE: Verify Error: $e");
       
       // If the server says the order is already verified, sync the local state by refreshing.
@@ -457,24 +530,58 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    for (String path in images) {
-      try {
-        String fileName = path.split('/').last;
-        FormData formData = FormData.fromMap({
-          "image": await MultipartFile.fromFile(path, filename: fileName),
-        });
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex == -1) return;
 
-        debugPrint("Uploading Image: $fileName for Order: $orderId");
-        final response = await DioClient().post(
-          "${ApiConstants.uploadOrderImage}/$orderId/upload-image",
-          data: formData,
-        );
-        debugPrint("CONSOLE: Upload Success: $response");
-      } catch (e) {
-        debugPrint("CONSOLE: Upload Error for $path: $e");
-      }
+    final originalImages = List<String>.from(_orders[orderIndex].pickedImages);
+    final originalImageIds = List<String>.from(_orders[orderIndex].pickedImageIds);
+
+    // Optimistic update: Add local paths to pickedImages
+    _orders[orderIndex] = _orders[orderIndex].copyWith(pickedImages: [...originalImages, ...images]);
+    notifyListeners();
+
+    final List<Future<void>> uploadFutures = [];
+    for (final path in images) {
+      uploadFutures.add(() async {
+        try {
+          String fileName = path.split('/').last;
+          FormData formData = FormData.fromMap({
+            "image": await MultipartFile.fromFile(path, filename: fileName),
+          });
+
+          debugPrint("Uploading Image: $fileName for Order: $orderId");
+          final response = await DioClient().post(
+            "${ApiConstants.uploadOrderImage}/$orderId/upload-image",
+            data: formData,
+          );
+          debugPrint("CONSOLE: Upload Success: $response");
+
+          if (response['success'] == true && response['data'] != null) {
+            // Update the local image path with the actual URL from the server
+            final newImageUrl = response['data']['imageUrl']?.toString() ?? path;
+            final newImageId = response['data']['id']?.toString() ?? '';
+
+            final currentImages = List<String>.from(_orders[orderIndex].pickedImages);
+            final currentImageIds = List<String>.from(_orders[orderIndex].pickedImageIds);
+            final indexToUpdate = currentImages.indexOf(path);
+            if (indexToUpdate != -1) {
+              currentImages[indexToUpdate] = newImageUrl;
+              currentImageIds.add(newImageId);
+              _orders[orderIndex] = _orders[orderIndex].copyWith(pickedImages: currentImages, pickedImageIds: currentImageIds);
+              notifyListeners(); // Notify after each image URL is updated
+            }
+          }
+        } catch (e) {
+          debugPrint("CONSOLE: Upload Error for $path: $e");
+          // Revert: Remove the failed image from the local list
+          _orders[orderIndex] = _orders[orderIndex].copyWith(pickedImages: _orders[orderIndex].pickedImages.where((img) => img != path).toList());
+          notifyListeners();
+        }
+      }());
     }
-    await refreshOrders();
+    await Future.wait(uploadFutures); // Wait for all uploads to complete
+    _isLoading = false;
+    notifyListeners(); // Final notification after all uploads
   }
 
   Future<void> removeOrderImage(String orderId, int imageIndex) async {
@@ -513,6 +620,15 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> addOrderBundle(String orderId, dynamic bundle) async {
     debugPrint("--- CONSOLE: ADD BUNDLE (WEIGHT) START ---");
     
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex == -1) return;
+
+    // Optimistic update: Add bundle locally
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString(); // Temporary ID for optimistic update
+    final optimisticBundle = BundleModel(id: tempId, name: bundle.name ?? "Weight Bundle", weight: bundle.weight.toString(), price: bundle.price ?? 0);
+    _orders[orderIndex] = _orders[orderIndex].copyWith(bundles: [..._orders[orderIndex].bundles, optimisticBundle]);
+    notifyListeners();
+
     // Map bundle data to the same payload format as Per Piece items
     final payload = {
       "title": bundle.name ?? "Weight Bundle",
@@ -529,8 +645,11 @@ class HomeViewModel extends ChangeNotifier {
       );
 
       debugPrint("CONSOLE: Add Bundle Success Response: $response");
-      if (response['success'] == true) {
-        await refreshOrders();
+      if (response['success'] != true) {
+        throw Exception("API failed to add bundle");
+      } else {
+        // If successful, refresh to get the actual ID and updated order details
+        await refreshOrders(); 
       }
     } catch (e) {
       debugPrint("CONSOLE: Add Bundle Error: $e");
@@ -543,9 +662,23 @@ class HomeViewModel extends ChangeNotifier {
     debugPrint("--- CONSOLE: REMOVE BUNDLE START ---");
     final index = _orders.indexWhere((o) => o.orderId == orderId);
     if (index != -1) {
-      final bundleId = _orders[index].bundles[bundleIndex].id;
-      if (bundleId.isNotEmpty) {
-        await deleteItemFromOrder(orderId, bundleId);
+      final originalBundles = List<BundleModel>.from(_orders[index].bundles);
+      final bundleToRemove = originalBundles[bundleIndex];
+
+      // Optimistic update: Remove bundle locally
+      final updatedBundles = List<BundleModel>.from(originalBundles)..removeAt(bundleIndex);
+      _orders[index] = _orders[index].copyWith(bundles: updatedBundles);
+      notifyListeners();
+
+      try {
+        if (bundleToRemove.id.isNotEmpty) {
+          await deleteItemFromOrder(orderId, bundleToRemove.id); // Use existing delete item API
+          await refreshOrders();
+        }
+      } catch (e) {
+        // Revert optimistic update on failure
+        if (index != -1) _orders[index] = _orders[index].copyWith(bundles: originalBundles);
+        debugPrint("CONSOLE: Remove Bundle Error: $e");
       }
     }
   }
