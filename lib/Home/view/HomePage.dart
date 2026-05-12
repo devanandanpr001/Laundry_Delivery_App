@@ -78,9 +78,12 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     final homeVM = context.watch<HomeViewModel>();
 
-    // Filter pending orders by the selected order type
-    final newOrders = homeVM.pendingOrders
-        .where((order) => order.orderType == _selectedOrderType)
+    // Display all active (unassigned) orders for the selected type.
+    // This ensures statuses like 'OUT_FOR_DELIVERY' are visible in the dashboard.
+    final newOrders = homeVM.orders
+        .where((order) => 
+            order.orderType == _selectedOrderType && 
+            order.status == OrderStatus.pending)
         .toList();
     int completedOrdersCount = homeVM.completedCount;
     int assignedCount = homeVM.assignedCount;

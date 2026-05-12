@@ -1,4 +1,5 @@
 import 'package:ziya_laundry_deliveryapp/Orders/data/model/Bundle_Model.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/DeliveryStage.dart';
 
 class OrderModel {
@@ -8,7 +9,7 @@ class OrderModel {
   final String by;
   final String address;
   final bool isPaid;
-  final OrderStatus status;
+  final OrderStatus status; 
   final OrderType orderType;
   final DeliveryStage deliveryStage;
   final List<String> pickedImages;
@@ -19,6 +20,9 @@ class OrderModel {
   final bool isVerified;
   final String paymentMethod;
   final String? mismatchReason;
+  final String? pickupUserId;
+  final String? deliveryUserId;
+  final DateTime? updatedAt;
 
   OrderModel({
     required this.orderId,
@@ -38,12 +42,17 @@ class OrderModel {
     this.paymentMethod = '',
     this.isVerified = false,
     this.mismatchReason,
+    this.pickupUserId,
+    this.deliveryUserId,
+    this.updatedAt,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json, OrderType type, {bool forceAssigned = false, bool forceCompleted = false}) {
-    final user = json['user'] as Map<String, dynamic>?;
+    // Process the raw JSON using the static helper first to ensure numeric types are correct
+    json = OrderModel.mapOrderData(json);
     
-    // Look for details in either 'Pickup' or 'Delivery' keys based on backend response
+    final user = json['user'] as Map<String, dynamic>?;
+
     final details = (json['Pickup'] ?? json['Delivery'] ?? json['pickup'] ?? json['delivery']) as Map<String, dynamic>?;
 
     // Resilient address map detection: Check root 'address' (common in assigned orders) 
@@ -100,16 +109,41 @@ class OrderModel {
     String fullAddress = constructedAddress.isNotEmpty ? constructedAddress : (json['address'] is String ? json['address'] as String : details?['address'] is String ? details!['address'] as String : '');
     if (fullAddress.isEmpty || fullAddress.toLowerCase() == "null") fullAddress = 'No Address Provided';
 
+    // Refine order type and status based on root status
+    OrderType finalType = type;
+    // Prioritize root status to avoid delivery orders using nested Pickup status
+    final String rootStatus = (json['status'] ?? "").toString().toUpperCase();
+
+    // Safe override: Ensure delivery status keys force the type to delivery
+    if (rootStatus == "OUT_FOR_DELIVERY" || 
+        rootStatus == "DELIVERED" || 
+        json['appOrderType']?.toString().toLowerCase() == 'delivery') { // Use appOrderType here
+      finalType = OrderType.delivery;
+    }
+
+    // Determine the human-readable order number. 
+    // Backend sends 'orderId' as the formatted string (LDR-xxxxx) in the root.
+    // We use this for display while keeping the UUID 'id' for logical operations.
+    String displayOrderNumber = json['orderId']?.toString() ?? '';
+    if (!displayOrderNumber.startsWith("LDR") || displayOrderNumber.length < 5) {
+      final num? numVal = json['orderNumber'] is num ? json['orderNumber'] as num : num.tryParse(json['orderNumber']?.toString() ?? '');
+      if (numVal != null) {
+        displayOrderNumber = "LDR-${numVal.toInt().toString().padLeft(5, '0')}";
+      } else {
+        displayOrderNumber = json['orderNumber']?.toString() ?? displayOrderNumber;
+      }
+    }
+
     return OrderModel(
       orderId: (json['id'] ?? json['_id'])?.toString() ?? '',
-      orderNumber: (json['orderId'] ?? json['orderNumber'])?.toString() ?? '',
+      orderNumber: displayOrderNumber,
       name: _sanitizeString(json['customerName'] ?? user?['name'] ?? details?['customerName'], "Customer"),
       by: byValue,
       address: fullAddress,
       isPaid: (json['paymentStatus'] ?? details?['paymentStatus']) == 'SUCCESS',
-      status: forceCompleted ? OrderStatus.completed : (forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status'] ?? details?['status'])), // Map new statuses to existing enum
-      orderType: type, // Explicitly set based on API call
-      deliveryStage: type == OrderType.pickup ? DeliveryStage.startPickup : DeliveryStage.startDelivery, // Default stage based on order type
+      status: forceCompleted ? OrderStatus.completed : (forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status'] ?? details?['status'])), 
+      orderType: finalType, 
+      deliveryStage: finalType == OrderType.pickup ? DeliveryStage.startPickup : DeliveryStage.startDelivery, 
       pickedImages: (rawImages ?? []).map<String>((e) {
         if (e is Map) return (e['imageUrl'] ?? e['filePath'] ?? e['path'] ?? '').toString();
         return e.toString();
@@ -130,22 +164,36 @@ class OrderModel {
                 price: (i['unitPrice'] as num?)?.toDouble() ?? 0.0,
               ))
           .toList(),
-      items: (orderItemsList ?? [])
-          .where((i) {
-            final unitType = i['unitType']?.toString().toUpperCase() ?? "";
-            return unitType != 'KG' && unitType != 'WEIGHT' && unitType != 'BUNDLE';
-          })
-          .map((i) => OrderItem(
-                id: i['id']?.toString() ?? '',
-                name: i['title'] ?? '',
-                qty: i['quantity']?.toString() ?? '', // Quantity is int, convert to string
-                unit: i['unitType']?.toString() ?? '',
-              ))
-          .toList(),
+      // Professional Fallback: If no items are provided in the delivery response, 
+      // show a placeholder so the OrderCard remains visible and descriptive.
+      items: (orderItemsList == null || orderItemsList.isEmpty)
+          ? [
+              OrderItem(
+                id: 'placeholder_${json['id']}',
+                name: 'Delivery Order',
+                qty: '1',
+                unit: 'Item',
+              )
+            ]
+          : orderItemsList
+              .where((i) {
+                final unitType = i['unitType']?.toString().toUpperCase() ?? "";
+                return unitType != 'KG' && unitType != 'WEIGHT' && unitType != 'BUNDLE';
+              })
+              .map((i) => OrderItem(
+                    id: i['id']?.toString() ?? '',
+                    name: i['title'] ?? '',
+                    qty: i['quantity']?.toString() ?? '',
+                    unit: i['unitType']?.toString() ?? '',
+                  ))
+              .toList(),
       totalAmount: (json['totalAmount'] ?? details?['totalAmount'])?.toString() ?? '0',
       isVerified: json['isVerified'] ?? details?['isVerified'] ?? false,
       paymentMethod: (json['paymentMethod'] ?? details?['paymentMethod'])?.toString() ?? '',
       mismatchReason: json['mismatchReason']?.toString() ?? details?['mismatchReason']?.toString(),
+      pickupUserId: json['pickupUserId']?.toString(),
+      deliveryUserId: json['deliveryUserId']?.toString(),
+      updatedAt: (json['updatedAt'] ?? details?['updatedAt']) != null ? DateTime.tryParse((json['updatedAt'] ?? details?['updatedAt']).toString()) : null,
     );
   }
 
@@ -167,6 +215,9 @@ class OrderModel {
     bool? isVerified,
     String? paymentMethod,
     String? mismatchReason,
+    String? pickupUserId,
+    String? deliveryUserId,
+    DateTime? updatedAt,
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
@@ -186,6 +237,9 @@ class OrderModel {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       isVerified: isVerified ?? this.isVerified,
       mismatchReason: mismatchReason ?? this.mismatchReason,
+      pickupUserId: pickupUserId ?? this.pickupUserId,
+      deliveryUserId: deliveryUserId ?? this.deliveryUserId,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -193,6 +247,91 @@ class OrderModel {
     if (value == null) return defaultValue;
     final s = value.toString();
     return (s.isEmpty || s.toLowerCase() == "null") ? defaultValue : s;
+  }
+
+  // Helper to sanitize and map order data, moved from HomeService
+  static Map<String, dynamic> mapOrderData(Map<String, dynamic> json) {
+    // 1. Sanitize Numeric Fields (Crucial fix for "type 'String' is not a subtype of type 'num?'")
+    // This handles cases where the API sends decimals or counts as Strings.
+    final numericFields = [
+      'totalAmount', 'paidAmount', 'payableAmount', 'unitPrice', 'payable_amount',
+      'totalPrice', 'collectedAmount', 'orderNumber', 'quantity',
+      'pricePerKg', 'itemsCount'
+    ];
+    
+    void sanitize(Map<String, dynamic> data) {
+      for (var field in numericFields) {
+        if (data.containsKey(field) && data[field] != null) {
+          if (data[field] is String) {
+            if (field == 'orderNumber' || field == 'quantity') {
+              data[field] = int.tryParse(data[field]) ?? (double.tryParse(data[field])?.toInt() ?? 0);
+            } else {
+              data[field] = double.tryParse(data[field]) ?? 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    sanitize(json);
+    
+    // Sanitize root-level details map if present (Crucial for Assigned Orders)
+    final detailsKeys = ['Pickup', 'Delivery', 'pickup', 'delivery'];
+    for (var key in detailsKeys) {
+      if (json[key] != null && json[key] is Map) {
+        sanitize(json[key] as Map<String, dynamic>);
+      }
+    }
+
+    // Sanitize nested items (handles both 'OrderItems' and 'items' keys used by different endpoints)
+    final nestedKeys = ['OrderItems', 'items'];
+    for (var key in nestedKeys) {
+      if (json[key] != null && json[key] is List) {
+        json[key] = (json[key] as List).map((item) {
+          if (item is Map) {
+            final itemMap = Map<String, dynamic>.from(item);
+            sanitize(itemMap);
+            return itemMap;
+          }
+          return item;
+        }).toList();
+      }
+    }
+
+    // 2. Prepend base URL to image paths
+    void mapImages(Map<String, dynamic> data) {
+      final imageFields = ['pickedImages', 'images'];
+      for (var field in imageFields) {
+        if (data.containsKey(field) && data[field] is List) {
+          data[field] = (data[field] as List).map((img) {
+            if (img is Map) {
+              final imgMap = Map<String, dynamic>.from(img);
+              final String path = (imgMap['filePath'] ?? imgMap['path'] ?? imgMap['imageUrl'] ?? "").toString();
+              if (path.isNotEmpty && !path.startsWith('http')) {
+                imgMap['imageUrl'] = '${ApiConstants.mediaBaseUrl}${path.startsWith('/') ? path.substring(1) : path}';
+              } else if (path.isNotEmpty) {
+                imgMap['imageUrl'] = path;
+              }
+              return imgMap;
+            }
+            final String path = img.toString();
+            if (path.isNotEmpty && !path.startsWith('http')) {
+              return '${ApiConstants.mediaBaseUrl}${path.startsWith('/') ? path.substring(1) : path}';
+            }
+            return path;
+          }).toList();
+        }
+      }
+    }
+
+    mapImages(json);
+    for (var key in detailsKeys) {
+      if (json[key] != null && json[key] is Map) {
+        mapImages(json[key] as Map<String, dynamic>);
+      }
+    }
+
+    return json;
   }
 }
 
@@ -243,13 +382,14 @@ OrderStatus parseOrderStatus(dynamic status) {
     case "WASHING":
     case "DRYING":
     case "IRONING":
-    case "OUT_FOR_DELIVERY": 
+    case "PICKUP_CONFIRMED":
+    case "COMPLETED": // Pickups marked as completed but not yet terminal (delivered)
       return OrderStatus.assigned;
-    case "COMPLETED":
     case "DELIVERED":
       return OrderStatus.completed;
     case "SCHEDULED": // New status for pending pickup orders
     case "PICKUP": // Orders with status "PICKUP" are pending acceptance
+    case "OUT_FOR_DELIVERY": // Delivery orders ready for acceptance
       return OrderStatus.pending;
     default:
       return OrderStatus.pending;
@@ -257,9 +397,12 @@ OrderStatus parseOrderStatus(dynamic status) {
 }
 
 OrderType parseOrderType(dynamic type) {
-  if (type is OrderType) return type;
-  switch (type?.toString().toUpperCase()) {
-    case "DELIVERY":
+  if (type == null) return OrderType.pickup;
+  final typeStr = type.toString().toLowerCase();
+  switch (typeStr) {
+    case 'pickup':
+      return OrderType.pickup;
+    case 'delivery':
       return OrderType.delivery;
     default:
       return OrderType.pickup;

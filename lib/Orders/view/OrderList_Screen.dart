@@ -39,7 +39,17 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
       final typeMatch = order.orderType == _selectedType;
       if (!typeMatch) return false;
 
+      // "All" filter: Displays unassigned orders (status 'pending' in model).
+      // This includes 'OUT_FOR_DELIVERY' delivery orders and 'SCHEDULED' pickup orders.
+      // Once accepted, they move to the 'assigned' section.
       if (selectedFilter == "all") return order.status == OrderStatus.pending;
+      if (selectedFilter == "all") {
+        if (_selectedType == OrderType.delivery) {
+          return order.status == OrderStatus.pending || order.status == OrderStatus.assigned;
+        }
+        return order.status == OrderStatus.pending;
+      }
+      
       if (selectedFilter == "assigned") return order.status == OrderStatus.assigned;
       if (selectedFilter == "completed") return order.status == OrderStatus.completed;
 
@@ -222,7 +232,8 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
       case "completed":
         return (AppText.CompletedOrders, "${vm.completedCount} ${AppText.Delivered}");
       default:
-        final count = vm.pendingOrders.length;
+        // Filter header count by order type (Pickup/Delivery) for consistency with the list.
+        final count = vm.pendingOrders.where((o) => o.orderType == _selectedType).length;
         final suffix = count == 1 ? AppText.OrderSingle : AppText.OrderPlural;
         return (AppText.NewOrders, "$count $suffix ${AppText.ReviewedConfirmed}");
     }

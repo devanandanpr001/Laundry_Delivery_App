@@ -12,18 +12,20 @@ class CustomButton extends StatelessWidget {
   final double? borderRadius;
   final double? elevation;
   final String? fontFamily;
+  final bool loading;
 
   const CustomButton({
     super.key,
     required this.text,
-    this.onPressed, // No longer required, can be null to disable
+    this.onPressed,
     this.backgroundColor,
-    this.textColor, // Added to constructor
+    this.textColor,
     this.fontWeight,
     this.height,
     this.borderRadius,
     this.elevation,
     this.fontFamily,
+    this.loading = false,
   });
 
   

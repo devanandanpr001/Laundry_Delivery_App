@@ -6,8 +6,7 @@ import 'package:ziya_laundry_deliveryapp/AuthSection/widgets/Reusable_inputfield
 import 'package:ziya_laundry_deliveryapp/AuthSection/widgets/custom_button.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-
-import '../../AuthSection/viewmodel/signup_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/SignUp_viewmodel.dart';
 
 class ChangepasswordScreen extends StatefulWidget {
   const ChangepasswordScreen({super.key});
@@ -94,14 +93,15 @@ class _ChangepasswordScreenState extends State<ChangepasswordScreen> {
                   Consumer<SignupViewModel>(
                     builder: (context, vm, child) => CustomButton(
                       text: AppText.BtnPass,
-                      onPressed: () async {
+                      loading: vm.isLoading,
+                      onPressed: vm.isLoading ? null : () async {
                         final error = await vm.changePassword(
                           currentPassword: currentController.text,
                           newPassword: newController.text,
                           confirmPassword: confirmController.text,
                         );
 
-                        if (!context.mounted) return;
+                        if (!mounted) return;
 
                         if (error != null) {
                           ScaffoldMessenger.of(context).showSnackBar(

@@ -17,6 +17,7 @@ abstract class IAuthService {
   Future<Map<String, dynamic>> logout(String token);
   Future<bool> sendOtp(String phoneNumber);
   Future<bool> registerUser(UserModel user);
+  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword, String confirmPassword);
 }
 class AuthService implements IAuthService {
   final DioClient _dioClient = DioClient();
@@ -193,6 +194,22 @@ class AuthService implements IAuthService {
       return true; // Successfully reached without error
     } catch (e) {
       return false;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword, String confirmPassword) async {
+    try {
+      final response = await _dioClient.post(ApiConstants.changePassword, data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      });
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
+    } catch (e) {
+      return {'success': false, 'msg': 'Connection failed'};
     }
   }
 }

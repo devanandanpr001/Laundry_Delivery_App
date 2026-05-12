@@ -12,10 +12,37 @@ import '../../Orders/data/model/order_model.dart';
   class MyOrdersScreen extends StatelessWidget {
     const MyOrdersScreen({super.key});
 
+    String _formatOrderDate(DateTime? date) {
+      if (date == null) return "N/A";
+      
+
+
+      final localDate = date.toLocal();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final dateToCheck = DateTime(localDate.year, localDate.month, localDate.day);
+
+      if (dateToCheck == today) {
+        return "Today";
+      } else if (dateToCheck == yesterday) {
+        return "Yesterday";
+      } else {
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        return "${localDate.day} ${months[localDate.month - 1]} ${localDate.year}";
+      }
+    }
+
     @override
     Widget build(BuildContext context) {
       final orderVM = context.watch<OrderViewModel>();
-      final orders = orderVM.orders;
+      
+      // Filter to only display orders with a completed/delivered status
+      final orders = orderVM.orders.where((o) => o.status == OrderStatus.completed).toList();
+      
       return Scaffold(
         backgroundColor: AppColors.bg,
         body: SafeArea(
@@ -27,27 +54,30 @@ import '../../Orders/data/model/order_model.dart';
                 /// HEADER
                 Row(
                   children: [
-                     IconButton(onPressed: (){
-                       Navigator.pop(context);
-                     },
-                         icon: Icon(Icons.arrow_back_ios, size: 20.sp)),
+                    IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: Icon(Icons.arrow_back_ios, size: 20.sp)),
                     SizedBox(width: 8.w),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppText.TitleMy,
-                          style: GoogleFonts.poppins(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppText.TitleMy,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                        Text(
-                          "${orders.length} ${AppText.OrderPlural}",
-                          style: GoogleFonts.poppins(
-                              fontSize: 14.sp,fontWeight: FontWeight.w400,color: AppColors.black87),
-                        ),
-                      ],
+                          Text(
+                            "${orders.length} ${orders.length == 1 ? AppText.OrderSingle : AppText.OrderPlural}",
+                            style: GoogleFonts.poppins(
+                                fontSize: 14.sp, fontWeight: FontWeight.w400, color: AppColors.black87),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -69,11 +99,12 @@ import '../../Orders/data/model/order_model.dart';
                       final order = orders[index];
 
                       return MyOrderCard(
-                        orderId: order.orderId,
+                        orderId: order.orderNumber, // Use the formatted orderNumber for display
                         status: order.status == OrderStatus.completed
                             ? "delivered"
                             : "out",
-                        time: AppText.Today, // you can customize
+                        time: _formatOrderDate(order.updatedAt),
+                        address: order.address,
                       );
                     },
                   ),
@@ -109,12 +140,14 @@ import '../../Orders/data/model/order_model.dart';
     final String status;
     final String time;
     final String orderId;
+    final String address;
 
     const MyOrderCard({
       super.key,
       required this.status,
       required this.time,
       required this.orderId,
+      required this.address,
     });
 
     @override
@@ -122,7 +155,7 @@ import '../../Orders/data/model/order_model.dart';
       bool isDelivered = status == "delivered";
 
       return Container(
-        height: 110.w,
+        constraints: BoxConstraints(minHeight: 110.w),
         margin: EdgeInsets.only(bottom: 15.h),
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -137,7 +170,7 @@ import '../../Orders/data/model/order_model.dart';
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.only(left: 15.w, top: 4.h, bottom: 15.h),
+              padding: EdgeInsets.only(left: 15.w, top: 15.h, bottom: 15.h, right: 60.w),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,15 +180,16 @@ import '../../Orders/data/model/order_model.dart';
                     children: [
                       Text(
                         AppText.OrderId,
-                        style:  GoogleFonts.poppins(
-                          fontSize: 16.sp,
-                            fontWeight: FontWeight.w400),
+                        style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w400),
                       ),
-                      Text(
-                        orderId,
-                        style:  GoogleFonts.poppins(
+                      Expanded(
+                        child: Text(
+                          orderId,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w400),
+                        ),
                       ),
                     ],
                   ),
@@ -166,21 +200,19 @@ import '../../Orders/data/model/order_model.dart';
                   Row(
                     children: [
                       Image.asset(
-                        isDelivered
-                            ? AppImages.iconCheck
-                            : AppImages.iconNoCircle,
-                        color: isDelivered ? AppColors.green : AppColors.red,height: 20.h,width: 20.w,
+                        AppImages.iconCheck,
+                        color: AppColors.green, height: 20.h, width: 20.w,
                       ),
                       SizedBox(width: 6.w),
-                      Text(
-                        isDelivered
-                            ? AppText.OrderDeliveredTitle
-                            : AppText.OutForDelivery,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
-                          color:
-                          isDelivered ? AppColors.green : AppColors.red,
+                      Expanded(
+                        child: Text(
+                          AppText.OrderDeliveredTitle,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.green,
+                          ),
                         ),
                       ),
                     ],
@@ -193,12 +225,15 @@ import '../../Orders/data/model/order_model.dart';
                     children:  [
                       Image.asset(AppImages.iconLocation,height: 20.h,width: 20.w,color: AppColors.primaryBlue,),
                       SizedBox(width: 4.w),
-                      Text(
-                        AppText.Pathalam,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14.sp,
+                      Expanded(
+                        child: Text(
+                          address,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w400,
-                            color: AppColors.primaryBlue),
+                            height: 1.4,
+                            color: const Color(0xFF1D1B20)),
+                        ),
                       ),
                     ],
                   ),

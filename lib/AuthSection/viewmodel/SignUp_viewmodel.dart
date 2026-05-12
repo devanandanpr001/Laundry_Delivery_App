@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/model/user_model.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/repositories/auth_repository.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/data/services/auth_service.dart';
 import '../../Constants/validators/signup_validators.dart';
 import 'base_viewmodel.dart';
 
 class SignupViewModel extends BaseViewModel {
   final AuthRepository _repository = AuthRepository();
+  final AuthService _authService = AuthService();
   final UserModel _signupModel = UserModel();
 
   String? signupNameError;
@@ -85,19 +87,27 @@ class SignupViewModel extends BaseViewModel {
   }) async {
     setLoading(true);
     try {
-      if (currentPassword != _signupModel.password) {
-        return "Current password is incorrect";
+      // 1. Local Validations
+      if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+        return "All fields are required";
       }
-
       final newPasswordError = SignupValidator.validatePassword(newPassword);
-
       if (newPasswordError != null) return newPasswordError;
+      
       if (newPassword != confirmPassword) return "Passwords do not match";
 
-      _signupModel.password = newPassword;
-      notifyListeners();
+      // 2. API Call
+      final response = await _authService.changePassword(
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      );
 
-      return null;
+      if (response['success'] == true) {
+        return null; // Success
+      } else {
+        return response['msg'] ?? "Failed to change password";
+      }
     } finally {
       setLoading(false);
     }

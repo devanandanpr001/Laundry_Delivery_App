@@ -23,7 +23,7 @@ class ApiConstants {
   static const String acceptDelivery = '/delivery-session/session/accept-delivery';
 
   
-  // static const String allOrders = '/delivery-session/session/orders/all';
+  static const String allOrders = '/delivery-session/session/orders/all';
   // static const String markDelivered = '/delivery-session/session/orders/mark-delivered'; // Assuming this endpoint for completing orders
   // static const String assignedOrders = '/delivery-session/session/orders/assigned';
 
@@ -49,10 +49,10 @@ class ApiConstants {
   static const String verifyItems = '/delivery-session/session/orders'; // Suffix with /:orderId/verify-items
 
   static const String serviceAvailability = '/delivery-session/services/available'; // Suffix with /:orderId/verify
-  // ignore: constant_identifier_names
   static const String selact_Items ='/delivery-session/services/:serviceId/items';
   static const String multipleServiceItems = '/delivery-session/services/items/multiple';
   static const String deliverysendotp = '/delivery-session/session/delivery/send-delivery-otp/:orderId';
   static const String  deliveryverifyotp = '/delivery-session/session/delivery/verify-delivery-otp/:orderId';
+  static const String  changePassword = '/delivery/auth/change-password';
 
 }

@@ -49,7 +49,6 @@ class _GalleryScreenState extends State<GalleryScreen> {
     final images = context.select<HomeViewModel, List<String>>(
       (vm) => vm.orders.firstWhere((o) => o.orderId == widget.orderId).pickedImages
     );
-
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
