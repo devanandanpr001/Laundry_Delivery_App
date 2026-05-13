@@ -114,10 +114,13 @@ class OrderModel {
     // Prioritize root status to avoid delivery orders using nested Pickup status
     final String rootStatus = (json['status'] ?? "").toString().toUpperCase();
 
-    // Safe override: Ensure delivery status keys force the type to delivery
-    if (rootStatus == "OUT_FOR_DELIVERY" || 
-        rootStatus == "DELIVERED" || 
-        json['appOrderType']?.toString().toLowerCase() == 'delivery') { // Use appOrderType here
+    // Safe override: Respect the explicitly set appOrderType from the service layer.
+    // This ensures completed pickups with status 'OUT_FOR_DELIVERY' don't get misclassified.
+    if (json['appOrderType']?.toString().toLowerCase() == 'pickup') {
+      finalType = OrderType.pickup;
+    } else if (json['appOrderType']?.toString().toLowerCase() == 'delivery') {
+      finalType = OrderType.delivery;
+    } else if (rootStatus == "OUT_FOR_DELIVERY" || rootStatus == "DELIVERED") {
       finalType = OrderType.delivery;
     }
 

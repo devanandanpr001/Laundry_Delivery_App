@@ -19,7 +19,8 @@ import 'package:ziya_laundry_deliveryapp/Profile/data/service/help_support_servi
 import 'package:ziya_laundry_deliveryapp/Profile/data/service/profile_service.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/help_support_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_controller.dart';
+import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
 
 void main() {
   runApp(const MyApp());
@@ -51,15 +52,14 @@ class MyApp extends StatelessWidget {
                update: (context, repository, previous) => previous ?? ProfileViewModel(repository), // Fixed: Removed .updateRepository and simplified
              ),
              // Help & Support Dependencies
-             Provider(create: (_) => HelpSupportService()),
+             Provider(create: (_) => HelpSupportService(DioClient())),
              ProxyProvider<HelpSupportService, HelpSupportRepository>(
                update: (_, service, previous) => previous ?? HelpSupportRepository(service),
              ),
-             ChangeNotifierProxyProvider<HelpSupportRepository, HelpSupportViewModel>(
-               create: (context) => HelpSupportViewModel(context.read<HelpSupportRepository>()),
-               update: (_, repository, previous) => previous ?? HelpSupportViewModel(repository),
+             ChangeNotifierProxyProvider<HelpSupportRepository, HelpSupportController>(
+               create: (context) => HelpSupportController(context.read<HelpSupportRepository>()),
+               update: (_, repository, previous) => previous ?? HelpSupportController(repository),
              ),
-             
              // Order Section Dependencies
              Provider(create: (_) => OrderService()),
              ProxyProvider<OrderService, OrderRepository>(

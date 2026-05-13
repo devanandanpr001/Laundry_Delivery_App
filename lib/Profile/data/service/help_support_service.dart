@@ -1,24 +1,28 @@
+import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
+import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
+
 class HelpSupportService {
-  Future<List<Map<String, dynamic>>> fetchSupportCategories() async {
-    return [
-      {
-        'icon': '🚚',
-        'title': 'Delivery Issues.',
-        'description': 'For pickup/delivery problems, route confusion, or customer complaints:',
-        'contact': '+91632158426'
-      },
-      {
-        'icon': '💰',
-        'title': 'Salary & Incentives',
-        'description': 'For payment disputes or incentive calculation queries:',
-        'contact': '+91632158426'
-      },
-      {
-        'icon': '📱',
-        'title': 'App / Technical Issues',
-        'description': 'For bugs, app crashes, or login problems:',
-        'contact': '+91632158426'
-      },
-    ];
+  final DioClient _dioClient;
+
+  HelpSupportService(this._dioClient);
+
+  Future<List<Map<String, dynamic>>> fetchFaqData() async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.cmsPage.replaceAll(':type', 'FAQ'),
+      );
+
+      if (response != null && response['success'] == true && response['data'] != null) {
+        final cmsData = response['data'];
+        if (cmsData is Map<String, dynamic> && cmsData.containsKey('faq') && cmsData['faq'] is List) {
+          return List<Map<String, dynamic>>.from(cmsData['faq']);
+        }
+        return [];
+      } else {
+        throw Exception('Failed to load FAQ data: ${response?['message'] ?? 'Unknown error'}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching FAQ: $e');
+    }
   }
 }

@@ -17,4 +17,9 @@ class ProfileRepository {
   Future<String> updateProfileImage(File image) async {
     return await _profileService.uploadProfileImage(image);
   }
+
+  // Method to fetch CMS page content
+  Future<Map<String, dynamic>?> getCmsPage(String type) async {
+    return await _profileService.fetchCmsPage(type);
+  }
 }

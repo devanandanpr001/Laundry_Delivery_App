@@ -79,4 +79,20 @@ class ProfileService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> fetchCmsPage(String type) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.cmsPage.replaceAll(':type', type.toUpperCase()),
+      );
+
+      if (response != null && response['success'] == true && response['data'] != null) {
+        return Map<String, dynamic>.from(response['data']);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("CMS Page Fetch Error: $e");
+      return null;
+    }
+  }
 }

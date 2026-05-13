@@ -200,7 +200,7 @@ class AuthService implements IAuthService {
   @override
   Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword, String confirmPassword) async {
     try {
-      final response = await _dioClient.post(ApiConstants.changePassword, data: {
+      final response = await _dioClient.put(ApiConstants.changePassword, data: {
         'currentPassword': currentPassword,
         'newPassword': newPassword,
         'confirmPassword': confirmPassword,

@@ -9,16 +9,12 @@ Future<List<OrderModel>> _fetchAndParseOrders(
     DioClient dioClient, String endpoint, OrderType orderType,
     {bool forceAssigned = false, bool forceCompleted = false}) async {
   final response = await dioClient.get(endpoint);
-  if (endpoint == ApiConstants.deliveryOrders) {
-    debugPrint("🔥 Full Delivery Orders API Response: $response");
-  }
   if (response != null && response['success'] == true && response['data'] is List) {
     final List rawData = response['data'] as List;
     
-    // Strictly filter to only include 'DELIVERED' status when fetching completed orders
-    final Iterable dataToParse = forceCompleted 
-        ? rawData.where((json) => json['status']?.toString().toUpperCase() == 'DELIVERED')
-        : rawData;
+    // Trust the backend response. Specific endpoints like /pickup/completed 
+    // already return the correct filtered data for that specific category.
+    final Iterable dataToParse = rawData;
 
     return dataToParse.map((json) {
       final Map<String, dynamic> rawJson = Map<String, dynamic>.from(json);
@@ -107,7 +103,6 @@ class HomeService {
     final response = await _dioClient.get(ApiConstants.completedOrders);
     if (response != null && response['success'] == true && response['data'] is List) {
       return (response['data'] as List)
-          .where((json) => json['status']?.toString().toUpperCase() == 'DELIVERED')
           .map((json) {
         final String role = json['role']?.toString().toUpperCase() ?? "";
         final type = role == 'PICKUP' ? OrderType.pickup : OrderType.delivery;
@@ -161,7 +156,7 @@ class HomeService {
   }
 
   Future<bool> updateOnlineStatusApi(bool isOnline) async {
-    final response = await _dioClient.patch(ApiConstants.onlineStatus, data: {'isOnline': isOnline});
+    final response = await _dioClient.put(ApiConstants.onlineStatus, data: {'isOnline': isOnline});
     return response != null && response['success'] == true;
   }
 

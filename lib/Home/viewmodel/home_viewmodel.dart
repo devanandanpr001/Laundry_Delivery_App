@@ -695,8 +695,8 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Changed method to PATCH to fix 404 error
-      final response = await DioClient().patch(
+      // Use PUT to match the backend route defined in users.route.js
+      final response = await DioClient().put(
         ApiConstants.onlineStatus,
         data: {"isOnline": newStatus},
       );

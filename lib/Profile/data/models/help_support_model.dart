@@ -1,13 +1,16 @@
 class HelpSupportItem {
-  final String icon;
-  final String title;
-  final String description;
-  final String contact;
+  final String question;
+  final String answer;
 
   HelpSupportItem({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.contact,
+    required this.question,
+    required this.answer,
   });
+
+  factory HelpSupportItem.fromJson(Map<String, dynamic> json) {
+    return HelpSupportItem(
+      question: json['question'] ?? '',
+      answer: json['answer'] ?? '',
+    );
+  }
 }

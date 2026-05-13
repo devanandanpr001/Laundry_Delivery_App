@@ -4,15 +4,10 @@ import 'package:ziya_laundry_deliveryapp/Profile/data/service/help_support_servi
 class HelpSupportRepository {
   final HelpSupportService _service;
 
-  HelpSupportRepository(this._service);
+  HelpSupportRepository(this._service); // Constructor injection
 
-  Future<List<HelpSupportItem>> getSupportCategories() async {
-    final data = await _service.fetchSupportCategories();
-    return data.map((item) => HelpSupportItem(
-      icon: item['icon'],
-      title: item['title'],
-      description: item['description'],
-      contact: item['contact'],
-    )).toList();
+  Future<List<HelpSupportItem>> getFaqItems() async {
+    final data = await _service.fetchFaqData();
+    return data.map((item) => HelpSupportItem.fromJson(item)).toList();
   }
 }

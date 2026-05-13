@@ -109,4 +109,22 @@ class ProfileViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
+  // Method to fetch CMS page content
+  Future<Map<String, dynamic>?> fetchCmsPage(String type) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final result = await _repository.getCmsPage(type);
+      return result;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint("ProfileViewModel: Error fetching CMS page: $_errorMessage");
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

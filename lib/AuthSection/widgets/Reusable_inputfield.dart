@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
-class InputField extends StatelessWidget {
+class InputField extends StatefulWidget {
   final String label;
   final String hint;
   final bool obscure;
@@ -21,6 +21,19 @@ class InputField extends StatelessWidget {
   });
 
   @override
+  State<InputField> createState() => _InputFieldState();
+}
+
+class _InputFieldState extends State<InputField> {
+  late bool _isObscure;
+
+  @override
+  void initState() {
+    super.initState();
+    _isObscure = widget.obscure;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(bottom: 5.h),
@@ -29,7 +42,7 @@ class InputField extends StatelessWidget {
         children: [
           /// Label
           Text(
-            label,
+            widget.label,
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w400,
@@ -51,9 +64,9 @@ class InputField extends StatelessWidget {
               ],
             ),
             child: TextField(
-              controller: controller,
-              obscureText: obscure,
-              onChanged: onChanged,
+              controller: widget.controller,
+              obscureText: _isObscure,
+              onChanged: widget.onChanged,
 
               /// 🔹 INTERNAL RESPONSIVENESS FIX
               style: TextStyle(
@@ -63,7 +76,7 @@ class InputField extends StatelessWidget {
               ),
 
               decoration: InputDecoration(
-                hintText: hint,
+                hintText: widget.hint,
                 hintStyle: TextStyle(
                   fontSize: 12.sp,
                   height: 1.25,
@@ -79,6 +92,22 @@ class InputField extends StatelessWidget {
                   vertical: 14.h, // unchanged visual height
                 ),
 
+                suffixIcon: widget.obscure
+                    ? IconButton(
+                        icon: Icon(
+                          _isObscure ? Icons.visibility_off : Icons.visibility,
+                          color: AppColors.grey,
+                          size: 20.sp,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          setState(() {
+                            _isObscure = !_isObscure;
+                          });
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6.r),
                   borderSide: BorderSide.none,
@@ -88,12 +117,12 @@ class InputField extends StatelessWidget {
           ),
 
           /// Error Text (CUSTOM – NO LAYOUT BREAK)
-          if (errorText != null) ...[
+          if (widget.errorText != null) ...[
             SizedBox(height: 4.h),
             Padding(
               padding: EdgeInsets.only(left: 6.w),
               child: Text(
-                errorText!,
+                widget.errorText!,
                 style: TextStyle(
                   fontSize: 11.5.sp,
                   color: AppColors.errorRed,
