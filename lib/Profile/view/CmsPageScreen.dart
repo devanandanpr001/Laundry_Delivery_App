@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 
 class CmsPageScreen extends StatefulWidget {
   final String type; // 'PRIVACY', 'TERMS', 'ABOUT', 'FAQ'
@@ -111,9 +112,12 @@ class _CmsPageScreenState extends State<CmsPageScreen> {
                           ],
                         ),
                       )
-                    : SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    : CustomSmartRefresher(
+                        onRefresh: _fetchCmsPage,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (_cmsData?['content'] != null)
                               Padding(
@@ -156,6 +160,7 @@ class _CmsPageScreenState extends State<CmsPageScreen> {
                           ],
                         ),
                       ),
+              )
               )
             ],
           ),

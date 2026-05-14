@@ -64,7 +64,22 @@ class HomeViewModel extends ChangeNotifier {
 
   void _handleSessionExpired() {
     _isSessionExpired = true;
+    _clearAllCachedData();
     notifyListeners();
+  }
+
+  /// Clears all cached data when session expires
+  void _clearAllCachedData() {
+    _orders.clear();
+    _userName = "";
+    _profileImage = "";
+    _address = "";
+    _assignedCount = 0;
+    _completedCount = 0;
+    _availableServices.clear();
+    _serviceItemsMap.clear();
+    _isOnline = false;
+    _errorMessage = null;
   }
 
   /// Resets the session expired flag. Call this after showing the popup.
@@ -165,7 +180,7 @@ class HomeViewModel extends ChangeNotifier {
     try {
       // Direct API call to fetch services using the established DioClient pattern
       String url = ApiConstants.serviceAvailability;
-      if (orderId != null) {
+      if (orderId != null && orderId.isNotEmpty) {
         // Suffix with /:orderId/verify as per API requirements
         url = "$url/$orderId/verify";
       }
@@ -337,7 +352,7 @@ class HomeViewModel extends ChangeNotifier {
     if (orderIndex == -1) return;
 
     final originalItems = List<OrderItem>.from(_orders[orderIndex].items);
-    final itemToRemove = originalItems.firstWhere((item) => item.id == itemId);
+    originalItems.firstWhere((item) => item.id == itemId);
 
     // Optimistic update: Remove item locally
     final updatedItems = originalItems.where((item) => item.id != itemId).toList();
@@ -523,7 +538,7 @@ class HomeViewModel extends ChangeNotifier {
       final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
       if (orderIndex == -1) return;
 
-      final originalIsVerified = _orders[orderIndex].isVerified;
+      // Track for rollback if needed
       // Optimistic update
       _orders[orderIndex] = _orders[orderIndex].copyWith(isVerified: true);
       notifyListeners();
@@ -579,7 +594,7 @@ class HomeViewModel extends ChangeNotifier {
     if (orderIndex == -1) return;
 
     final originalImages = List<String>.from(_orders[orderIndex].pickedImages);
-    final originalImageIds = List<String>.from(_orders[orderIndex].pickedImageIds);
+    // Preserve original state for rollback
 
     // Optimistic update: Add local paths to pickedImages
     _orders[orderIndex] = _orders[orderIndex].copyWith(pickedImages: [...originalImages, ...images]);

@@ -6,6 +6,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 
 import '../../Orders/data/model/order_model.dart';
 
@@ -84,33 +85,54 @@ import '../../Orders/data/model/order_model.dart';
 
                 SizedBox(height: 20.h),
                 
-                if (orderVM.isLoading)
-                  const Expanded(
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else
-
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: orders.length,
-                    itemBuilder: (context, index) {
-                      final order = orders[index];
+                  child: CustomSmartRefresher(
+                    onRefresh: () => orderVM.fetchOrders(),
+                    child: orderVM.isLoading
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: 180.h),
+                              const Center(child: CircularProgressIndicator()),
+                            ],
+                          )
+                        : orders.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(height: 180.h),
+                                  Center(
+                                    child: Text(
+                                      AppText.NoOrdersAvailable,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.grey,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                itemCount: orders.length,
+                                itemBuilder: (context, index) {
+                                  final order = orders[index];
 
-                      return MyOrderCard(
-                        orderId: order.orderNumber, // Use the formatted orderNumber for display
-                        status: order.status == OrderStatus.completed
-                            ? "delivered"
-                            : "out",
-                        time: _formatOrderDate(order.updatedAt),
-                        address: order.address,
-                      );
-                    },
+                                  return MyOrderCard(
+                                    orderId: order.orderNumber, // Use the formatted orderNumber for display
+                                    status: order.status == OrderStatus.completed
+                                        ? "delivered"
+                                        : "out",
+                                    time: _formatOrderDate(order.updatedAt),
+                                    address: order.address,
+                                  );
+                                },
+                              ),
                   ),
                 )
-              ],
-            ),
+                ],
+              ),
           ),
         ),
       );
@@ -152,7 +174,7 @@ import '../../Orders/data/model/order_model.dart';
 
     @override
     Widget build(BuildContext context) {
-      bool isDelivered = status == "delivered";
+      // bool isDelivered = status == "delivered"; // TODO: Use if needed for status check
 
       return Container(
         constraints: BoxConstraints(minHeight: 110.w),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
 import 'package:ziya_laundry_deliveryapp/core/api_exception.dart';
 import 'package:ziya_laundry_deliveryapp/core/token_service.dart';
@@ -48,6 +47,7 @@ class DioClient {
 
     await _tokenService.deleteTokens();
     _clearQueue(error: "Session Expired");
+    _isRefreshing = false; // Reset refresh flag
 
     // Notify ViewModel/UI layer
     onSessionExpired?.call();
@@ -57,6 +57,18 @@ class DioClient {
     // but we reset the trigger for future logins.
     _sessionExpiredTriggered = false; 
     debugPrint("DioClient: Session expired triggered.");
+  }
+
+  /// Check if token is valid and not empty
+  Future<bool> isTokenValid() async {
+    final token = await _tokenService.getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Clear session without triggering multiple callbacks
+  Future<void> clearSession() async {
+    await _tokenService.deleteTokens();
+    _isRefreshing = false;
   }
 
   Interceptor _createInterceptor() {
@@ -74,7 +86,19 @@ class DioClient {
 
         if (!isAuthRequest) {
           final accessToken = await _tokenService.getAccessToken();
-          if (accessToken != null && accessToken.isNotEmpty && !options.headers.containsKey('Authorization')) {
+          // Reject request if token is missing or empty for protected endpoints
+          if (accessToken == null || accessToken.isEmpty) {
+            debugPrint("DioClient: Token is missing or empty for protected request: ${options.path}");
+            await _handleSessionExpired();
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: "Session expired - no valid token",
+                type: DioExceptionType.unknown,
+              ),
+            );
+          }
+          if (!options.headers.containsKey('Authorization')) {
             options.headers['Authorization'] = 'Bearer $accessToken';
           }
         }
@@ -92,6 +116,7 @@ class DioClient {
 
         final isAuthRequest = authPaths.any((path) => e.requestOptions.path.contains(path));
 
+        // Handle 401 Unauthorized - Token expired or invalid
         if (e.response?.statusCode == 401 && !isAuthRequest) {
           if (_isRefreshing) {
             final completer = Completer<void>();
@@ -100,6 +125,10 @@ class DioClient {
             try {
               await completer.future;
               final token = await _tokenService.getAccessToken();
+              if (token == null || token.isEmpty) {
+                await _handleSessionExpired();
+                return handler.reject(e);
+              }
               e.requestOptions.headers['Authorization'] = 'Bearer $token';
               final response = await _dio.fetch(e.requestOptions);
               return handler.resolve(response);
@@ -108,7 +137,7 @@ class DioClient {
             }
           }
 
-          _isRefreshing = true; // Set flag to indicate refresh is in progress
+          _isRefreshing = true;
           try {
             final refreshToken = await _tokenService.getRefreshToken();
             if (refreshToken == null || refreshToken.isEmpty) {
@@ -128,7 +157,7 @@ class DioClient {
               final newAccessToken = response.data['token'] ?? response.data['accessToken'];
               final newRefreshToken = response.data['refreshToken'];
 
-              if (newAccessToken != null) {
+              if (newAccessToken != null && newAccessToken.toString().isNotEmpty) {
                 await _tokenService.saveTokens(
                   accessToken: newAccessToken,
                   refreshToken: newRefreshToken ?? refreshToken,
@@ -148,6 +177,7 @@ class DioClient {
             _isRefreshing = false;
           }
         }
+        // Handle other errors or pass through
         return handler.next(e);
       },
     );

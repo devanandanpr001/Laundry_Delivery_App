@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../viewmodel/notification_viewmodel.dart';
 import '../widgets/notification_item_widget.dart';
 
@@ -136,20 +137,37 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ],
                 ),
                 Expanded(
-                  child: notifications.isEmpty
-                      ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(AppText.NoNotifications,style: GoogleFonts.poppins(
-                              fontSize: 20.sp,fontWeight: FontWeight.w600,color: AppColors.grey
-                            ),)
-                          ],
-                        ),
-                      )
-                      : ListView.builder(
-                    itemCount: notifications.length,
-                    itemBuilder: (context, index) {
+                  child: CustomSmartRefresher(
+                    onRefresh: () => notificationVM.fetchNotifications(),
+                    child: notificationVM.isLoading
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: 180.h),
+                              Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                                ),
+                              ),
+                            ],
+                          )
+                        : notifications.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(height: 180.h),
+                                  Center(
+                                    child: Text(AppText.NoNotifications,
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 20.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.grey)),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                itemCount: notifications.length,
+                                itemBuilder: (context, index) {
                       final notification = notifications[index];
 
                       return GestureDetector(
@@ -169,7 +187,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
 
 
-
+                )
               ],
             ),
           )),

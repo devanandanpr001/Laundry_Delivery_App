@@ -185,7 +185,7 @@ class _AnimatedPopupState extends State<_AnimatedPopup>
               borderRadius: BorderRadius.circular(10.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
+                  color: Colors.black.withOpacity(0.12),
                   blurRadius: 18,
                   offset: const Offset(0, 6),
                 ),
@@ -302,9 +302,9 @@ class _AnimatedNotificationState extends State<_AnimatedNotification> with Singl
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8.r),
-              boxShadow: [BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
-              border: Border.all(color: color.withValues(alpha: 0.1)),
+              borderRadius: BorderRadius.circular(8.r), // Standard radius
+              boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+              border: Border.all(color: color.withOpacity(0.1)),
             ),
             child: Row(
               children: [

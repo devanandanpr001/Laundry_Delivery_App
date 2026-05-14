@@ -15,6 +15,7 @@ import 'package:ziya_laundry_deliveryapp/Profile/view/Help&Support_Screen.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/view/MyOrders.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/view/PrivacyPolicy.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 
 class ProfileScreen extends StatelessWidget {
   final VoidCallback onBackToHome;
@@ -144,9 +145,12 @@ class ProfileScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(20.w),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: CustomSmartRefresher(
+            onRefresh: () => context.read<ProfileViewModel>().fetchProfileData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -366,6 +370,7 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
+      )
     );
   }
 

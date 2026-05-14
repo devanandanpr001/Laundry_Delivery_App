@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_order_card;
 import '../../Home/viewmodel/home_viewmodel.dart';
 import '../../Home/data/model/home_models.dart';
@@ -39,21 +40,10 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
       final typeMatch = order.orderType == _selectedType;
       if (!typeMatch) return false;
 
-      // "All" filter: Displays unassigned orders (status 'pending' in model).
-      // This includes 'OUT_FOR_DELIVERY' delivery orders and 'SCHEDULED' pickup orders.
-      // Once accepted, they move to the 'assigned' section.
       if (selectedFilter == "all") return order.status == OrderStatus.pending;
-      if (selectedFilter == "all") {
-        if (_selectedType == OrderType.delivery) {
-          return order.status == OrderStatus.pending || order.status == OrderStatus.assigned;
-        }
-        return order.status == OrderStatus.pending;
-      }
-      
       if (selectedFilter == "assigned") return order.status == OrderStatus.assigned;
       if (selectedFilter == "completed") return order.status == OrderStatus.completed;
-
-      return order.status.name == selectedFilter;
+      return false;
     }).toList();
 
     return Scaffold(
@@ -121,12 +111,20 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
 
             // Efficient List Rendering
             Expanded(
-              child: filteredOrders.isEmpty
-                  ? _buildEmptyState(selectedFilter)
-                  : ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                      itemCount: filteredOrders.length,
-                      itemBuilder: (context, index) {
+              child: CustomSmartRefresher(
+                onRefresh: () => homeVM.refreshOrders(),
+                child: filteredOrders.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                        children: [
+                          _buildEmptyState(selectedFilter),
+                        ],
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                        itemCount: filteredOrders.length,
+                        itemBuilder: (context, index) {
                         final order = filteredOrders[index];
                         return Padding(
                           padding: EdgeInsets.only(bottom: 15.h),
@@ -148,7 +146,8 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                       },
                     ),
             ),
-          ],
+            ),
+          ]
         ),
       ),
     );

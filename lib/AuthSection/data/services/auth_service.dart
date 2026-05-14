@@ -181,7 +181,7 @@ class AuthService implements IAuthService {
   @override
   Future<bool> sendOtp(String phoneNumber) async {
     try {
-      final result = await _dioClient.post(ApiConstants.resendOtp, data: {'phone': phoneNumber});
+      await _dioClient.post(ApiConstants.resendOtp, data: {'phone': phoneNumber});
       return true; // Successfully reached without error
     } catch (e) {
       return false;
@@ -191,7 +191,7 @@ class AuthService implements IAuthService {
   @override
   Future<bool> registerUser(UserModel user) async {
     try {
-      final result = await _dioClient.post('/delivery/auth/register', data: {
+      await _dioClient.post('/delivery/auth/register', data: {
         'name': user.name,
         'phone': user.mobile,
         'password': user.password,
