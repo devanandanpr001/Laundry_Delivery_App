@@ -1,112 +1,251 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
-enum QuickPopupType { success, error, warning, info }
-enum PopupPosition { top, bottom, center }
-
-class AnimationConfig {
-  final Curve curve;
-  final Duration duration;
-  const AnimationConfig({required this.curve, required this.duration});
-}
-
-class PopupStyle {
-  final Color backgroundColor;
-  final double borderRadius;
-  final double elevation;
-  final Color? shadowColor;
-  final EdgeInsets padding;
-  final TextStyle titleStyle;
-  final TextStyle messageStyle;
-  final Color? confirmButtonColor;
-  final Color? cancelButtonColor;
-  final TextStyle? confirmButtonStyle;
-  final TextStyle? cancelButtonStyle;
-  final double? confirmButtonBorderRadius;
-  final double? cancelButtonBorderRadius;
-
-  const PopupStyle({
-    required this.backgroundColor,
-    required this.borderRadius,
-    required this.elevation,
-    this.shadowColor,
-    this.padding = const EdgeInsets.all(16),
-    required this.titleStyle,
-    required this.messageStyle,
-    this.confirmButtonColor,
-    this.cancelButtonColor,
-    this.confirmButtonStyle,
-    this.cancelButtonStyle,
-    this.confirmButtonBorderRadius,
-    this.cancelButtonBorderRadius,
-  });
+enum QuickPopupType {
+  success,
+  error,
+  warning,
+  info,
 }
 
 class QuickPopupManager {
-  /// Alias for showNotification to fix "Member not found: show" error
-  static void show(BuildContext context, {required String message, QuickPopupType type = QuickPopupType.info}) {
-    showNotification(context, message, isError: type == QuickPopupType.error);
-  }
+  static OverlayEntry? _overlayEntry;
+  static Timer? _timer;
 
-  /// Logic for Toast/Snackbar style popups used by PopupUtils
-  void showToast({
-    required String message,
-    required String title,
-    required IconData icon,
-    required PopupPosition position,
-    required PopupStyle style,
-    required AnimationConfig animation,
-  }) {
-    // Implementation uses showNotification internally or custom Overlay logic
-    // For this connection, we use the existing animated notification logic
-    debugPrint("Showing Toast: $title - $message");
-  }
-
-  /// Logic for Dialog style popups used by PopupUtils
-  void showDialogPopup({
+  static void showToast({
+    required BuildContext context,
     required String title,
     required String message,
-    required String confirmText,
-    required String cancelText,
-    required VoidCallback onConfirm,
-    required VoidCallback onCancel,
-    required PopupStyle style,
+    required QuickPopupType type,
+    Duration duration = const Duration(seconds: 3),
   }) {
-    // This would typically trigger a showDialog call using the provided styles
-    debugPrint("Showing Dialog: $title");
-  }
+    _removeCurrent();
 
-  static void showNotification(BuildContext context, String message, {bool isError = false, QuickPopupType? type}) {
-    final overlayState = Overlay.of(context);
-    late OverlayEntry overlayEntry;
+    final overlay = Overlay.of(context);
 
-    overlayEntry = OverlayEntry(
-      builder: (context) => _AnimatedNotification(
+    Color bgColor;
+    Color accentColor;
+    IconData icon;
+
+    switch (type) {
+      case QuickPopupType.success:
+        bgColor = const Color(0xFFEAF8EC);
+        accentColor = const Color(0xFF2E7D32);
+        icon = Icons.check_circle;
+        break;
+
+      case QuickPopupType.error:
+        bgColor = const Color(0xFFFCEBEC);
+        accentColor = const Color(0xFFC62828);
+        icon = Icons.error;
+        break;
+
+      case QuickPopupType.warning:
+        bgColor = const Color(0xFFFFF8E1);
+        accentColor = const Color(0xFFF57C00);
+        icon = Icons.warning;
+        break;
+
+      case QuickPopupType.info:
+        bgColor = const Color(0xFFE3F2FD);
+        accentColor = const Color(0xFF1565C0);
+        icon = Icons.info;
+        break;
+    }
+
+    _overlayEntry = OverlayEntry(
+      builder: (_) => _AnimatedPopup(
+        title: title,
         message: message,
-        isError: isError,
-        onDismiss: () {
-          if (overlayEntry.mounted) {
-            overlayEntry.remove();
-          }
-        },
+        bgColor: bgColor,
+        accentColor: accentColor,
+        icon: icon,
       ),
     );
 
-    overlayState.insert(overlayEntry);
+    overlay.insert(_overlayEntry!);
+
+    _timer = Timer(duration, () {
+      _removeCurrent();
+    });
+  }
+
+  static void showNotification(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
+    showToast(
+      context: context,
+      title: isError ? "Error" : "Success",
+      message: message,
+      type: isError ? QuickPopupType.error : QuickPopupType.success,
+    );
+  }
+
+  static void showSuccess(
+    BuildContext context, {
+    required String message,
+    String title = "Success",
+  }) {
+    showToast(
+      context: context,
+      title: title,
+      message: message,
+      type: QuickPopupType.success,
+    );
+  }
+
+  static void showError(
+    BuildContext context, {
+    required String message,
+    String title = "Error",
+  }) {
+    showToast(
+      context: context,
+      title: title,
+      message: message,
+      type: QuickPopupType.error,
+    );
+  }
+
+  static void _removeCurrent() {
+    _timer?.cancel();
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 }
 
+class _AnimatedPopup extends StatefulWidget {
+  final String title;
+  final String message;
+  final Color bgColor;
+  final Color accentColor;
+  final IconData icon;
+
+  const _AnimatedPopup({
+    required this.title,
+    required this.message,
+    required this.bgColor,
+    required this.accentColor,
+    required this.icon,
+  });
+
+  @override
+  State<_AnimatedPopup> createState() => _AnimatedPopupState();
+}
+
+class _AnimatedPopupState extends State<_AnimatedPopup>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -1.2),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10.h,
+      left: 45.w,
+      right: 45.w,
+      child: Material(
+        color: Colors.transparent,
+        child: SlideTransition(
+          position: _slide,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 10.h,
+            ),
+            decoration: BoxDecoration(
+              color: widget.bgColor,
+              borderRadius: BorderRadius.circular(10.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  widget.icon,
+                  color: widget.accentColor,
+                  size: 20.sp,
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        widget.message,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Internal widget for animated notifications
 class _AnimatedNotification extends StatefulWidget {
   final String message;
-  final bool isError;
+  final String? title;
+  final QuickPopupType type;
   final VoidCallback onDismiss;
+  final bool isBottom;
 
   const _AnimatedNotification({
     required this.message,
-    required this.isError,
+    this.title,
+    required this.type,
     required this.onDismiss,
+    required this.isBottom,
   });
 
   @override
@@ -116,41 +255,20 @@ class _AnimatedNotification extends StatefulWidget {
 class _AnimatedNotificationState extends State<_AnimatedNotification> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
-  late Animation<double> _fadeAnimation;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      reverseDuration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
+    _controller = AnimationController(duration: const Duration(milliseconds: 400), vsync: this);
     _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 2.0),
+      begin: widget.isBottom ? const Offset(0.0, 2.0) : const Offset(0.0, -2.0),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-      reverseCurve: Curves.easeInBack,
-    ));
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
-
-    _timer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        _controller.reverse().then((_) => widget.onDismiss());
-      }
+    _timer = Timer(const Duration(milliseconds: 3000), () {
+      if (mounted) _controller.reverse().then((_) => widget.onDismiss());
     });
   }
 
@@ -163,57 +281,48 @@ class _AnimatedNotificationState extends State<_AnimatedNotification> with Singl
 
   @override
   Widget build(BuildContext context) {
+    final color = widget.type == QuickPopupType.error ? AppColors.red : 
+                  widget.type == QuickPopupType.success ? AppColors.green :
+                  widget.type == QuickPopupType.warning ? Colors.orange : AppColors.primaryBlue;
+    
+    final icon = widget.type == QuickPopupType.error ? Icons.error_outline : 
+                 widget.type == QuickPopupType.success ? Icons.check_circle_outline :
+                 widget.type == QuickPopupType.warning ? Icons.warning_amber_rounded : Icons.info_outline;
+
     return Positioned(
-      bottom: MediaQuery.of(context).viewInsets.bottom + 40.h,
-      left: 20.w,
-      right: 20.w,
+      top: widget.isBottom ? null : MediaQuery.of(context).padding.top + 10.h,
+      bottom: widget.isBottom ? 50.h : null,
+      left: 45.w,
+      right: 45.w,
       child: Material(
         color: Colors.transparent,
         child: SlideTransition(
           position: _offsetAnimation,
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: widget.isError ? Colors.red : Colors.green,
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8.r),
+              boxShadow: [BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
+              border: Border.all(color: color.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20.sp),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        widget.isError ? Icons.error_rounded : Icons.check_circle_rounded,
-                        color: widget.isError ? Colors.red : Colors.black87,
-                        size: 22.sp,
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Text(
-                          widget.message,
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontSize: 14.sp,
-                            color: widget.isError ? Colors.red : Colors.black87,
-                            fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.none,
-                          ),
-                        ),
-                      ),
+                      if (widget.title != null)
+                        Text(widget.title!, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13.sp, color: Colors.black87)),
+                      Text(widget.message, style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.black54)),
                     ],
                   ),
                 ),
+              ],
+            ),
           ),
         ),
       ),

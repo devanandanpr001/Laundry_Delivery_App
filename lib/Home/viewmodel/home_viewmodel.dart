@@ -18,19 +18,23 @@ class HomeViewModel extends ChangeNotifier {
   bool _isOnline = false;
   List<Map<String, dynamic>> _availableServices = [];
   final Map<String, List<dynamic>> _serviceItemsMap = {};
+  final Set<String> _fetchingServiceIds = {}; // Track active fetches to prevent duplicate calls
   bool _isLoading = false;
+  bool _isSessionExpired = false;
   bool _isFetchingServices = false;
   String _selectedFilter = "all";
   int _assignedCount = 0;
   int _completedCount = 0;
   String _userName = "";
   String _profileImage = "";
+  String _address = "";
   String? _errorMessage;// Getters
   List<OrderModel> get orders => _orders;
   bool get isOnline => _isOnline;
   List<Map<String, dynamic>> get availableServices => _availableServices;
   Map<String, List<dynamic>> get serviceItemsMap => _serviceItemsMap;
   bool get isLoading => _isLoading;
+  bool get isSessionExpired => _isSessionExpired;
   bool get isFetchingServices => _isFetchingServices;
   String get selectedFilter => _selectedFilter;
   String? get errorMessage => _errorMessage;
@@ -38,6 +42,7 @@ class HomeViewModel extends ChangeNotifier {
   int get completedCount => _completedCount;
   String get userName => _userName;
   String get profileImage => _profileImage;
+  String get address => _address;
 
   /// Getter to provide service names as a simple list for dropdowns
   List<String> get services => _availableServices
@@ -52,7 +57,20 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> _init() async {
     _isOnline = await _repository.getInitialOnlineStatus();
+    _isSessionExpired = false;
+    DioClient.onSessionExpired = _handleSessionExpired;
     refreshOrders();
+  }
+
+  void _handleSessionExpired() {
+    _isSessionExpired = true;
+    notifyListeners();
+  }
+
+  /// Resets the session expired flag. Call this after showing the popup.
+  void resetSessionExpired() {
+    _isSessionExpired = false;
+    notifyListeners();
   }
 
   Future<void> refreshOrders() async {
@@ -106,6 +124,7 @@ class HomeViewModel extends ChangeNotifier {
       if (profileData != null) {
         _userName = profileData['name']?.toString() ?? "User";
         
+        _address = profileData['address']?.toString() ?? "";
         // Ensure a null profileImage from backend doesn't show up as the string "null"
         _profileImage = profileData['profileImage']?.toString() ?? ""; // Use the getter from ProfileViewModel
         _isOnline = profileData['isOnline'] ?? _isOnline;
@@ -118,6 +137,7 @@ class HomeViewModel extends ChangeNotifier {
       _orders = [];
       _assignedCount = 0;
       _completedCount = 0;
+      _errorMessage = "Failed to sync dashboard data: $e";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -183,9 +203,11 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchItemsForMultipleServices(List<String> serviceIds) async {
-    final idsToFetch = serviceIds.where((id) => !_serviceItemsMap.containsKey(id)).toList();
+    // Only fetch if we don't have the data AND aren't already fetching it
+    final idsToFetch = serviceIds.where((id) => !_serviceItemsMap.containsKey(id) && !_fetchingServiceIds.contains(id)).toList();
     if (idsToFetch.isEmpty) return;
 
+    _fetchingServiceIds.addAll(idsToFetch);
     try {
       final response = await DioClient().post(
         ApiConstants.multipleServiceItems,
@@ -196,7 +218,7 @@ class HomeViewModel extends ChangeNotifier {
         // Resilient parsing: handle if data is the list or contains the list under 'items'
         final List<dynamic> items = (response['data'] is Map) 
             ? (response['data']['items'] ?? []) 
-            : (response['data'] is List ? response['data'] : []);
+            : (response['data'] is List ? response['data'] : (response['data'] != null ? [response['data']] : []));
         
         // Initialize map for these IDs to mark them as "fetched" to avoid re-fetching
         for (var id in idsToFetch) {
@@ -207,12 +229,14 @@ class HomeViewModel extends ChangeNotifier {
           if (item is! Map) continue;
           final List itemServices = item['services'] as List? ?? [];
           for (var s in itemServices) {
-            if (s is! Map) continue;
-            final sId = s['serviceId']?.toString() ?? s['id']?.toString();
+            final String? sId = (s is Map) 
+                ? (s['serviceId']?.toString() ?? s['id']?.toString())
+                : s?.toString();
+            
             if (sId != null) {
               // Robust grouping: Compare IDs to ensure items are added to the correct service lists in cache
               for (var targetId in idsToFetch) {
-                if (targetId.toLowerCase() == sId.toLowerCase()) {
+                if (targetId.trim().toLowerCase() == sId.trim().toLowerCase()) {
                   _serviceItemsMap[targetId]?.add(item);
                 }
               }
@@ -232,11 +256,13 @@ class HomeViewModel extends ChangeNotifier {
         if (!_serviceItemsMap.containsKey(id)) _serviceItemsMap[id] = [];
       }
     } finally {
+      _fetchingServiceIds.removeAll(idsToFetch);
       notifyListeners();
     }
   }
 
   Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
+    if (_isLoading) return; // Guard against multiple simultaneous status updates
     final index = _orders.indexWhere((o) => o.orderId == orderId);
     if (index != -1) {
       final currentOrder = _orders[index];
@@ -363,16 +389,19 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> addItemToOrder(String orderId, OrderItem newItem, {double price = 0, String? serviceName}) async {
+  Future<void> addItemToOrder(String orderId, OrderItem newItem, {double price = 0, String? serviceName, List<String>? serviceNames}) async {
+    if (_isLoading) return; // Guard against rapid multi-taps
+    _isLoading = true;
+    notifyListeners();
     debugPrint("--- CONSOLE: ADD ITEM START ---");
     // Split service and title from the string returned by AddItemDialog
     final nameParts = newItem.name.split(" - ");
-    final serviceType = serviceName ?? (nameParts.isNotEmpty ? nameParts[0] : "General");
+    final List<String> services = serviceNames ?? [serviceName ?? (nameParts.isNotEmpty ? nameParts[0] : "General")];
     final title = nameParts.length > 1 ? nameParts[1] : newItem.name;
 
     final payload = {
       "title": title,
-      "serviceType": [serviceType], // Converted to array as requested
+      "serviceType": services,
       "unitType": newItem.unit.toUpperCase(),
       "quantity": int.tryParse(newItem.qty) ?? 1,
       "unitPrice": price,
@@ -406,16 +435,19 @@ class HomeViewModel extends ChangeNotifier {
       debugPrint("CONSOLE: Add Item Error: $e");
       _errorMessage = "Failed to add item: $e";
       notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<bool> reportItemMismatch(String orderId, String details) async {
-    debugPrint("--- CONSOLE: REPORT MISMATCH START ---");
+    if (_isLoading) return false;
+    _isLoading = true;
+    notifyListeners();
     try {
       final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
       if (orderIndex == -1) return false;
-
-      final originalMismatchReason = _orders[orderIndex].mismatchReason;
       // Optimistic update
       _orders[orderIndex] = _orders[orderIndex].copyWith(mismatchReason: details);
       notifyListeners();
@@ -439,11 +471,16 @@ class HomeViewModel extends ChangeNotifier {
       _errorMessage = "Failed to report mismatch: $e";
       notifyListeners();
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<bool> confirmPickup(String orderId) async {
-    debugPrint("--- CONSOLE: CONFIRM PICKUP START ---");
+    if (_isLoading) return false;
+    _isLoading = true;
+    notifyListeners();
     try {
       final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
       if (orderIndex == -1) return false;
@@ -472,11 +509,16 @@ class HomeViewModel extends ChangeNotifier {
       if (orderIndex != -1) _orders[orderIndex] = _orders[orderIndex].copyWith(status: OrderStatus.assigned); // Assuming it was assigned before
       notifyListeners();
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> verifyOrder(String orderId) async {
-    debugPrint("--- CONSOLE: VERIFY ORDER START ---");
+    if (_isLoading) return;
+    _isLoading = true;
+    notifyListeners();
     try {
       final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
       if (orderIndex == -1) return;
@@ -508,6 +550,9 @@ class HomeViewModel extends ChangeNotifier {
       }
 
       _errorMessage = "Failed to verify order: $e";
+      notifyListeners();
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }

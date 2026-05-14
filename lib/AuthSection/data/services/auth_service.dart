@@ -91,6 +91,12 @@ class AuthService implements IAuthService {
     try {
       final data = await _dioClient.post(ApiConstants.refreshToken, data: {'refreshToken': token});
       final response = data as Map<String, dynamic>;
+      if (response['token'] != null) {
+        await _tokenService.saveTokens(
+          accessToken: response['token'],
+          refreshToken: response['refreshToken'] ?? token,
+        );
+      }
       return {'success': true, ...response};
     } catch (e) {
       return {'success': false, 'msg': 'Connection failed'};

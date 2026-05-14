@@ -45,6 +45,17 @@ class LoginViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  void clearFields() {
+    nameController.clear();
+    mobileController.clear();
+    passwordController.clear();
+    loginNameError = null;
+    loginMobileError = null;
+    loginPasswordError = null;
+    _rememberMe = false;
+    notifyListeners();
+  }
+
   bool validateLogin() {
     loginNameError = SignupValidator.validateName(nameController.text);
     loginMobileError = SignupValidator.validateMobile(mobileController.text);

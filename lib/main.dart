@@ -21,6 +21,7 @@ import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dar
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/help_support_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_controller.dart';
 import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
+import 'package:quick_popup_manager/quick_popup_manager.dart';
 
 void main() {
   runApp(const MyApp());
@@ -89,10 +90,15 @@ class MyApp extends StatelessWidget {
               update: (_, repository, previous) => previous ?? NotificationViewModel(repository),
             ),
              ],
-          child: const MaterialApp(
+          child: MaterialApp(
+            navigatorKey: DioClient.navigatorKey,
+            navigatorObservers: [QuickPopupNavigatorObserver()],
             debugShowCheckedModeBanner: false,
             title: 'Ziya Laundry DeliveryApp',
-            home:  LoginScreen(),
+            initialRoute: '/login',
+            routes: {
+              '/login': (context) => const LoginScreen(),
+            },
           ),
         );
       },

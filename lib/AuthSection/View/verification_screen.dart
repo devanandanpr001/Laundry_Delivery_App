@@ -233,7 +233,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         ? null
                         : () {
                             widget.onResend();
-                            QuickPopupManager.showNotification(context, AppText.OtpSentSuccess);
+                            QuickPopupManager.showSuccess(
+                              context,
+                              message: AppText.OtpSentSuccess,
+                            );
                             startTimer();
                           },
                     child: Text(

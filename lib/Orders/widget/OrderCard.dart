@@ -7,7 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/DeliveryLocation_Screen.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/PickUp_location.dart';
@@ -99,6 +100,10 @@ class _OrderCardState extends State<OrderCard> {
   bool _reportSentFailed = false;
   bool _isUserEditing = false;
   String _lastSentReportText = "";
+  bool _isOpeningAddItem = false; // Guard to prevent multiple dialogs
+  bool _isVerifying = false; // Local state for Checked button
+  bool _isAddingImage = false; // Local state for Add Image button
+  bool _isSendingOtp = false; // Local state for OTP button
 
   // Baseline tracking to detect additions or deletions professionally
   int? _baselineItemCount;
@@ -129,11 +134,9 @@ class _OrderCardState extends State<OrderCard> {
   }
 
   void _onMismatchTextChanged() {
-    if (mounted) setState(() {});
-    if (mounted) {
-      // Detect if user is actively changing text compared to what was last sent
-      setState(() => _isUserEditing = _mismatchController.text.trim() != _lastSentReportText);
-    }
+    if (!mounted) return;
+    // Performance: Consolidated multiple setState calls into one for stability.
+    setState(() => _isUserEditing = _mismatchController.text.trim() != _lastSentReportText);
   }
 
   @override
@@ -302,12 +305,15 @@ class _OrderCardState extends State<OrderCard> {
                       onAddTap: (currentOrder.isVerified || !isArrivedForPickup) ? () {} : () => _openBundleDialog(context),
                       onDelete: (currentOrder.isVerified || !isArrivedForPickup) ? (i) {} : (i) async {
                       final bundleName = currentOrder.bundles[i].name;
+                      final homeVM = context.read<HomeViewModel>();
                       if (await OrderCard._confirmDeletion(context, bundleName)) {
                         try {
-                          await context.read<HomeViewModel>().removeOrderBundle(widget.orderid, i);
-                          QuickPopupManager.show(context, message: "Bundle removed", type: QuickPopupType.success);
+                          await homeVM.removeOrderBundle(widget.orderid, i);
+                          if (!mounted) return;
+                          AppToast.showSuccess(title: "Success", message: "Bundle removed");
                         } catch (e) {
-                          QuickPopupManager.show(context, message: "Failed to remove bundle", type: QuickPopupType.error);
+                          if (!mounted) return;
+                          AppToast.showError(title: "Error", message: "Failed to remove bundle");
                         }
                       }
                     },
@@ -344,12 +350,17 @@ class _OrderCardState extends State<OrderCard> {
                     width: double.infinity, // Make it full width
                     height: 40.h,
                     child: OutlinedButton.icon(
-                      onPressed: _handleAddImage,
-                      icon: Icon(Icons.add_a_photo, size: 20.sp, color: AppColors.primaryBlue),
-                      label: Text(
-                        "Add Image",
-                        style: GoogleFonts.poppins(fontSize: 14.sp, color: AppColors.primaryBlue, fontWeight: FontWeight.w600),
-                      ),
+                      onPressed: _isAddingImage ? null : _handleAddImage,
+                      icon: _isAddingImage
+                          ? const SizedBox.shrink()
+                          : Icon(Icons.add_a_photo, size: 20.sp, color: AppColors.primaryBlue),
+                      label: _isAddingImage
+                          ? LoadingAnimationWidget.waveDots(color: AppColors.primaryBlue, size: 20.sp)
+                          : Text(
+                              "Add Image",
+                              style: GoogleFonts.poppins(
+                                  fontSize: 14.sp, color: AppColors.primaryBlue, fontWeight: FontWeight.w600),
+                            ),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: AppColors.primaryBlue, width: 1.r),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
@@ -421,12 +432,15 @@ class _OrderCardState extends State<OrderCard> {
                         IconButton(
                           icon: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 18.sp),
                           onPressed: () async {
+                            final homeVM = context.read<HomeViewModel>();
                             if (await OrderCard._confirmDeletion(context, item.name)) {
                               try {
-                                await context.read<HomeViewModel>().deleteItemFromOrder(widget.orderid, item.id);
-                                QuickPopupManager.show(context, message: "Item removed", type: QuickPopupType.success);
+                                await homeVM.deleteItemFromOrder(widget.orderid, item.id);
+                                if (!mounted) return;
+                                AppToast.showSuccess(title: "Success", message: "Item removed");
                               } catch (e) {
-                                QuickPopupManager.show(context, message: "Failed to remove item", type: QuickPopupType.error);
+                                if (!mounted) return;
+                                AppToast.showError(title: "Error", message: "Failed to remove item");
                               }
                             }
                           },
@@ -471,11 +485,19 @@ class _OrderCardState extends State<OrderCard> {
                   width: 133.w,
                   height: 32.h,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      final success = await homeVM.sendDeliveryOtp(order.orderId);
-                      if (success && context.mounted) {
-                        setState(() => _otpSent = true);
-                        QuickPopupManager.show(context, message: AppText.OtpSentSuccess, type: QuickPopupType.success);
+                    onPressed: _isSendingOtp ? null : () async {
+                      setState(() => _isSendingOtp = true);
+                      try {
+                        final success = await homeVM.sendDeliveryOtp(order.orderId);
+                        if (success && mounted) {
+                          setState(() => _otpSent = true);
+                          AppToast.showSuccess(
+                            title: "Success",
+                            message: AppText.OtpSentSuccess,
+                          );
+                        }
+                      } finally {
+                        if (mounted) setState(() => _isSendingOtp = false);
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -484,7 +506,9 @@ class _OrderCardState extends State<OrderCard> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                       padding: EdgeInsets.all(8.w),
                     ),
-                    child: Text(_otpSent ? "Resend" : "Send", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
+                    child: _isSendingOtp 
+                        ? LoadingAnimationWidget.waveDots(color: Colors.white, size: 14.sp)
+                        : Text(_otpSent ? "Resend" : "Send", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -566,7 +590,17 @@ class _OrderCardState extends State<OrderCard> {
                 child: SizedBox(
                   height: 32.h,
                   child: ElevatedButton(
-                    onPressed: !isVerified ? () => context.read<HomeViewModel>().verifyOrder(widget.orderid) : null, // Disable if verified
+                    onPressed: (!isVerified && !_isVerifying)
+                        ? () async {
+                            final homeVM = context.read<HomeViewModel>();
+                            setState(() => _isVerifying = true);
+                            try {
+                              await homeVM.verifyOrder(widget.orderid);
+                            } finally {
+                              if (mounted) setState(() => _isVerifying = false);
+                            }
+                          }
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isVerified ? AppColors.green : AppColors.primaryBlue,
                       disabledBackgroundColor: isVerified ? AppColors.green : null,
@@ -575,14 +609,18 @@ class _OrderCardState extends State<OrderCard> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                       padding: EdgeInsets.all(8.w),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline, size: 16.sp, color: Colors.white),
-                        SizedBox(width: 8.w),
-                        Text("Checked", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
+                    child: _isVerifying
+                        ? LoadingAnimationWidget.waveDots(color: Colors.white, size: 18.sp)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 16.sp, color: Colors.white),
+                              SizedBox(width: 8.w),
+                              Text("Checked",
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
                   ),
                 ),
               ),
@@ -671,7 +709,7 @@ class _OrderCardState extends State<OrderCard> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r))
                             ),
                             child: _isSendingReport 
-                              ? SizedBox(height: 15.h, width: 15.h, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              ? LoadingAnimationWidget.waveDots(color: Colors.white, size: 18.sp)
                               : Text(
                                   _lastSentReportText.isEmpty ? "Enter" : "Resend", 
                                   style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white, fontWeight: FontWeight.w600)
@@ -690,13 +728,14 @@ class _OrderCardState extends State<OrderCard> {
   }
 
   Future<void> _handleMismatchReportSubmission() async {
+    final homeVM = context.read<HomeViewModel>();
     final reportText = _mismatchController.text.trim();
     setState(() {
       _isSendingReport = true;
       _reportSentFailed = false;
     });
     
-    final success = await context.read<HomeViewModel>().reportItemMismatch(widget.orderid, reportText);
+    final success = await homeVM.reportItemMismatch(widget.orderid, reportText);
     
     if (mounted) {
       setState(() {
@@ -705,7 +744,10 @@ class _OrderCardState extends State<OrderCard> {
           _reportSentSuccess = true;
           _lastSentReportText = reportText;
           _isUserEditing = false;
-          QuickPopupManager.show(context, message: "Report successfully sent", type: QuickPopupType.success);
+            AppToast.showSuccess(
+              title: "Success",
+            message: "Report successfully sent",
+          );
         } else {
           _reportSentFailed = true;
         }
@@ -714,11 +756,12 @@ class _OrderCardState extends State<OrderCard> {
   }
 
   void _openBundleDialog(BuildContext context) async {
+    final homeVM = context.read<HomeViewModel>();
     final result = await showDialog(
       context: context, 
       builder: (context) => BundleDialog(orderId: widget.orderid));
     if (result != null) {
-      context.read<HomeViewModel>().addOrderBundle(widget.orderid, result);
+      homeVM.addOrderBundle(widget.orderid, result);
     }
   }
 
@@ -754,12 +797,8 @@ class _OrderCardState extends State<OrderCard> {
       final images = await picker.pickMultiImage();
       if (!context.mounted) return;
       if (images.isNotEmpty) {
-        homeVM.addOrderImages(currentOrder.orderId, images.map((i) => i.path).toList());
-        QuickPopupManager.show(
-          context, 
-          message: "Images uploaded successfully", 
-          type: QuickPopupType.success
-        );
+        await homeVM.addOrderImages(currentOrder.orderId, images.map((i) => i.path).toList());
+        AppToast.showSuccess(title: "Success", message: "Images uploaded successfully");
 
         homeVM.updateOrderStage(widget.orderid, DeliveryStage.orderPicked);
       }
@@ -780,7 +819,10 @@ class _OrderCardState extends State<OrderCard> {
       // If OTP is not yet verified, attempt to verify it using the input from _otpController
       if (!_otpVerified) {
         if (_otpController.text.length != 4) {
-          QuickPopupManager.show(context, message: "Enter 4 digit OTP", type: QuickPopupType.error);
+          AppToast.showError(
+            title: "Validation Error",
+            message: "Enter 4 digit OTP",
+          );
           return;
         }
         setState(() => _isVerifyingOtp = true);
@@ -788,7 +830,10 @@ class _OrderCardState extends State<OrderCard> {
         if (context.mounted) {
           setState(() => _isVerifyingOtp = false);
           if (!success) {
-            QuickPopupManager.show(context, message: AppText.InvalidOtp, type: QuickPopupType.error);
+            AppToast.showError(
+              title: "Verification Failed",
+              message: AppText.InvalidOtp,
+            );
             return; // Stop if OTP verification fails
           }
           setState(() => _otpVerified = true); // Mark as verified if successful
@@ -816,31 +861,30 @@ class _OrderCardState extends State<OrderCard> {
     final ImagePicker picker = ImagePicker();
     final images = await picker.pickMultiImage();
     if (!mounted) return;
-    if (images.isNotEmpty && context.mounted) {
-      await context.read<HomeViewModel>().addOrderImages(widget.orderid, images.map((i) => i.path).toList());
-      QuickPopupManager.show(
-        context, 
-        message: "Images uploaded successfully", 
-        type: QuickPopupType.success
-      );
+    if (images.isNotEmpty) {
+      setState(() => _isAddingImage = true);
+      try {
+        await context.read<HomeViewModel>().addOrderImages(widget.orderid, images.map((i) => i.path).toList());
+        if (mounted) {
+          AppToast.showSuccess(
+            title: "Success",
+            message: "Images uploaded successfully",
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isAddingImage = false);
+      }
     }
   }
 
   // Method to show the AddItemDialog and handle the result
   void _showAddItemDialog(BuildContext context) async {
-    final results = await showDialog<List<Map<String, dynamic>>>(
+    if (_isOpeningAddItem) return;
+    setState(() => _isOpeningAddItem = true);
+    await showDialog(
       context: context,
       builder: (context) => AddItemDialog(orderId: widget.orderid),
     );
-    if (results != null && context.mounted) {
-      for (var result in results) {
-        await context.read<HomeViewModel>().addItemToOrder(
-              widget.orderid,
-              result['item'],
-              price: (result['price'] as num?)?.toDouble() ?? 0.0,
-              serviceName: result['serviceName'],
-            );
-      }
-    }
+    if (mounted) setState(() => _isOpeningAddItem = false);
   }
 }

@@ -12,6 +12,7 @@ import 'package:ziya_laundry_deliveryapp/Home/widgets/status_count_card.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/welcome_section.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/order_type_toggle.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_order_card;
+import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 import '../../AuthSection/viewmodel/login_viewmodel.dart';
 import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../../core/dio_client.dart';
@@ -28,6 +29,8 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   OrderType _selectedOrderType = OrderType.pickup; // Default to pickup
+  bool _isSessionDialogShowing = false;
+  bool _isAcceptingOrder = false; // Guard for accept button
 
   @override
   void initState() {
@@ -36,38 +39,36 @@ class _HomepageState extends State<Homepage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeViewModel>().refreshOrders();
     });
-    // Connect the DioClient session expired listener
-    DioClient.onSessionExpired = () {
-      if (mounted) {
-        _showSessionExpiredDialog();
-      }
-    };
   }
 
-  void _showSessionExpiredDialog() {
+  void _showSessionExpiredOverlay(HomeViewModel vm) {
+    if (_isSessionDialogShowing) return;
+    _isSessionDialogShowing = true;
+
     showDialog(
       context: context,
-      barrierDismissible: false, // Force user to acknowledge
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
-        title: Text(
-          "Session Expired",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: AppColors.errorRed),
-        ),
-        content: Text(
-          "Your session has expired. Please login again to continue.",
-          style: GoogleFonts.poppins(),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
+        title: Text("Session Expired",
+            style: GoogleFonts.roboto(fontWeight: FontWeight.bold)),
+        content: Text("Your session has expired. Please login again to continue.",
+            style: GoogleFonts.roboto()),
         actions: [
           TextButton(
             onPressed: () {
-              // Navigate back to login and clear the entire history
-              Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-                '/login', // Ensure this route is defined in your MaterialApp
-                (route) => false,
-              );
+              Navigator.pop(context);
+              vm.resetSessionExpired();
+              _isSessionDialogShowing = false;
+
+              // Clear login fields so they are empty when the user lands on the login page
+              context.read<LoginViewModel>().clearFields();
+
+              DioClient.navigatorKey.currentState
+                  ?.pushNamedAndRemoveUntil('/login', (route) => false);
             },
-            child: Text("Login Again", style: TextStyle(color: AppColors.primaryBlue)),
+            child: Text("Login Again",
+                style: GoogleFonts.roboto(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -77,6 +78,13 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     final homeVM = context.watch<HomeViewModel>();
+
+    // Session Expiry Listener
+    if (homeVM.isSessionExpired) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showSessionExpiredOverlay(homeVM);
+      });
+    }
 
     // Display all active (unassigned) orders for the selected type.
     // This ensures statuses like 'OUT_FOR_DELIVERY' are visible in the dashboard.
@@ -193,18 +201,22 @@ class _HomepageState extends State<Homepage> {
                               status: order.status,
                               selectedFilter: 'all',
                               onAccept: () async {
-                                if (!homeVM.isOnline) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(AppText.UrOffline)),
+                                if (_isAcceptingOrder) return;
+                                if (!homeVM.isOnline && mounted) {
+                                  AppToast.showError(
+                                    title: "Offline",
+                                    message: AppText.UrOffline,
                                   );
                                   return;
                                 }
 
-                                homeVM.updateOrderStatus(
+                                setState(() => _isAcceptingOrder = true);
+                                await homeVM.updateOrderStatus(
                                   order.orderId,
                                   OrderStatus.assigned,
                                 );
                                 homeVM.setSelectedFilter("assigned");
+                                if (!mounted) return;
                                 showDialog(
                                   context: context,
                                   barrierDismissible: false,
@@ -232,11 +244,13 @@ class _HomepageState extends State<Homepage> {
                                     ),
                                   ),
                                 );
-                                await Future.delayed(Duration(seconds: 2));
+                                await Future.delayed(const Duration(seconds: 2));
+                                if (!mounted) return;
                                 Navigator.of(
                                   context,
                                   rootNavigator: true,
                                 ).pop();
+                                setState(() => _isAcceptingOrder = false);
                                 widget.onGoToOrders();
                               },
                             ),

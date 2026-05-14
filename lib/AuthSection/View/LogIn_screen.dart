@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/bottom_navigation_page.dart';
@@ -99,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         ),
                                         SizedBox(height: 20.h),
-
                                         InputField(
                                           label: AppText.LoginNameLabel,
                                           hint: AppText.LoginNameHint,
@@ -107,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                           // onChanged: vm.updateLoginName, // Controller handles updates
                                           errorText: vm.loginNameError,
                                         ),
-
                                         InputField(
                                           label: AppText.LoginMobileLabel,
                                           hint: AppText.LoginMobileHint,
@@ -181,9 +179,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                               );
 
                                               if (verified == true && context.mounted) {
-                                                QuickPopupManager.showNotification(
-                                                  context,
-                                                  AppText.LoginSuccess,
+                                                AppToast.showSuccess(
+                                                  title: "Success",
+                                                  message: AppText.LoginSuccess,
                                                 );
                                                 Navigator.pushAndRemoveUntil(
                                                   context,
@@ -194,39 +192,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                               }
                                             } else {
                                               if (!context.mounted) return;
-                                              QuickPopupManager.showNotification(
-                                                context, 
-                                                vm.errorMessage ?? AppText.LoginErrorFillFields, 
-                                                isError: true
+                                              AppToast.showError(
+                                                title: "Login Failed",
+                                                message: vm.errorMessage ?? "Please check your credentials",
                                               );
                                             }
                                           },
                                         ),
                                         SizedBox(height: 12.h),
-                                        // Row(
-                                        //   mainAxisAlignment: MainAxisAlignment.center,
-                                        //   children: [
-                                        //     Text(
-                                        //       AppText.FrgtNoAcc,
-                                        //       style: GoogleFonts.poppins(
-                                        //         fontSize: 12.sp,
-                                        //         fontWeight: FontWeight.w400,
-                                        //       ),
-                                        //     ),
-                                        //     GestureDetector(
-                                        //       onTap: () {
-                                        //         Navigator.push(context, MaterialPageRoute(builder: (context) => const SignupScreen()));
-                                        //       },
-                                        //       child: Text(AppText.FrgtSignUp,
-                                        //         style: GoogleFonts.poppins(
-                                        //           fontSize: 12.sp,
-                                        //           fontWeight: FontWeight.w600,
-                                        //           color: AppColors.primaryBlue,
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //   ],
-                                        // ),
+                                 
                                       ],
                                     );
                                   },

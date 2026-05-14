@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/forgot_password_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/NewPassword.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 import '../../../../AuthSection/widgets/custom_button.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
@@ -141,10 +141,9 @@ class ForgotPassword extends StatelessWidget {
                                     );
                                   }
                                 } else if (context.mounted) {
-                                  QuickPopupManager.showNotification(
-                                    context, 
-                                    AppText.FrgtValidPhone, 
-                                    isError: true
+                                  AppToast.showError(
+                                    title: "Error",
+                                    message: AppText.FrgtValidPhone,
                                   );
                                 }
                               },

@@ -236,18 +236,18 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       );
 
                       if (passErr != null || confErr != null) {
-                        QuickPopupManager.showNotification(
+                        QuickPopupManager.showError(
                           context, 
-                          passErr ?? confErr!, 
-                          isError: true
+                          message: passErr ?? confErr!,
                         );
                         return;
                       }
 
                       if (await provider.submitReset(widget.phone)) {
                         if (!context.mounted) return;
-                        QuickPopupManager.showNotification(
-                          context, AppText.NewPasswordSuccess
+                        QuickPopupManager.showSuccess(
+                          context, 
+                          message: AppText.NewPasswordSuccess
                         );
 
                         Future.delayed(const Duration(seconds: 2), () {
@@ -257,7 +257,10 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           }
                         });
                       } else if (context.mounted) {
-                        QuickPopupManager.showNotification(context, provider.errorMessage ?? "Failed to reset password", isError: true);
+                        QuickPopupManager.showError(
+                          context,
+                          message: provider.errorMessage ?? "Failed to reset password"
+                        );
                       }
                     },
                   ),
