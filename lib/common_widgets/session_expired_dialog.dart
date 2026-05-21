@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/session_expired_widgets.dart';
 
 class SessionExpiredDialog extends StatefulWidget {
   final VoidCallback onLoginAgain;
@@ -55,8 +56,8 @@ class _SessionExpiredDialogState extends State<SessionExpiredDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
         backgroundColor: Colors.white,
@@ -91,40 +92,10 @@ class _SessionExpiredDialogState extends State<SessionExpiredDialog> {
             ),
             if (widget.expirationTime != null) ...[
               SizedBox(height: 16.h),
-              StreamBuilder<int>(
-                stream: _timerStream,
-                builder: (context, snapshot) {
-                  return Container(
-                    padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 16.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: AppColors.primaryBlue.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          color: AppColors.primaryBlue,
-                          size: 18.sp,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          "Redirecting in: ${_formatDuration(_remainingTime)}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryBlue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              SessionCountdownDisplay(
+                timerStream: _timerStream,
+                remainingTime: _remainingTime,
+                formatDuration: _formatDuration,
               ),
             ],
           ],

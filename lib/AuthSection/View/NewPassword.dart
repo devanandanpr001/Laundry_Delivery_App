@@ -9,6 +9,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/widgets/custom_button.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String phone;
@@ -25,250 +26,245 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-          backgroundColor: AppColors.lightBackground,
-          appBar: AppBar(
-            backgroundColor: AppColors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios_new,
-                color: AppColors.black,
-                size: 20.sp,
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
+      backgroundColor: AppColors.lightBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.black,
+            size: 20.sp,
           ),
-          body: Consumer<ForgotPasswordViewModel>(
-            builder: (context, provider, child) => SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 35.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: 40.h),
-                  Text(
-                    AppText.NewPasswordTitle,
-                    style: TextStyle(
-                      color: AppColors.textDark,
-                      fontSize: 18.sp,
-                      fontFamily: GoogleFonts.roboto().fontFamily,
-                      fontWeight: FontWeight.w500,
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Consumer<ForgotPasswordViewModel>(
+        builder: (context, provider, child) => SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 35.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: 40.h),
+                Text(
+                  AppText.NewPasswordTitle,
+                  style: TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 18.sp,
+                    fontFamily: GoogleFonts.roboto().fontFamily,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 60.h),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppText.NewPasswordEnter,
+                      style: TextStyle(
+                        color: AppColors.black,
+                        fontSize: 14.sp,
+                        fontFamily: GoogleFonts.roboto().fontFamily,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 60.h),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppText.NewPasswordEnter,
-                        style: TextStyle(
-                          color: AppColors.black,
-                          fontSize: 14.sp,
-                          fontFamily: GoogleFonts.roboto().fontFamily,
-                          fontWeight: FontWeight.w400,
-                        ),
+                    SizedBox(height: 8.h),
+                    TextFormField(
+                      controller: provider.newPasswordController,
+                      obscureText: _isNewPasswordObscured,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontFamily: GoogleFonts.roboto().fontFamily,
                       ),
-                      SizedBox(height: 8.h),
-                      TextFormField(
-                        controller: provider.newPasswordController,
-                        obscureText: _isNewPasswordObscured,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontFamily: GoogleFonts.roboto().fontFamily,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 15.w,
+                          vertical: 12.h,
                         ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 15.w,
-                            vertical: 12.h,
-                          ),
-                          hintText: AppText.NewPasswordHint,
-                          hintStyle: TextStyle(
-                            color: AppColors.hintGrey,
-                            fontSize: 14.sp,
-                            fontFamily: GoogleFonts.roboto().fontFamily,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.borderGreen,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.borderGreen,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.borderGreen,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.red,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.red,
-                              width: 2,
-                            ),
-                          ),
-                          suffixIcon: GestureDetector(
-                            onTapDown: (_) =>
-                                setState(() => _isNewPasswordObscured = false),
-                            onTapUp: (_) =>
-                                setState(() => _isNewPasswordObscured = true),
-                            onTapCancel: () =>
-                                setState(() => _isNewPasswordObscured = true),
-                            child: Icon(
-                              _isNewPasswordObscured
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: AppColors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 25.h),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppText.NewPasswordConfirm,
-                        style: TextStyle(
-                          color: AppColors.black,
-                          fontSize: 14.sp,
-                          fontFamily: GoogleFonts.roboto().fontFamily,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      TextFormField(
-                        controller: provider.confirmPasswordController,
-                        obscureText: _isConfirmPasswordObscured,
-                        style: TextStyle(
+                        hintText: AppText.NewPasswordHint,
+                        hintStyle: TextStyle(
+                          color: AppColors.hintGrey,
                           fontSize: 14.sp,
                           fontFamily: GoogleFonts.roboto().fontFamily,
                         ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 15.w,
-                            vertical: 12.h,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: AppColors.borderGreen),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: AppColors.borderGreen),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.borderGreen,
+                            width: 1.5,
                           ),
-                          hintText: AppText.PasswordHint,
-                          hintStyle: TextStyle(
-                            color: AppColors.hintGrey,
-                            fontSize: 14.sp,
-                            fontFamily: GoogleFonts.roboto().fontFamily,
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: AppColors.red),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.red,
+                            width: 2,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.borderGreen,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.borderGreen,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.borderGreen,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.red,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                            borderSide: BorderSide(
-                              color: AppColors.red,
-                              width: 2,
-                            ),
-                          ),
-                          suffixIcon: GestureDetector(
-                            onTapDown: (_) => setState(
-                              () => _isConfirmPasswordObscured = false,
-                            ),
-                            onTapUp: (_) => setState(
-                              () => _isConfirmPasswordObscured = true,
-                            ),
-                            onTapCancel: () => setState(
-                              () => _isConfirmPasswordObscured = true,
-                            ),
-                            child: Icon(
-                              _isConfirmPasswordObscured
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: AppColors.grey,
-                            ),
+                        ),
+                        suffixIcon: GestureDetector(
+                          onTapDown: (_) =>
+                              setState(() => _isNewPasswordObscured = false),
+                          onTapUp: (_) =>
+                              setState(() => _isNewPasswordObscured = true),
+                          onTapCancel: () =>
+                              setState(() => _isNewPasswordObscured = true),
+                          child: Icon(
+                            _isNewPasswordObscured
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: AppColors.grey,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 52.h),
-                  _buildSubmitButton(
-                    isLoading: provider.isLoading,
-                    onPressed: () async {
-                      // 1. Validate Empty
-                      final passErr = SignupValidator.validatePassword(provider.newPasswordController.text);
-                      final confErr = SignupValidator.validateConfirmPassword(
-                        provider.newPasswordController.text, 
-                        provider.confirmPasswordController.text
+                    ),
+                  ],
+                ),
+                SizedBox(height: 25.h),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppText.NewPasswordConfirm,
+                      style: TextStyle(
+                        color: AppColors.black,
+                        fontSize: 14.sp,
+                        fontFamily: GoogleFonts.roboto().fontFamily,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    TextFormField(
+                      controller: provider.confirmPasswordController,
+                      obscureText: _isConfirmPasswordObscured,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontFamily: GoogleFonts.roboto().fontFamily,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 15.w,
+                          vertical: 12.h,
+                        ),
+                        hintText: AppText.PasswordHint,
+                        hintStyle: TextStyle(
+                          color: AppColors.hintGrey,
+                          fontSize: 14.sp,
+                          fontFamily: GoogleFonts.roboto().fontFamily,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: AppColors.borderGreen),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: AppColors.borderGreen),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.borderGreen,
+                            width: 1.5,
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(color: AppColors.red),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.red,
+                            width: 2,
+                          ),
+                        ),
+                        suffixIcon: GestureDetector(
+                          onTapDown: (_) => setState(
+                            () => _isConfirmPasswordObscured = false,
+                          ),
+                          onTapUp: (_) =>
+                              setState(() => _isConfirmPasswordObscured = true),
+                          onTapCancel: () =>
+                              setState(() => _isConfirmPasswordObscured = true),
+                          child: Icon(
+                            _isConfirmPasswordObscured
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: AppColors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 52.h),
+                _buildSubmitButton(
+                  isLoading: provider.isLoading,
+                  onPressed: () async {
+                    // 1. Validate Empty
+                    final passErr = SignupValidator.validatePassword(
+                      provider.newPasswordController.text,
+                    );
+                    final confErr = SignupValidator.validateConfirmPassword(
+                      provider.newPasswordController.text,
+                      provider.confirmPasswordController.text,
+                    );
+
+                    if (passErr != null || confErr != null) {
+                      AppToast.showError(
+                        message: passErr ?? confErr!,
+                        title: 'Error',
+                      );
+                      return;
+                    }
+
+                    if (await provider.submitReset(widget.phone)) {
+                      if (!context.mounted) return;
+                      AppToast.showSuccess(
+                        message: AppText.NewPasswordSuccess,
+                        title: 'Success',
                       );
 
-                      if (passErr != null || confErr != null) {
-                        QuickPopupManager.showError(
-                          context, 
-                          message: passErr ?? confErr!,
-                        );
-                        return;
-                      }
-
-                      if (await provider.submitReset(widget.phone)) {
-                        if (!context.mounted) return;
-                        QuickPopupManager.showSuccess(
-                          context, 
-                          message: AppText.NewPasswordSuccess
-                        );
-
-                        Future.delayed(const Duration(seconds: 2), () {
-                          if (context.mounted) {
-                            Navigator.pushAndRemoveUntil(
-                                context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
-                          }
-                        });
-                      } else if (context.mounted) {
-                        QuickPopupManager.showError(
-                          context,
-                          message: provider.errorMessage ?? "Failed to reset password"
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
+                      Future.delayed(const Duration(seconds: 2), () {
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      });
+                    } else if (context.mounted) {
+                      AppToast.showError(
+                        message:
+                            provider.errorMessage ?? "Failed to reset password",
+                        title: 'Error',
+                      );
+                    }
+                  },
+                ),
+              ],
             ),
-            ),
-          ));
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSubmitButton({
@@ -289,14 +285,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         ],
       ),
       child: CustomButton(
-            text: AppText.SubmitButton,
-            onPressed: isLoading ? () {} : onPressed,
-            height: 48.h,
-            elevation: 0,
-            borderRadius: 10.r,
-            fontFamily: GoogleFonts.roboto().fontFamily,
-            fontWeight: FontWeight.w600,
-          ),
+        text: AppText.SubmitButton,
+        onPressed: isLoading ? () {} : onPressed,
+        height: 48.h,
+        elevation: 0,
+        borderRadius: 10.r,
+        fontFamily: GoogleFonts.roboto().fontFamily,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

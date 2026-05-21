@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../viewmodel/notification_viewmodel.dart';
 import '../widgets/notification_item_widget.dart';
@@ -19,7 +18,6 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   bool isDeleteMode = false;
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-
   /// Handles the deletion with slide animation
   void _handleAnimatedDelete(NotificationViewModel vm) {
     final list = vm.notificationList;
@@ -36,8 +34,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ).chain(CurveTween(curve: Curves.easeOut))),
             child: NotificationItemWidget(
               title: removedItem.title,
-              time: removedItem.time,
-              orderId: removedItem.orderId,
+              createdAt: removedItem.createdAt,
+              message: removedItem.message,
+              isRead: removedItem.isRead, // Pass isRead
               isSelected: true,
               isSelectionMode: true,
             ),
@@ -168,22 +167,61 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             : ListView.builder(
                                 itemCount: notifications.length,
                                 itemBuilder: (context, index) {
-                      final notification = notifications[index];
-
-                      return GestureDetector(
-                        onTap: () {
-                          notificationVM.toggleSelection(index);
-                        },
-                        child: OrderNotification(
-                          notification.title,
-                          notification.time,
-                          notification.orderId,
-                          notification.isSelected,
-                          isSelectionMode,
-                        ),
-                      );
-                    },
-                  ),
+                                  final notification = notifications[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      if (isSelectionMode) {
+                                        notificationVM.toggleSelection(index);
+                                      } else {
+                                        notificationVM.markAsReadAt(index);
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Dialog(
+                                              backgroundColor: Colors.transparent,
+                                              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  NotificationItemWidget(
+                                                    title: notification.title,
+                                                    createdAt: notification.createdAt,
+                                                    message: notification.message,
+                                                    isSelected: false,
+                                                    isRead: true,
+                                                    isSelectionMode: false,
+                                                    isExpanded: true,
+                                                  ),
+                                                  SizedBox(height: 10.h),
+                                                  IconButton(
+                                                    onPressed: () => Navigator.pop(context),
+                                                    icon: Icon(Icons.close, color: AppColors.white, size: 30.sp),
+                                                  )
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      }
+                                    },
+                                    onLongPress: () {
+                                      if (!isSelectionMode) {
+                                        setState(() {
+                                          notificationVM.toggleSelection(index);
+                                        });
+                                      }
+                                    },
+                                    child: NotificationItemWidget(
+                                      title: notification.title,
+                                      createdAt: notification.createdAt,
+                                      message: notification.message,
+                                      isSelected: notification.isSelected,
+                                      isRead: notification.isRead,
+                                      isSelectionMode: isSelectionMode,
+                                    ),
+                                  );
+                                },
+                              ),
                 ),
 
 
@@ -191,116 +229,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ],
             ),
           )),
-    );
-  }
-
-  Widget OrderNotification(
-      String title,
-      String time,
-      String orderId,
-      bool isSelected,
-      bool isSelectionMode,
-      ){
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 8.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        color: isSelected  ? AppColors.notifSelectedRed : AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black12,
-            offset: Offset(0, 3.h),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isSelectionMode)
-            Padding(
-              padding: EdgeInsets.only(right: 10.w, top: 10.h),
-              child: AnimatedContainer(
-                duration: Duration(milliseconds: 300),
-                height: 24.h,
-                width: 24.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? AppColors.red : AppColors.primaryBlue,
-                    width: 2,
-                  ),
-                ),
-                child: isSelected
-                    ? Center(
-                  child: Container(
-                    height: 24.h,
-                    width: 24.w,
-                    decoration:  BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected ? AppColors.red : AppColors.white,
-                    ),
-                  ),
-                )
-                    : null,
-              ),
-            ),
-
-          /// 🔹 Icon Circle
-          Container(
-            height: 40.w, width: 40.w,
-            decoration: BoxDecoration(
-              color:  AppColors.notifBadgeBlue, // light blue circle
-              shape: BoxShape.circle,
-            ),
-            child: Image.asset(AppImages.iconPackage,height: 15.h,width: 15.w,)
-          ),
-
-          SizedBox(width: 14.w),
-
-          /// 🔹 Text Section
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                /// Title + Time Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      time,       ///order time
-                      style: GoogleFonts.poppins(
-                        fontSize: 13.sp,
-                        color: AppColors.notifTimeBlue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 6),
-
-                /// Order ID
-                Text(
-                  orderId,       ////Orderid
-                  style: GoogleFonts.poppins(
-                    fontSize: 14.sp,fontWeight: FontWeight.w400,
-                    color: AppColors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

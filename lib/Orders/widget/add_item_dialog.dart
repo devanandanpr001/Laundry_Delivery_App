@@ -3,10 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart'; // Assuming OrderItem is defined here
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/add_item_widgets.dart';
 
 class AddItemDialog extends StatefulWidget {
   final String orderId;
@@ -24,42 +26,38 @@ class _AddItemDialogState extends State<AddItemDialog> {
   bool _isServicesDropdownOpen = false;
   bool _isItemsDropdownOpen = false;
   bool _isLoading = false;
-  HomeViewModel? _homeViewModel; 
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Professional: Capture the ViewModel reference in didChangeDependencies to ensure 
-    // context access is safe and the reference is available for dispose().
-    final vm = Provider.of<HomeViewModel>(context, listen: false);
-    if (_homeViewModel != vm) {
-      _homeViewModel?.removeListener(_syncAmountController);
-      _homeViewModel = vm;
-      _homeViewModel?.addListener(_syncAmountController);
-    }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchAvailableServices();
+    });
+  }
+
+  Future<void> _fetchAvailableServices() async {
+    final serviceVM = context.read<ServiceViewModel>();
+    await serviceVM.fetchAvailableServices(orderId: widget.orderId);
+    _syncAmountController();
   }
 
   void _syncAmountController() {
-    // Strict safety check: Never use 'context' inside a listener callback to avoid deactivation errors.
-    if (!mounted || _homeViewModel == null) return;
-    
-    final amount = _calculateDerivedAmount(_homeViewModel!.availableServices ?? [], _homeViewModel!.serviceItemsMap ?? {});
+    if (!mounted) return;
+    final serviceVM = context.read<ServiceViewModel>();
+    final amount = _calculateDerivedAmount(serviceVM.availableServices, serviceVM.serviceItemsMap);
     final String expectedText = amount > 0 ? amount.toStringAsFixed(0) : "";
-    
     if (_amountController.text != expectedText) {
       _amountController.text = expectedText;
-      setState(() {}); // Reflect updated amount in UI
     }
   }
 
   @override
   void dispose() {
-    _homeViewModel?.removeListener(_syncAmountController);
     _amountController.dispose();
     super.dispose();
   }
 
-  // Logic: Calculate Derived Amount based on selected services and items
+  // Logic: Calculate Derived Amount based on selected services and selected item
   double _calculateDerivedAmount(List<Map<String, dynamic>> services, Map<String, List<dynamic>> itemsMap) {
     if (_selectedServiceIds.isEmpty || _selectedItem == null) return 0;
 
@@ -70,28 +68,54 @@ class _AddItemDialogState extends State<AddItemDialog> {
         orElse: () => {},
       );
 
-      if (service.isNotEmpty) {
-        final itemsForThisService = itemsMap[serviceId] ?? [];
-        final itemData = itemsForThisService.firstWhere(
-          (i) => i is Map && i['costume'] == _selectedItem,
-          orElse: () => null,
-        );
+      if (service.isEmpty) continue;
 
-        double price = _toDouble(service['pricePerKg']);
-        if (itemData != null && itemData is Map && itemData['services'] is List) {
-          final List servicesList = itemData['services'] as List;
-          final servicePricing = servicesList.firstWhere(
-            (s) => s is Map && s['serviceId']?.toString() == serviceId,
-            orElse: () => null,
-          );
-          if (servicePricing != null) {
-            price = _toDouble(servicePricing['price']);
-          }
-        }
-        totalUnitPrice += price;
-      }
+      final itemsForThisService = itemsMap[serviceId] ?? [];
+      final itemData = itemsForThisService.firstWhere(
+        (i) => i is Map && _getItemName(i) == _selectedItem,
+        orElse: () => null,
+      );
+
+      double price = _getPriceForService(service, itemData, serviceId);
+      totalUnitPrice += price;
     }
+
     return totalUnitPrice * _quantity;
+  }
+
+  String? _getItemName(dynamic item) {
+    if (item is! Map<String, dynamic>) return null;
+    return item['costume']?.toString() ??
+        item['name']?.toString() ??
+        item['title']?.toString() ??
+        item['itemName']?.toString() ??
+        item['label']?.toString();
+  }
+
+  List<dynamic> _getItemServices(dynamic item) {
+    if (item is! Map<String, dynamic>) return [];
+    return item['services'] as List? ??
+        item['service'] as List? ??
+        item['serviceTypes'] as List? ??
+        [];
+  }
+
+  double _getPriceForService(Map<String, dynamic> service, dynamic itemData, String serviceId) {
+    double basePrice = _toDouble(service['pricePerKg']);
+
+    if (itemData is Map<String, dynamic>) {
+      final itemServices = _getItemServices(itemData);
+      final pricingEntry = itemServices.firstWhere(
+        (s) => s is Map && (s['serviceId']?.toString() == serviceId || s['id']?.toString() == serviceId),
+        orElse: () => null,
+      );
+      if (pricingEntry is Map) {
+        basePrice = _toDouble(pricingEntry['price'] ?? pricingEntry['unitPrice'] ?? pricingEntry['pricePerKg']);
+      }
+      basePrice = basePrice > 0 ? basePrice : _toDouble(itemData['price'] ?? itemData['unitPrice'] ?? itemData['pricePerKg']);
+    }
+
+    return basePrice;
   }
 
   double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0.0;
@@ -99,14 +123,16 @@ class _AddItemDialogState extends State<AddItemDialog> {
   @override
   Widget build(BuildContext context) {
     // Optimized: Only rebuild when specifically needed data changes
-    final availableServices = context.select<HomeViewModel, List<Map<String, dynamic>>>((vm) => vm.availableServices ?? []);
-    final serviceItemsMap = context.select<HomeViewModel, Map<String, List<dynamic>>>((vm) => vm.serviceItemsMap ?? {});
+    final availableServices = context.select<ServiceViewModel, List<Map<String, dynamic>>>((vm) => vm.availableServices);
+    final serviceItemsMap = context.select<ServiceViewModel, Map<String, List<dynamic>>>((vm) => vm.serviceItemsMap);
+    final serviceLoading = context.select<ServiceViewModel, bool>((vm) => vm.isLoading);
+    final serviceError = context.select<ServiceViewModel, String?>((vm) => vm.errorMessage);
 
     final bool isFetchingItems = _selectedServiceIds.any((id) => !serviceItemsMap.containsKey(id));
     final List<String> dynamicItems = _selectedServiceIds
         .expand((id) => serviceItemsMap[id] ?? [])
-        .where((e) => e != null && e is Map && e.containsKey('costume'))
-        .map((e) => (e as Map)['costume'].toString())
+        .where((e) => e != null && e is Map && _getItemName(e) != null)
+        .map((e) => _getItemName(e as Map<String, dynamic>)!)
         .toSet()
         .toList();
 
@@ -117,7 +143,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
         elevation: 10, // Added elevation for depth
-        shadowColor: AppColors.shadowColor.withOpacity(0.2), // Subtle shadow
+        shadowColor: AppColors.shadowColor.withValues(alpha: 0.2), // Subtle shadow
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.86,
@@ -133,18 +159,24 @@ class _AddItemDialogState extends State<AddItemDialog> {
                   style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
                 SizedBox(height: 16.h),
-                _buildLabel("Services"),
-                _buildDropdownTrigger(
-                  text: availableServices.isEmpty ? "No services available" : ( _selectedServiceIds.isEmpty ? "Select" : "${_selectedServiceIds.length} Selected"),
+                const AddItemLabel(text: "Services"),
+                AddItemDropdownTrigger(
+                  text: serviceLoading
+                      ? "Loading services..."
+                      : availableServices.isEmpty
+                          ? "No services available"
+                          : (_selectedServiceIds.isEmpty ? "Select" : "${_selectedServiceIds.length} Selected"),
                   width: double.infinity, // Ensure it fills available width
-                  onTap: () => setState(() {
-                    _isServicesDropdownOpen = !_isServicesDropdownOpen;
-                    _isItemsDropdownOpen = false; // Auto-close items dropdown
-                  }),
+                  onTap: serviceLoading || availableServices.isEmpty
+                      ? null
+                      : () => setState(() {
+                            _isServicesDropdownOpen = !_isServicesDropdownOpen;
+                            _isItemsDropdownOpen = false; // Auto-close items dropdown
+                          }),
                   isOpen: _isServicesDropdownOpen,
                 ),
                 if (_isServicesDropdownOpen)
-                  _buildDropdownContent(
+                  AddItemDropdownContent(
                     child: availableServices.isEmpty
                         ? Padding(
                             padding: EdgeInsets.all(12.w),
@@ -163,13 +195,13 @@ class _AddItemDialogState extends State<AddItemDialog> {
                               final serviceId = service['id'].toString();
                               final isSelected = _selectedServiceIds.contains(serviceId);
                               return CheckboxListTile(
-                                title: Text(service['name'], style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.black)),
+                                title: Text(service['name'] ?? 'Unknown Service', style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.black)),
                                 value: isSelected,
                                 activeColor: AppColors.primaryBlue,
                                 dense: true,
                                 onChanged: (bool? value) {
                                   if (!mounted) return;
-                                  final vm = context.read<HomeViewModel>();
+                                  final svm = context.read<ServiceViewModel>();
                                   setState(() {
                                     if (value == true) {
                                       if (_selectedServiceIds.length < 3) {
@@ -182,38 +214,40 @@ class _AddItemDialogState extends State<AddItemDialog> {
                                       }
                                     } else {
                                       _selectedServiceIds.remove(serviceId);
+                                      if (_selectedServiceIds.isEmpty) _selectedItem = null;
                                     }
-                                    _selectedItem = null;
                                   });
                                   _syncAmountController();
-                                  // Trigger API outside of setState block
+
+                                  // Trigger API outside of setState block for better performance
                                   if (value == true && _selectedServiceIds.contains(serviceId)) {
-                                    vm.fetchItemsForMultipleServices(_selectedServiceIds.toList());
+                                  svm.fetchItemsForMultipleServices(_selectedServiceIds.toList());
                                   }
                                 },
                               );
                             },
                           ),
                   ),
-                if (_selectedServiceIds.isNotEmpty)
+                SelectedServicesDisplay(
+                  selectedServiceIds: _selectedServiceIds,
+                  availableServices: availableServices,
+                ),
+                if (serviceError != null && serviceError.isNotEmpty)
                   Padding(
                     padding: EdgeInsets.only(top: 8.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _selectedServiceIds.map((id) {
-                        final service = availableServices.firstWhere((s) => s['id']?.toString() == id, orElse: () => {});
-                        return Text("• ${service['name'] ?? ''}", style: GoogleFonts.poppins(fontSize: 13.sp, color: AppColors.linkBlue));
-                      }).toList(),
+                    child: Text(
+                      serviceError,
+                      style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.redAccent),
                     ),
                   ),
                 SizedBox(height: 12.h),
-                _buildLabel("Items"),
-                _buildDropdownTrigger(
+                const AddItemLabel(text: "Items"),
+                AddItemDropdownTrigger(
                   text: _selectedServiceIds.isEmpty
-                      ? "Select service first"
-                      : (isFetchingItems ? "Loading Items..." : (_selectedItem ?? "Select")),
+                      ? "Select services first"
+                      : (isFetchingItems ? "Loading items..." : (_selectedItem ?? "Select")),
                   width: double.infinity,
-                  onTap: _selectedServiceIds.isEmpty
+                  onTap: _selectedServiceIds.isEmpty || serviceLoading
                       ? null
                       : () => setState(() {
                             _isItemsDropdownOpen = !_isItemsDropdownOpen;
@@ -222,38 +256,24 @@ class _AddItemDialogState extends State<AddItemDialog> {
                   isOpen: _isItemsDropdownOpen,
                 ),
                 if (_isItemsDropdownOpen)
-                  _buildDropdownContent(child: _buildItemsList(isFetchingItems, dynamicItems)),
+                  AddItemDropdownContent(child: _buildItemsList(isFetchingItems, dynamicItems)),
                 SizedBox(height: 12.h),
-                _buildLabel("Quantity"),
-                Row(
-                  children: [
-                    _buildQuantityAction("-", () {
-                      if (_quantity > 1) {
-                        if (!mounted) return;
-                        setState(() {
-                          _quantity--;
-                        });
-                        _syncAmountController(); // Manually trigger sync on local state change
-                      }
-                    }),
-                    SizedBox(width: 12.w),
-                    Container(
-                      width: 48.w, height: 36.w,
-                      decoration: BoxDecoration(color: const Color(0xFF0064D7), borderRadius: BorderRadius.circular(4.r)),
-                      child: Center(child: Text(_quantity.toString(), style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white))),
-                    ),
-                    SizedBox(width: 12.w),
-                    _buildQuantityAction("+", () {
-                      if (!mounted) return;
-                      setState(() {
-                        _quantity++;
-                      });
-                      _syncAmountController(); // Manually trigger sync on local state change
-                    }),
-                  ],
+                const AddItemLabel(text: "Quantity"),
+                QuantityCounter(
+                  quantity: _quantity,
+                  onIncrement: () {
+                    setState(() => _quantity++);
+                    _syncAmountController();
+                  },
+                  onDecrement: () {
+                    if (_quantity > 1) {
+                      setState(() => _quantity--);
+                      _syncAmountController();
+                    }
+                  },
                 ),
                 SizedBox(height: 12.h),
-                _buildLabel("Amount"),
+                const AddItemLabel(text: "Amount"),
                 SizedBox(
                   width: 134.w,
                   height: 32.h,
@@ -270,34 +290,9 @@ class _AddItemDialogState extends State<AddItemDialog> {
                   ),
                 ),
                 SizedBox(height: 24.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 32.h,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _onAddItem,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      padding: EdgeInsets.symmetric(horizontal: 8.w),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                      elevation: 0,
-                      minimumSize: Size(283.w, 32.h),
-                      disabledBackgroundColor: AppColors.primaryBlue.withOpacity(0.6),
-                    ),
-                    child: _isLoading
-                        ? LoadingAnimationWidget.waveDots(
-                            color: Colors.white,
-                            size: 20.sp,
-                          )
-                        : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add, color: Colors.white, size: 20.sp),
-                        SizedBox(width: 8.w),
-                        Text("Add Items",
-                            style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.white, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
+                AddItemSubmitButton(
+                  isLoading: _isLoading,
+                  onPressed: _onAddItem,
                 ),
               ],
             ),
@@ -342,73 +337,30 @@ class _AddItemDialogState extends State<AddItemDialog> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.black)),
-    );
-  }
-
-  Widget _buildDropdownTrigger({required String text, required VoidCallback? onTap, required bool isOpen, double? width}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width ?? 134.w, // Use provided width or default
-        height: 32.h,
-        padding: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 1.w), borderRadius: BorderRadius.circular(8.r)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Expanded(child: Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.black54), overflow: TextOverflow.ellipsis)),
-            Icon(isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.black, size: 16.sp),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownContent({required Widget child}) {
-    return Container(
-      margin: EdgeInsets.only(top: 4.h),
-      constraints: BoxConstraints(maxHeight: 200.h),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black), borderRadius: BorderRadius.circular(8.r)),
-      child: child,
-    );
-  }
-
-  Widget _buildQuantityAction(String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 50.w,
-        height: 25.h,
-        decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(5.r)),
-        child: Center(child: Text(label, style: GoogleFonts.poppins(fontSize: 18.sp, color: Colors.black))),
-      ),
-    );
-  }
-
   void _onAddItem() async {
     if (_isLoading) return;
-    if (_selectedServiceIds.isEmpty || _selectedItem == null || (_amountController.text.isEmpty && _selectedServiceIds.isNotEmpty)) {
-      AppToast.showError(title: "Input Error", message: "Please select services, an item, and enter an amount.");
+    if (_selectedServiceIds.isEmpty || _selectedItem == null || _amountController.text.isEmpty) {
+      AppToast.showError(
+        title: "Input Error",
+        message: "Please select services, an item, and enter an amount.");
       return;
     }
 
-    final double? enteredAmount = double.tryParse(_amountController.text);
-    if (enteredAmount == null || enteredAmount <= 0) {
+    final serviceVM = context.read<ServiceViewModel>();
+    final orderVM = context.read<OrderViewModel>();
+    final availableServices = serviceVM.availableServices;
+    final serviceItemsMap = serviceVM.serviceItemsMap;
+
+    final double totalAmount = _calculateDerivedAmount(availableServices, serviceItemsMap);
+    if (totalAmount <= 0) {
       AppToast.showError(
         title: "Invalid Amount",
-        message: "Please enter a valid amount.",
+        message: "Unable to calculate amount for selected services and item.",
       );
       return;
     }
 
     setState(() => _isLoading = true);
-
-    final homeVM = context.read<HomeViewModel>();
-    final availableServices = homeVM.availableServices ?? [];
 
     try {
       final List<String> serviceNames = _selectedServiceIds.map((id) {
@@ -417,9 +369,17 @@ class _AddItemDialogState extends State<AddItemDialog> {
       }).toList();
 
       final String combinedName = "${serviceNames.join(", ")} - $_selectedItem";
-      final double unitPrice = enteredAmount / _quantity;
+      
+      if (_quantity <= 0) {
+        AppToast.showError(
+          title: "Input Error",
+          message: "Quantity must be at least 1",
+        );
+        return;
+      }
+      final double unitPrice = totalAmount / _quantity;
 
-      await homeVM.addItemToOrder(
+      await orderVM.addItemToOrder(
         widget.orderId,
         OrderItem(
           id: DateTime.now().millisecondsSinceEpoch.toString(),

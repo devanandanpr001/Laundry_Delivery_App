@@ -1,12 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart'; // Import for firstWhereOrNull
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 
 class GalleryScreen extends StatefulWidget {
   final String orderId;
@@ -22,12 +24,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
   final Set<int> _selectedIndices = {};
 
   void _deleteSelectedImages() {
-    final homeVM = context.read<HomeViewModel>();
+    final orderVM = context.read<OrderViewModel>();
     // Sort indices descending to avoid index shifting issues while deleting
     List<int> sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
     
     for (int index in sortedIndices) {
-      homeVM.removeOrderImage(widget.orderId, index);
+      orderVM.removeOrderImage(widget.orderId, index);
     }
     
     setState(() => _selectedIndices.clear());
@@ -46,9 +48,13 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   Widget build(BuildContext context) {
     // Optimized: Only listen to the pickedImages list for this specific order
-    final images = context.select<HomeViewModel, List<String>>(
-      (vm) => vm.orders.firstWhere((o) => o.orderId == widget.orderId).pickedImages
-    );
+    final orderVm = context.watch<OrderViewModel>();
+    final order = orderVm.orders.firstWhereOrNull((o) => o.orderId == widget.orderId);
+    if (order == null) {
+      return const Scaffold(body: Center(child: Text("Order not found."))); // Or a more elaborate error state
+    }
+    final images = order.pickedImages;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(

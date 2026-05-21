@@ -24,8 +24,8 @@ class CustomSmartRefresher extends StatelessWidget {
       animSpeedFactor: 1.3,
       showChildOpacityTransition: false,
       borderWidth: 3,
-      color: AppColors.primaryBlue,
-      backgroundColor: AppColors.white.withValues(alpha:0.2),
+      color: AppColors.primaryBlue, // Changed to primaryBlue
+      backgroundColor: AppColors.white.withValues(alpha: 0.2), // Changed to white with alpha
       child: child,
     );
   }

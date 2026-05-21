@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_order_card;
+import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/app_shimmer.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import '../../Home/viewmodel/home_viewmodel.dart';
 import '../../Home/data/model/home_models.dart';
 import '../widget/OrderCard.dart';
@@ -26,17 +29,27 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
   OrderType _selectedType = OrderType.pickup;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final homeVM = context.read<HomeViewModel>();
+      final orderVM = context.read<OrderViewModel>();
+      Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Using context.watch to rebuild when relevant VM data changes
     final homeVM = context.watch<HomeViewModel>();
+    final orderVM = context.watch<OrderViewModel>();
     final selectedFilter = homeVM.selectedFilter;
     final isOnline = homeVM.isOnline;
 
     // Get page info dynamically
-    final (title, subtitle) = _resolvePageInfo(homeVM, selectedFilter);
+    final (title, subtitle) = _resolvePageInfo(homeVM, orderVM, selectedFilter);
 
     // Compute filtered list efficiently
-    final filteredOrders = homeVM.orders.where((order) {
+    final filteredOrders = orderVM.orders.where((order) {
       final typeMatch = order.orderType == _selectedType;
       if (!typeMatch) return false;
 
@@ -112,8 +125,23 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
             // Efficient List Rendering
             Expanded(
               child: CustomSmartRefresher(
-                onRefresh: () => homeVM.refreshOrders(),
-                child: filteredOrders.isEmpty
+                onRefresh: () async {
+                  final connectivity = context.read<ConnectivityViewModel>();
+                  if (!await connectivity.refreshConnection()) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(AppText.UrOffline)),
+                    );
+                    return;
+                  }
+                  await Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
+                },
+                child: orderVM.isLoading
+                    ? ListView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                        itemCount: 6,
+                        itemBuilder: (context, index) => AppShimmer.orderCard(),
+                      )
+                    : filteredOrders.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
@@ -126,7 +154,7 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                         itemCount: filteredOrders.length,
                         itemBuilder: (context, index) {
                         final order = filteredOrders[index];
-                        return Padding(
+                        return Padding( // Use the local OrderCard
                           padding: EdgeInsets.only(bottom: 15.h),
                           child: home_order_card.OrderCard(
                             key: ValueKey("${order.orderId}_${order.orderType}"),
@@ -157,7 +185,12 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     final isActive = _selectedType == type;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedType = type),
+        onTap: () {
+          setState(() => _selectedType = type);
+          final homeVM = context.read<HomeViewModel>();
+          final orderVM = context.read<OrderViewModel>();
+          Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
+        },
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 10.h),
           decoration: BoxDecoration(
@@ -188,7 +221,11 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
         backgroundColor: isSelected ? AppColors.primaryBlue : AppColors.white,
         minimumSize: Size(width, 38.h),
       ),
-      onPressed: () => vm.setSelectedFilter(filterKey),
+      onPressed: () {
+        final orderVM = context.read<OrderViewModel>();
+        vm.setSelectedFilter(filterKey);
+        Future.wait([vm.refreshOrders(), orderVM.fetchAllOrders()]);
+      },
       child: Text(
         label,
         style: GoogleFonts.poppins(
@@ -209,7 +246,7 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 60.sp, color: AppColors.grey.withOpacity(0.4)),
+          Icon(Icons.inventory_2_outlined, size: 60.sp, color: AppColors.grey.withValues(alpha: 0.4)),
           SizedBox(height: 15.h),
           Text(
             message,
@@ -224,7 +261,7 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     );
   }
 
-  (String title, String subtitle) _resolvePageInfo(HomeViewModel vm, String filter) {
+  (String title, String subtitle) _resolvePageInfo(HomeViewModel vm, OrderViewModel orderVm, String filter) {
     switch (filter) {
       case "assigned":
         return (AppText.ActiveOrders, "${vm.assignedCount} ${AppText.ActiveTasks}");
@@ -232,14 +269,15 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
         return (AppText.CompletedOrders, "${vm.completedCount} ${AppText.Delivered}");
       default:
         // Filter header count by order type (Pickup/Delivery) for consistency with the list.
-        final count = vm.pendingOrders.where((o) => o.orderType == _selectedType).length;
+        final count = orderVm.pendingOrders.where((o) => o.orderType == _selectedType).length;
         final suffix = count == 1 ? AppText.OrderSingle : AppText.OrderPlural;
         return (AppText.NewOrders, "$count $suffix ${AppText.ReviewedConfirmed}");
     }
   }
 
   Future<void> _handleAcceptOrder(BuildContext context, HomeViewModel vm, OrderModel order, bool isOnline) async {
-    if (!isOnline) {
+    final connectivity = context.read<ConnectivityViewModel>();
+    if (!await connectivity.refreshConnection()) {
       final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(SnackBar(content: Text(AppText.UrOffline)));
       return;
@@ -249,8 +287,8 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     // to avoid the "deactivated widget's ancestor" error later.
     final navigator = Navigator.of(context, rootNavigator: true);
 
-    vm.updateOrderStatus(order.orderId, OrderStatus.assigned);
-    vm.setSelectedFilter("assigned");
+    await context.read<OrderViewModel>().acceptOrder(order.orderId, order.orderType);
+    context.read<HomeViewModel>().setSelectedFilter("assigned");
 
     showDialog(
       context: context,
@@ -277,206 +315,3 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     }
   }
  }
-//                 ),
-//                 SizedBox(height: 20.h,),
-//                 Expanded(
-//                   child: SingleChildScrollView(
-//                     child: Column(
-//                       children: [
-//                       // Type Toggle (Pickup / Delivery)
-//                       Container(
-//                         margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-//                         padding: EdgeInsets.all(4.w),
-//                         decoration: BoxDecoration(
-//                           color: AppColors.white,
-//                           borderRadius: BorderRadius.circular(12.r),
-//                           border: Border.all(color: AppColors.borderColorBlue),
-//                         ),
-//                         child: Row(
-//                           children: [
-//                             Expanded(
-//                               child: GestureDetector(
-//                                 onTap: () => setState(() => _selectedType = OrderType.pickup),
-//                                 child: Container(
-//                                   padding: EdgeInsets.symmetric(vertical: 8.h),
-//                                   decoration: BoxDecoration(
-//                                     color: _selectedType == OrderType.pickup ? AppColors.primaryBlue : Colors.transparent,
-//                                     borderRadius: BorderRadius.circular(8.r),
-//                                   ),
-//                                   child: Center(
-//                                     child: Text(AppText.PickUpOrders, style: GoogleFonts.poppins(color: _selectedType == OrderType.pickup ? Colors.white : AppColors.primaryBlue, fontWeight: FontWeight.w600)),
-//                                   ),
-//                                 ),
-//                               ),
-//                             ),
-//                             Expanded(
-//                               child: GestureDetector(
-//                                 onTap: () => setState(() => _selectedType = OrderType.delivery),
-//                                 child: Container(
-//                                   padding: EdgeInsets.symmetric(vertical: 8.h),
-//                                   decoration: BoxDecoration(
-//                                     color: _selectedType == OrderType.delivery ? AppColors.primaryBlue : Colors.transparent,
-//                                     borderRadius: BorderRadius.circular(8.r),
-//                                   ),
-//                                   child: Center(
-//                                     child: Text(AppText.DeliveryOrders, style: GoogleFonts.poppins(color: _selectedType == OrderType.delivery ? Colors.white : AppColors.primaryBlue, fontWeight: FontWeight.w600)),
-//                                   ),
-//                                 ),
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                       SizedBox(height: 10.h),
-//                         Row(
-//                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//                           children: [
-//                             ////all
-//                             ElevatedButton(
-//                               style: ElevatedButton.styleFrom(side: BorderSide(color: AppColors.primaryBlue),
-//                                 shape: RoundedRectangleBorder(borderRadius: BorderRadiusGeometry.circular(10.r)),
-//                                 backgroundColor: selectedFilter == 'all'
-//                                     ? AppColors.primaryBlue
-//                                     : AppColors.white,
-//                                 minimumSize: Size(51.w, 35.h),
-//                               ),
-//                               onPressed: () => homeVM.setSelectedFilter("all"),
-
-//                               child: Text(AppText.All,style: GoogleFonts.poppins(
-//                                 fontSize: 14.sp,fontWeight: FontWeight.w500,
-//                                 color: selectedFilter == 'all'
-//                                     ? AppColors.white
-//                                     : AppColors.primaryBlue,
-//                               ),),
-//                             ),
-//                             ////assigned
-//                             ElevatedButton(
-//                               style: ElevatedButton.styleFrom(side: BorderSide(color: AppColors.primaryBlue),
-//                                 shape: RoundedRectangleBorder(borderRadius: BorderRadiusGeometry.circular(10.r)),
-//                                 backgroundColor: selectedFilter == 'assigned'
-//                                     ? AppColors.primaryBlue
-//                                     : AppColors.white,
-//                                 minimumSize: Size(70.w, 35.h),
-//                               ),
-//                               onPressed: () => homeVM.setSelectedFilter("assigned"),
-
-//                               child: Text(AppText.Asignd,style: GoogleFonts.poppins(
-//                                 fontSize: 14.sp,fontWeight: FontWeight.w500,
-//                                 color: selectedFilter == 'assigned'
-//                                     ? AppColors.white
-//                                     : AppColors.primaryBlue,
-//                               ),),
-//                             ),
-//                             ////completed
-//                             ElevatedButton(
-//                               style: ElevatedButton.styleFrom(side: BorderSide(color: AppColors.primaryBlue),
-//                                 shape: RoundedRectangleBorder(borderRadius: BorderRadiusGeometry.circular(10.r)),
-//                                 backgroundColor: selectedFilter == 'completed'
-//                                     ? AppColors.primaryBlue
-//                                     : AppColors.white,
-//                                 minimumSize: Size(90.w, 35.h),
-//                               ),
-//                               onPressed: () => homeVM.setSelectedFilter("completed"),
-
-//                               child: Text(AppText.Cmpltd,style: GoogleFonts.poppins(
-//                                 fontSize: 14.sp,fontWeight: FontWeight.w500,
-//                                 color: selectedFilter == 'completed'
-//                                     ? AppColors.white
-//                                     : AppColors.primaryBlue,
-//                               ),),
-//                             ),
-//                           ],
-//                         ),
-//                         SizedBox(height: 20.h),
-
-//                         filteredOrders.isEmpty
-//                             ? Padding(
-//                           padding: EdgeInsets.only(top: 120.h),
-//                           child: Center(
-//                             child: Text(
-//                               selectedFilter == "assigned"
-//                                   ? AppText.NoAssgnd
-//                                   : selectedFilter == "completed"
-//                                   ? AppText.NoCmpltd
-//                                   : AppText.NoOrdersAvailable,
-//                               style: GoogleFonts.poppins(
-//                                 fontSize: 20.sp,
-//                                 fontWeight: FontWeight.w600,
-//                                 color: AppColors.grey,
-//                               ),
-//                             ),
-//                           ),
-//                         )
-//                             : ListView.builder(
-//                           physics: NeverScrollableScrollPhysics(),
-//                           shrinkWrap: true,
-//                           itemCount: filteredOrders.length,   // your order list
-//                           itemBuilder: (context, index) {
-//                             final order = filteredOrders[index];
-
-//                             return Padding(
-//                               padding: EdgeInsets.only(bottom: 15.h),
-//                               child: OrderCard(
-//                                 onAccept: () async {
-//                                   if (!isOnline) {
-//                                     ScaffoldMessenger.of(context).showSnackBar(
-//                                       SnackBar(content: Text(AppText.UrOffline)),
-//                                     );
-//                                     return;
-//                                   }
-                                  
-//                                   context.read<HomeViewModel>().updateOrderStatus(
-//                                     order.orderId,
-//                                     OrderStatus.assigned,
-//                                   );
-
-//                                   homeVM.setSelectedFilter("assigned");
-//                                   showDialog(
-//                                       context: context,
-//                                       barrierDismissible: false,
-//                                       builder: (_)=>Center(
-//                                           child: Column(
-//                                             mainAxisAlignment: MainAxisAlignment.center,
-//                                             children: [
-//                                               Image(
-//                                                 height: 200.h,
-//                                                 width: 200.w,
-//                                                 image: AssetImage(AppImages.successGif),
-//                                               ),
-//                                               Text(AppText.OrdrAssigned,style: GoogleFonts.poppins(
-//                                                   fontSize: 24.sp, fontWeight: FontWeight.w500,color: AppColors.green
-//                                               ),)
-//                                             ],
-//                                           )
-//                                       )
-//                                   );
-//                                   await Future.delayed(const Duration(seconds: 2));
-//                                   Navigator.of(context, rootNavigator: true).pop();
-//                                 },
-//                                 orderid: order.orderId,
-//                                 orderNumber: order.orderNumber,
-//                                 name: order.name,
-//                                 by: order.by,
-//                                 address: order.address,
-//                                 isPaid: order.isPaid,
-//                                 isDetailsPage: true,
-//                                 showOnlyItems: false,
-//                                 items: order.items,
-//                                 // Provider handles status and stage automatically via orderid
-//                               ),
-//                             );
-//                           },
-//                         ),
-
-//                       ],
-//                     ),
-//                   ),
-//                 )
-
-
-//               ],
-//             ),
-//           )),
-//     );
-//   }
-// }

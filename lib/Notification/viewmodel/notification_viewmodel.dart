@@ -10,15 +10,29 @@ class NotificationViewModel extends ChangeNotifier {
 
   List<NotificationModel> _notifications = [];
   bool _isLoading = false;
+  int _unreadCount = 0;
 
   List<NotificationModel> get notificationList => _notifications;
   bool get isLoading => _isLoading;
+  int get unreadCount => _unreadCount;
+  bool get hasUnread => _unreadCount > 0;
 
   Future<void> fetchNotifications() async {
     _isLoading = true;
     notifyListeners();
     try {
-      _notifications = await _repository.getNotifications();
+      final response = await _repository.getNotificationsResponse();
+      final rawNotifications = response['notifications'];
+      if (rawNotifications is List) {
+        _notifications = rawNotifications
+            .map((json) => NotificationModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      } else {
+        _notifications = [];
+      }
+      _unreadCount = response['unreadCount'] is int
+          ? response['unreadCount'] as int
+          : _notifications.where((item) => !item.isRead).length;
     } catch (e) {
       debugPrint("NotificationViewModel Error: $e");
     } finally {
@@ -37,6 +51,67 @@ class NotificationViewModel extends ChangeNotifier {
   void removeAt(int index) {
     _notifications.removeAt(index);
     notifyListeners();
+  }
+
+  /// Clear a notification at [index] by calling repository and removing on success.
+  Future<bool> clearNotificationAt(int index) async {
+    if (index < 0 || index >= _notifications.length) return false;
+    final id = _notifications[index].id;
+    final wasUnread = !_notifications[index].isRead;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final success = await _repository.clearNotification(id);
+      if (success) {
+        _notifications.removeAt(index);
+        if (wasUnread && _unreadCount > 0) {
+          _unreadCount -= 1;
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('clearNotificationAt error: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> markAsReadAt(int index) async {
+    if (index < 0 || index >= _notifications.length) return false;
+    final id = _notifications[index].id;
+    try {
+      final success = await _repository.markAsRead(id);
+      if (success && !_notifications[index].isRead) {
+        _notifications[index] = _notifications[index].copyWith(isRead: true);
+        if (_unreadCount > 0) {
+          _unreadCount -= 1;
+        }
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('markAsReadAt error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> undoClearAt(int index, {String? notificationIdOverride}) async {
+    final id = notificationIdOverride ?? (index >= 0 && index < _notifications.length ? _notifications[index].id : null);
+    if (id == null) return false;
+    try {
+      final success = await _repository.undoClear(id);
+      if (success) {
+        await fetchNotifications();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('undoClearAt error: $e');
+      return false;
+    }
   }
 
   void selectAll(bool selected) {

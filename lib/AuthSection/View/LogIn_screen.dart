@@ -181,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               if (verified == true && context.mounted) {
                                                 AppToast.showSuccess(
                                                   title: "Success",
-                                                  message: AppText.LoginSuccess,
+                                                  message: AppText.LoginSuccess, 
                                                 );
                                                 Navigator.pushAndRemoveUntil(
                                                   context,

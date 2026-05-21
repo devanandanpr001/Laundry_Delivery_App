@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import '../../Home/viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/service_repository.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/service_service.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
 
 import '../data/model/Bundle_Model.dart';
 
@@ -18,10 +20,11 @@ class BundleDialog extends StatefulWidget {
 }
 
 class _BundleDialogState extends State<BundleDialog> {
+  // Import ServiceViewModel
+  final ServiceViewModel _serviceViewModel = ServiceViewModel(ServiceRepository(ServiceService()));
   final TextEditingController _weightController = TextEditingController();
   double _unitPrice = 0.0;
   double _totalAmount = 0.0;
-
   List<String> selectedServices = [];
   bool showDropdown = false;
 
@@ -30,23 +33,23 @@ class _BundleDialogState extends State<BundleDialog> {
     super.initState();
     // Efficiently trigger fetching services from the VM if not already loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final homeVM = Provider.of<HomeViewModel>(context, listen: false);
-      if (homeVM.services.isEmpty) {
-        homeVM.fetchServices(widget.orderId);
+      final serviceViewModel = Provider.of<ServiceViewModel>(context, listen: false);
+      if (serviceViewModel.services.isEmpty) {
+        serviceViewModel.fetchAvailableServices(orderId: widget.orderId);
       }
     });
     _weightController.addListener(_updateTotal);
   }
 
   void _updateTotal() {
-    final homeVM = Provider.of<HomeViewModel>(context, listen: false);
+    final serviceViewModel = Provider.of<ServiceViewModel>(context, listen: false);
     final weightStr = _weightController.text.trim().replaceAll(',', '.');
     final weight = double.tryParse(weightStr) ?? 0.0;
     
-    double priceSum = 0.0;
+    double priceSum = 0.0; // Initialize priceSum
 
-    for (var serviceName in selectedServices) {
-      final serviceData = homeVM.availableServices.firstWhere(
+    for (var serviceName in selectedServices) { // Iterate through selected services
+      final serviceData = serviceViewModel.availableServices.firstWhere(
         (s) => s['name'] == serviceName,
         orElse: () => <String, dynamic>{},
       );
@@ -85,9 +88,9 @@ class _BundleDialogState extends State<BundleDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch the HomeViewModel for service updates
-    final homeVM = context.watch<HomeViewModel>();
-    final services = homeVM.services;
+    // Watch the ServiceViewModel for service updates
+    final serviceViewModel = context.watch<ServiceViewModel>();
+    final services = serviceViewModel.services;
 
     return Dialog(
       backgroundColor: AppColors.white,
@@ -186,7 +189,7 @@ class _BundleDialogState extends State<BundleDialog> {
                           ),
                           child: Row(
                             children: [
-                              if (homeVM.isFetchingServices)
+                              if (serviceViewModel.isLoading)
                                 SizedBox(
                                   width: 16.w, height: 16.h,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),

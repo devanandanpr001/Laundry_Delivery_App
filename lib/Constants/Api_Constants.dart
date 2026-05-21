@@ -55,5 +55,9 @@ class ApiConstants {
   static const String  deliveryverifyotp = '/delivery-session/session/delivery/verify-delivery-otp/:orderId';
   static const String  changePassword = '/delivery/auth/change-password';
   static const String  cmsPage = '/delivery-session/cms/page/:type/';
+  static const String  notification = '/delivery-session/session/notification';
+  static const String  notificationRead = '/delivery-session/session/read';
+  static const String  notificationClear = '/delivery-session/session/clear';
+  static const String  notificationUndo = '/delivery-session/session/undo';
 
 }

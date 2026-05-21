@@ -36,6 +36,13 @@ class ProfileViewModel extends ChangeNotifier {
     await fetchProfileData(); // Fetch initial profile data when ViewModel is created
   }
 
+  /// Clears all cached data when session expires
+  void clearAllCachedData() {
+    _userProfile = null;
+    _selectedImage = null;
+    notifyListeners();
+  }
+
   void setPickedImage(File image) {
     _selectedImage = image;
     notifyListeners();
@@ -48,7 +55,9 @@ class ProfileViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _userProfile = await _repository.getProfile(); // Call repository method
+      _errorMessage = null;
     } catch (e) {
+      // This will now capture "Server error" from your backend response
       _errorMessage = e.toString();
       debugPrint("ProfileViewModel: Error fetching profile data: $_errorMessage");
     } finally {

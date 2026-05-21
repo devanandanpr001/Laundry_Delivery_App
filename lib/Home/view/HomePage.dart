@@ -11,11 +11,13 @@ import 'package:ziya_laundry_deliveryapp/Home/widgets/profile_avatar.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/status_count_card.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/welcome_section.dart';
 import 'package:ziya_laundry_deliveryapp/Home/widgets/order_type_toggle.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_order_card;
 import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/app_shimmer.dart';
+import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import '../../AuthSection/viewmodel/login_viewmodel.dart';
 import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
-import '../../core/dio_client.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../data/model/home_models.dart';
 
@@ -29,66 +31,26 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   OrderType _selectedOrderType = OrderType.pickup; // Default to pickup
-  bool _isSessionDialogShowing = false;
   bool _isAcceptingOrder = false; // Guard for accept button
 
   @override
   void initState() {
     super.initState();
-    // Trigger initial data fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HomeViewModel>().refreshOrders();
+      final homeVM = context.read<HomeViewModel>();
+      final orderVM = context.read<OrderViewModel>();
+      Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
     });
-  }
-
-  void _showSessionExpiredOverlay(HomeViewModel vm) {
-    if (_isSessionDialogShowing) return;
-    _isSessionDialogShowing = true;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
-        title: Text("Session Expired",
-            style: GoogleFonts.roboto(fontWeight: FontWeight.bold)),
-        content: Text("Your session has expired. Please login again to continue.",
-            style: GoogleFonts.roboto()),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              vm.resetSessionExpired();
-              _isSessionDialogShowing = false;
-
-              // Clear login fields so they are empty when the user lands on the login page
-              context.read<LoginViewModel>().clearFields();
-
-              DioClient.navigatorKey.currentState
-                  ?.pushNamedAndRemoveUntil('/login', (route) => false);
-            },
-            child: Text("Login Again",
-                style: GoogleFonts.roboto(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final homeVM = context.watch<HomeViewModel>();
-
-    // Session Expiry Listener
-    if (homeVM.isSessionExpired) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showSessionExpiredOverlay(homeVM);
-      });
-    }
+    final orderVM = context.watch<OrderViewModel>();
 
     // Display all active (unassigned) orders for the selected type.
     // This ensures statuses like 'OUT_FOR_DELIVERY' are visible in the dashboard.
-    final newOrders = homeVM.orders
+    final newOrders = orderVM.orders
         .where((order) => 
             order.orderType == _selectedOrderType && 
             order.status == OrderStatus.pending)
@@ -115,7 +77,18 @@ class _HomepageState extends State<Homepage> {
               SizedBox(height: 20.h),
               Expanded(
                 child: CustomSmartRefresher(
-                  onRefresh: () => homeVM.refreshOrders(),
+                  onRefresh: () async {
+                    final connectivity = context.read<ConnectivityViewModel>();
+                    if (!await connectivity.refreshConnection()) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(AppText.UrOffline)),
+                        );
+                      }
+                      return;
+                    }
+                    await Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
+                  },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
@@ -156,17 +129,21 @@ class _HomepageState extends State<Homepage> {
                       OrderTypeToggle(
                         onToggle: (index) { // 0: Pick Up, 1: Delivery
                           setState(() => _selectedOrderType = index == 0 ? OrderType.pickup : OrderType.delivery);
-                          homeVM.refreshOrders(); // Refresh orders to get the latest for the selected type
+                          Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
                         },
                       ),
                       // const TodaysEarningsCard(amount: "\$473"),
-                      SizedBox(height: 20.h),
-                      newOrders.isEmpty 
-                      ? Padding(
+                      // Show shimmer while loading
+                      if (homeVM.isLoading || orderVM.isLoading)
+                        Column(
+                          children: List.generate(4, (index) => AppShimmer.orderCard()),
+                        )
+                      else if (newOrders.isEmpty) 
+                        Padding(
                           padding: EdgeInsets.symmetric(vertical: 40.h),
                           child: Column(
                             children: [
-                              Icon(Icons.assignment_late_outlined, size: 60.sp, color: AppColors.grey.withOpacity(0.5)),
+                              Icon(Icons.assignment_late_outlined, size: 60.sp, color: AppColors.grey.withValues(alpha: 0.5)),
                               SizedBox(height: 10.h),
                               Text(
                                 "No ${_selectedOrderType == OrderType.pickup ? 'Pickup' : 'Delivery'} orders available",
@@ -175,88 +152,84 @@ class _HomepageState extends State<Homepage> {
                             ],
                           ),
                         )
-                      : ListView.builder(
-                        physics: NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: newOrders.length,
-                        itemBuilder: (context, index) {
-                          final order = newOrders[index];
+                      else
+                        Column(
+                          children: newOrders.map((order) {
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 12.h),
+                              child: home_order_card.OrderCard(
+                                key: ValueKey("${order.orderId}_${order.orderType}"),
+                                orderid: order.orderId,
+                                orderNumber: order.orderNumber,
+                                name: order.name,
+                                by: order.by,
+                                orderType: order.orderType,
+                                address: order.address,
+                                isPaid: order.isPaid,
+                                isDetailsPage: false,
+                                showOnlyItems: false,
+                                items: order.items,
+                                deliveryStage: order.deliveryStage,
+                                onViewTap: widget.onGoToOrders,
+                                status: order.status,
+                                selectedFilter: 'all',
+                                onAccept: () async {
+                                  if (_isAcceptingOrder) return;
+                                  final connectivity = context.read<ConnectivityViewModel>();
+                                  if (!await connectivity.refreshConnection() && mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(AppText.UrOffline)),
+                                    );
+                                    return;
+                                  }
 
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 12.h),
-                            child: home_order_card.OrderCard(
-                              key: ValueKey("${order.orderId}_${order.orderType}"),
-                              orderid: order.orderId,
-                              orderNumber: order.orderNumber,
-                              name: order.name,
-                              by: order.by,
-                              orderType: order.orderType,
-                              address: order.address,
-                              isPaid: order.isPaid,
-                              isDetailsPage: false,
-                              showOnlyItems: false,
-                              items: order.items,
-                              deliveryStage: order.deliveryStage,
-                              onViewTap: widget.onGoToOrders,
-                              status: order.status,
-                              selectedFilter: 'all',
-                              onAccept: () async {
-                                if (_isAcceptingOrder) return;
-                                if (!homeVM.isOnline && mounted) {
-                                  AppToast.showError(
-                                    title: "Offline",
-                                    message: AppText.UrOffline,
+                                  setState(() => _isAcceptingOrder = true);
+                                  
+                                  final orderVM = context.read<OrderViewModel>();
+                                  final success = await orderVM.acceptOrder(
+                                    order.orderId,
+                                    order.orderType,
                                   );
-                                  return;
-                                }
-
-                                setState(() => _isAcceptingOrder = true);
-                                await homeVM.updateOrderStatus(
-                                  order.orderId,
-                                  OrderStatus.assigned,
-                                );
-                                homeVM.setSelectedFilter("assigned");
-                                if (!mounted) return;
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (_) => Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Image(
-                                          width: 200.w,
-                                          height: 200.h,
-                                          image: AssetImage(
-                                            AppImages.successGif,
-                                          ),
+                                  
+                                  if (success && mounted) {
+                                    homeVM.setSelectedFilter("assigned");
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (_) => Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Image(
+                                              width: 200.w,
+                                              height: 200.h,
+                                              image: AssetImage(AppImages.successGif),
+                                            ),
+                                            Text(
+                                              AppText.OrdrAssigned,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 24.sp,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppColors.green,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Text(
-                                          AppText.OrdrAssigned,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 24.sp,
-                                            fontWeight: FontWeight.w500,
-                                            color: AppColors.green,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                                await Future.delayed(const Duration(seconds: 2));
-                                if (!mounted) return;
-                                Navigator.of(
-                                  context,
-                                  rootNavigator: true,
-                                ).pop();
-                                setState(() => _isAcceptingOrder = false);
-                                widget.onGoToOrders();
-                              },
-                            ),
-                          );
-                        },
-                      ),
+                                      ),
+                                    );
+                                    await Future.delayed(const Duration(seconds: 2));
+                                    if (!mounted) return;
+                                    Navigator.of(context, rootNavigator: true).pop();
+                                    setState(() => _isAcceptingOrder = false);
+                                    widget.onGoToOrders();
+                                  } else if (mounted) {
+                                    setState(() => _isAcceptingOrder = false);
+                                  }
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
                     ],
                   ),
                 ),

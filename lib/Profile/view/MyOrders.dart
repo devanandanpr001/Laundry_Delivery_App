@@ -6,12 +6,27 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/app_shimmer.dart';
 
 import '../../Orders/data/model/order_model.dart';
 
-  class MyOrdersScreen extends StatelessWidget {
+  class MyOrdersScreen extends StatefulWidget {
     const MyOrdersScreen({super.key});
+
+    @override
+    State<MyOrdersScreen> createState() => _MyOrdersScreenState();
+  }
+
+  class _MyOrdersScreenState extends State<MyOrdersScreen> {
+    @override
+    void initState() {
+      super.initState();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<OrderViewModel>().fetchAllOrders();
+      });
+    }
 
     String _formatOrderDate(DateTime? date) {
       if (date == null) return "N/A";
@@ -87,14 +102,21 @@ import '../../Orders/data/model/order_model.dart';
                 
                 Expanded(
                   child: CustomSmartRefresher(
-                    onRefresh: () => orderVM.fetchOrders(),
+                    onRefresh: () async {
+                      final connectivity = context.read<ConnectivityViewModel>();
+                      if (!await connectivity.refreshConnection()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(AppText.UrOffline)),
+                        );
+                        return;
+                      }
+                      await orderVM.fetchAllOrders();
+                    },
                     child: orderVM.isLoading
-                        ? ListView(
+                        ? ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              SizedBox(height: 180.h),
-                              const Center(child: CircularProgressIndicator()),
-                            ],
+                            itemCount: 6,
+                            itemBuilder: (context, index) => AppShimmer.orderCard(),
                           )
                         : orders.isEmpty
                             ? ListView(

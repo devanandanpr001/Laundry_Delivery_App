@@ -16,10 +16,9 @@ class BottomNavigationPage extends StatefulWidget {
 }
 
 class _BottomNavigationPageState extends State<BottomNavigationPage> {
+  int _currentIndex = 0;
 
-  late int _currentIndex=0;
-
-
+  late final List<Widget> _pages;
 
   final List<String> _icons = [
     AppImages.navHome,
@@ -34,11 +33,12 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final List<Widget> _pages =  [
+  void initState() {
+    super.initState();
+    _pages = [
       Homepage(
-        onGoToOrders: (){
-          setState((){
+        onGoToOrders: () {
+          setState(() {
             _currentIndex = 1;
           });
         },
@@ -58,9 +58,16 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         },
       ),
     ];
-    return  Scaffold(
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
       backgroundColor: AppColors.white,
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: Container(
         height: 68.w,
         padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),

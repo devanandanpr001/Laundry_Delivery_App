@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:ziya_laundry_deliveryapp/core/network_exceptions.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -13,7 +14,11 @@ class ApiException implements Exception {
     String message;
     switch (dioError.type) {
       case DioExceptionType.cancel:
-        message = "Request to API server was cancelled.";
+        if (dioError.error is NoInternetException) {
+          message = (dioError.error as NoInternetException).message;
+        } else {
+          message = "Request to API server was cancelled.";
+        }
         break;
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -27,7 +32,11 @@ class ApiException implements Exception {
         );
         break;
       case DioExceptionType.connectionError:
-        message = "Connection error. Please check your internet connection.";
+        if (dioError.error is NoInternetException) {
+          message = (dioError.error as NoInternetException).message;
+        } else {
+          message = "Connection error. Please check your internet connection.";
+        }
         break;
       default:
         message = "An unexpected error occurred. Please try again.";
@@ -60,7 +69,10 @@ class ApiException implements Exception {
       case 429:
         return getMessage();
       case 500:
-        return 'Internal server error. Please try again later.';
+        final serverMessage = getMessage();
+        return serverMessage != "An unknown error occurred." 
+            ? serverMessage 
+            : 'Internal server error. Please try again later.';
       default:
         return 'Oops, something went wrong.';
     }

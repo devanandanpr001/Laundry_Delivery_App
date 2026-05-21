@@ -1,6 +1,6 @@
 import 'package:ziya_laundry_deliveryapp/Orders/data/model/Bundle_Model.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/DeliveryStage.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/DeliveryStage.dart'; // Keep this import for now, but consider moving DeliveryStage enum
 
 class OrderModel {
   final String orderId;
@@ -144,7 +144,7 @@ class OrderModel {
       by: byValue,
       address: fullAddress,
       isPaid: (json['paymentStatus'] ?? details?['paymentStatus']) == 'SUCCESS',
-      status: forceCompleted ? OrderStatus.completed : (forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status'] ?? details?['status'])), 
+      status: forceCompleted ? OrderStatus.completed : (forceAssigned ? OrderStatus.assigned : parseOrderStatus(json['status'] ?? details?['status'], finalType)), 
       orderType: finalType, 
       deliveryStage: finalType == OrderType.pickup ? DeliveryStage.startPickup : DeliveryStage.startDelivery, 
       pickedImages: (rawImages ?? []).map<String>((e) {
@@ -378,21 +378,27 @@ enum OrderStatus {
 
 enum OrderType { pickup, delivery }
 
-OrderStatus parseOrderStatus(dynamic status) {
+OrderStatus parseOrderStatus(dynamic status, OrderType type) {
   if (status is OrderStatus) return status;
-  switch (status?.toString().toUpperCase()) {
+  final String s = status?.toString().toUpperCase() ?? "";
+  switch (s) {
     case "ASSIGNED":
     case "WASHING":
     case "DRYING":
     case "IRONING":
     case "PICKUP_CONFIRMED":
-    case "COMPLETED": // Pickups marked as completed but not yet terminal (delivered)
       return OrderStatus.assigned;
+    case "COMPLETED":
+      // Once a pickup or laundry phase is COMPLETED, the task is terminal for the pickup driver.
+      return OrderStatus.completed;
     case "DELIVERED":
       return OrderStatus.completed;
-    case "SCHEDULED": // New status for pending pickup orders
-    case "PICKUP": // Orders with status "PICKUP" are pending acceptance
-    case "OUT_FOR_DELIVERY": // Delivery orders ready for acceptance
+    case "OUT_FOR_DELIVERY":
+      // If we are looking at this through the lens of a Pickup, the task is completed.
+      // If we are looking at this as a Delivery, it is a new task waiting to be accepted.
+      return type == OrderType.pickup ? OrderStatus.completed : OrderStatus.pending;
+    case "SCHEDULED":
+    case "PICKUP":
       return OrderStatus.pending;
     default:
       return OrderStatus.pending;

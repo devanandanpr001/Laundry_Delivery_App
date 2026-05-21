@@ -1,10 +1,17 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
+import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/api_exception.dart';
+import 'package:ziya_laundry_deliveryapp/core/connectivity_service.dart';
+import 'package:ziya_laundry_deliveryapp/core/network_exceptions.dart';
 import 'package:ziya_laundry_deliveryapp/core/token_service.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/session_expired_dialog.dart';
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart'; // Import for GlobalKey and AlertDialog
-
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
@@ -14,7 +21,7 @@ class DioClient {
   bool _isRefreshing = false;
   bool _sessionExpiredTriggered = false;
   final List<Completer<void>> _refreshQueue = [];
-
+  
   static void Function()? onSessionExpired;
 
   Dio get dio => _dio;
@@ -49,12 +56,36 @@ class DioClient {
     _clearQueue(error: "Session Expired");
     _isRefreshing = false; // Reset refresh flag
 
-    // Notify ViewModel/UI layer
+    // Professional: Handle global session expired UI via navigatorKey
+    // This ensures the dialog appears regardless of which screen the user is currently viewing.
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => SessionExpiredDialog(
+          expirationTime: const Duration(seconds: 5),
+          onLoginAgain: () {
+            // Clear UI states and navigate to login
+            try {
+              // Notify all relevant ViewModels to clear their data
+              context.read<OrderViewModel>().clearAllCachedData();
+              context.read<ServiceViewModel>().clearAllCachedData();
+              context.read<HomeViewModel>().resetSessionExpired();
+              context.read<LoginViewModel>().clearFields();
+            } catch (e) {
+              debugPrint("DioClient: Error clearing viewmodel state: $e");
+            }
+            
+            navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+          },
+        ),
+      );
+    }
+
+    // Notify ViewModels to clear local cached data
     onSessionExpired?.call();
 
-    // No longer need to check context here for navigation because 
-    // HomePage is listening to homeVM.isSessionExpired, 
-    // but we reset the trigger for future logins.
     _sessionExpiredTriggered = false; 
     debugPrint("DioClient: Session expired triggered.");
   }
@@ -74,6 +105,16 @@ class DioClient {
   Interceptor _createInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) async {
+        if (!await ConnectivityService.instance.checkConnection()) {
+          return handler.reject(
+            DioException(
+              requestOptions: options,
+              error: NoInternetException(),
+              type: DioExceptionType.connectionError,
+            ),
+          );
+        }
+
         final authPaths = [
           ApiConstants.login,
           ApiConstants.forgotPassword,
