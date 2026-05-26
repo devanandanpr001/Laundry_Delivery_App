@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_repository.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/data/repository/service_repository.dart';
 
 class ServiceViewModel extends ChangeNotifier {
   final ServiceRepository _repository;

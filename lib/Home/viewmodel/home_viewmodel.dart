@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_repository.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/data/repository/service_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/profile_repository.dart';
 import '../../Constants/Api_Constants.dart';
@@ -18,6 +18,8 @@ class HomeViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSessionExpired = false;
   String _selectedFilter = "all";
+  int _selectedIndex = 0; // For BottomNavigationBar index
+  String? _scrollToOrderId; // For scrolling to a specific order
   int _assignedCount = 0;
   int _completedCount = 0;
   String _userName = "";
@@ -29,6 +31,8 @@ class HomeViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSessionExpired => _isSessionExpired;
   String get selectedFilter => _selectedFilter;
+  int get selectedIndex => _selectedIndex;
+  String? get scrollToOrderId => _scrollToOrderId;
   String? get errorMessage => _errorMessage;
   int get assignedCount => _assignedCount;
   int get completedCount => _completedCount;
@@ -122,6 +126,22 @@ class HomeViewModel extends ChangeNotifier {
   void setSelectedFilter(String filter) {
     _selectedFilter = filter;
     notifyListeners();
+  }
+
+  void setSelectedIndex(int index) {
+    if (_selectedIndex != index) {
+      _selectedIndex = index;
+      notifyListeners();
+    }
+  }
+
+  void setScrollToOrderId(String? orderId) {
+    _scrollToOrderId = orderId;
+    notifyListeners();
+  }
+
+  void clearScrollTarget() {
+    _scrollToOrderId = null;
   }
 
   Future<void> toggleOnlineStatus() async {

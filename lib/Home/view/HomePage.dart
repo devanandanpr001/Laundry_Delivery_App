@@ -166,7 +166,12 @@ class _HomepageState extends State<Homepage> {
                                 isPaid: order.isPaid,
                                 isDetailsPage: false,
                                 items: order.items,
-                                onViewTap: widget.onGoToOrders,
+                                onViewTap: () {
+                                  // Set navigation index and scroll target
+                                  homeVM.setSelectedIndex(1);
+                                  homeVM.setScrollToOrderId(order.orderId);
+                                  widget.onGoToOrders();
+                                },
                                 onAccept: () async {
                                   if (_isAcceptingOrder) return;
                                   final connectivity = context.read<ConnectivityViewModel>();

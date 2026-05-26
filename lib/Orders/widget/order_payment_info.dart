@@ -3,9 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/custom_widgets.dart';
 
 class OrderPaymentInfo extends StatelessWidget {
   final OrderModel order;

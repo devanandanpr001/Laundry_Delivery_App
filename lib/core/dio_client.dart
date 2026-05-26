@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/api_exception.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/network_exceptions.dart';

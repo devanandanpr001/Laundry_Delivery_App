@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart'; // Assuming OrderItem is defined here
 import 'package:loading_animation_widget/loading_animation_widget.dart';

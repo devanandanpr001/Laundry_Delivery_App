@@ -12,7 +12,6 @@ import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/data/model/order_model.dart';
 import '../../Home/viewmodel/home_viewmodel.dart';
-import '../widget/OrderCard.dart';
 
 class OrderlistScreen extends StatefulWidget {
   final String initialFilter;

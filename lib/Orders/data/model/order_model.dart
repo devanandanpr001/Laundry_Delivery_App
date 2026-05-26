@@ -206,7 +206,10 @@ class OrderModel {
       isVerified: json['isVerified'] ?? details?['isVerified'] ?? false,
       isMismatch: json['isMismatch'] ?? details?['isMismatch'] ?? false,
       paymentMethod: (json['paymentMethod'] ?? details?['paymentMethod'])?.toString() ?? '',
-      mismatchReason: json['mismatchReason']?.toString() ?? details?['mismatchReason']?.toString(),
+      mismatchReason: json['mismatchReason']?.toString() ?? 
+                      json['mismatch_reason']?.toString() ?? 
+                      details?['mismatchReason']?.toString() ?? 
+                      details?['mismatch_reason']?.toString(),
       pickupUserId: json['pickupUserId']?.toString(),
       deliveryUserId: json['deliveryUserId']?.toString(),
       roleType: json['roleType']?.toString(),

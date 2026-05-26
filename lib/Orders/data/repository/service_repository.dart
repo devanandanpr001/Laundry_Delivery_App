@@ -1,4 +1,4 @@
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_service.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/data/service/service_service.dart';
 
 class ServiceRepository {
   final ServiceService _service;

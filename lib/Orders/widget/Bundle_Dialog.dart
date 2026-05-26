@@ -6,7 +6,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 // service_repository and service_service are not required here; use provider to access VM
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
 
 import '../data/model/Bundle_Model.dart';
 
