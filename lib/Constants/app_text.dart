@@ -163,7 +163,9 @@ class AppText {
   static const String UploadedImages = 'Uploaded images';
   static const String SeeMore = 'See More';
   static const String BtnStartPickup = 'Start to Pick up';
-  static const String BtnUpload = 'Upload from gallery';
+  static const String CameraCaptureTitle = 'Capture photos';
+  static const String BtnCapturePhoto = 'Capture photo';
+  static const String BtnUpload = 'Upload';
   static const String BtnOrderPicked = 'Order Picked';
   static const String BtnStartDeliver = 'Start to Deliver';
   static const String BtnView = 'view';

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -35,14 +34,65 @@ class _GalleryScreenState extends State<GalleryScreen> {
     setState(() => _selectedIndices.clear());
   }
 
-  ImageProvider _getImageProvider(String path) {
-    if (path.startsWith('http')) {
-      return NetworkImage(path);
-    } else if (path.startsWith('assets/')) {
-      return AssetImage(path);
-    } else {
-      return FileImage(File(path));
+  bool _isLocalFileValid(String path) {
+    final localPath = path.trim();
+    return localPath.isNotEmpty && File(localPath).existsSync();
+  }
+
+  Widget _buildGalleryImage(String path) {
+    final trimmedPath = path.trim();
+    if (trimmedPath.isEmpty) {
+      return _buildPlaceholderTile();
     }
+
+    if (trimmedPath.startsWith('http')) {
+      return Image.network(
+        trimmedPath,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: AppColors.lightBackground,
+            child: Center(
+              child: CircularProgressIndicator(
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1)
+                    : null,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholderTile(),
+      );
+    }
+
+    if (trimmedPath.startsWith('assets/')) {
+      return Image.asset(
+        trimmedPath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholderTile(),
+      );
+    }
+
+    if (_isLocalFileValid(trimmedPath)) {
+      return Image.file(
+        File(trimmedPath),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholderTile(),
+      );
+    }
+
+    return _buildPlaceholderTile();
+  }
+
+  Widget _buildPlaceholderTile() {
+    return Container(
+      color: AppColors.lightBackground,
+      child: Center(
+        child: Icon(Icons.photo, size: 32.sp, color: AppColors.grey),
+      ),
+    );
   }
 
   @override
@@ -125,15 +175,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     child: Stack(
                       children: [
                         /// MAIN IMAGE
-                        Container(
-                          width: 116.75.w,
-                          height: 151.13.h,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.r),
-                            image: DecorationImage(
-                              image: _getImageProvider(images[index]),
-                              fit: BoxFit.cover,
-                            ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: SizedBox(
+                            width: 116.75.w,
+                            height: 151.13.h,
+                            child: _buildGalleryImage(images[index]),
                           ),
                         ),
                         /// SELECTION BOX (TOP RIGHT)

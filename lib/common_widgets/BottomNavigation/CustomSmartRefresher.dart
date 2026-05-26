@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:s_liquid_pull_to_refresh/s_liquid_pull_to_refresh.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
 class CustomSmartRefresher extends StatelessWidget {
@@ -18,14 +17,15 @@ class CustomSmartRefresher extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!enablePullDown) return child;
 
-    return SLiquidPullToRefresh(
+    return RefreshIndicator(
       onRefresh: onRefresh,
-      height: 150,
-      animSpeedFactor: 1.3,
-      showChildOpacityTransition: false,
-      borderWidth: 3,
-      color: AppColors.primaryBlue, // Changed to primaryBlue
-      backgroundColor: AppColors.white.withValues(alpha: 0.2), // Changed to white with alpha
+      edgeOffset: 8.0,
+      displacement: 120.0,
+      color: AppColors.primaryBlue,
+      backgroundColor: AppColors.white,
+      notificationPredicate: (ScrollNotification notification) {
+        return notification.depth == 0;
+      },
       child: child,
     );
   }

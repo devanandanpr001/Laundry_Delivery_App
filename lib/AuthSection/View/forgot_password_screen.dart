@@ -121,6 +121,7 @@ class ForgotPassword extends StatelessWidget {
                                   final verified = await Navigator.push<bool>(
                                     context,
                                     MaterialPageRoute(
+                                      settings: const RouteSettings(name: '/verification'),
                                       builder: (context) => VerificationScreen(
                                         title: AppText.VrfTitle,
                                         subtitle: AppText.VrfSubtitle,
@@ -134,6 +135,7 @@ class ForgotPassword extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
+                                        settings: const RouteSettings(name: '/new-password'),
                                         builder: (context) => NewPasswordScreen(
                                           phone: provider.mobileController.text,
                                         ),

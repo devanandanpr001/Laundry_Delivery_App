@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
@@ -28,10 +29,15 @@ import '../../Orders/data/model/order_model.dart';
       });
     }
 
-    String _formatOrderDate(DateTime? date) {
-      if (date == null) return "N/A";
+    String _formatOrderDate(OrderModel order) {
+      DateTime? date = order.updatedAt;
       
+      // Fallback to createdAt if updatedAt is null
+      if (date == null && order.createdAt != null) {
+        date = DateTime.tryParse(order.createdAt!);
+      }
 
+      if (date == null) return "N/A";
 
       final localDate = date.toLocal();
       final now = DateTime.now();
@@ -44,21 +50,30 @@ import '../../Orders/data/model/order_model.dart';
       } else if (dateToCheck == yesterday) {
         return "Yesterday";
       } else {
-        const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
-        return "${localDate.day} ${months[localDate.month - 1]} ${localDate.year}";
+        return DateFormat('dd MMM yyyy').format(localDate);
       }
     }
 
     @override
     Widget build(BuildContext context) {
       final orderVM = context.watch<OrderViewModel>();
-      
-      // Filter to only display orders with a completed/delivered status
-      final orders = orderVM.orders.where((o) => o.status == OrderStatus.completed).toList();
-      
+
+      // Filter completed orders and ensure each Order ID is unique in the list.
+      // If a driver handles both Pickup and Delivery for the same order, we merge them into one card.
+      final Map<String, OrderModel> uniqueOrdersMap = {};
+      for (var o in orderVM.orders) {
+        if (o.status == OrderStatus.completed) {
+          // If we find a duplicate orderId, prioritize the one with 'PICKUP_AND_DELIVERY' roleType.
+          if (!uniqueOrdersMap.containsKey(o.orderId) || o.roleType == "PICKUP_AND_DELIVERY") {
+            uniqueOrdersMap[o.orderId] = o;
+          }
+        }
+      }
+
+      final orders = uniqueOrdersMap.values.toList();
+      // Sort by updated time descending to show newest activity at the top
+      orders.sort((a, b) => (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
+
       return Scaffold(
         backgroundColor: AppColors.bg,
         body: SafeArea(
@@ -146,7 +161,8 @@ import '../../Orders/data/model/order_model.dart';
                                     status: order.status == OrderStatus.completed
                                         ? "delivered"
                                         : "out",
-                                    time: _formatOrderDate(order.updatedAt),
+                                    time: _formatOrderDate(order),
+                                    roleType: order.roleType ?? "DELIVERY",
                                     address: order.address,
                                   );
                                 },
@@ -184,12 +200,14 @@ import '../../Orders/data/model/order_model.dart';
     final String status;
     final String time;
     final String orderId;
+    final String roleType;
     final String address;
 
     const MyOrderCard({
       super.key,
       required this.status,
       required this.time,
+      required this.roleType,
       required this.orderId,
       required this.address,
     });
@@ -289,20 +307,59 @@ import '../../Orders/data/model/order_model.dart';
             Positioned(
               right: 0,
               top: 0,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.timeBadgeBlue,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  time,
-                  style: TextStyle(fontSize: 12.sp),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.timeBadgeBlue,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(12.r),
+                        bottomLeft: Radius.circular(8.r),
+                      ),
+                    ),
+                    child: Text(
+                      time,
+                      style: GoogleFonts.poppins(fontSize: 11.sp, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Padding(
+                    padding: EdgeInsets.only(right: 8.w),
+                    child: _buildRoleBadge(roleType),
+                  ),
+                ],
               ),
             ),
           ],
+        ),
+      );
+    }
+
+    Widget _buildRoleBadge(String role) {
+      Color bgColor;
+      String label;
+      switch (role) {
+        case "PICKUP":
+          bgColor = AppColors.primaryBlue;
+          label = "Pickup Only";
+          break;
+        case "PICKUP_AND_DELIVERY":
+          bgColor = AppColors.pinkPurple;
+          label = "Full Cycle";
+          break;
+        default:
+          bgColor = AppColors.green;
+          label = "Delivery Only";
+      }
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(4.r)),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600),
         ),
       );
     }

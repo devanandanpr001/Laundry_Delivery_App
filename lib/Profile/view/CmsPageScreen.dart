@@ -58,11 +58,15 @@ class _CmsPageScreenState extends State<CmsPageScreen> {
                     },
                     icon: Icon(Icons.arrow_back_ios, size: 20.sp),
                   ),
-                  Text(
-                    _cmsData?['title'] ?? widget.title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      _cmsData?['title'] ?? widget.title,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   )
                 ],

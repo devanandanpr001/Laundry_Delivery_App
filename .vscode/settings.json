@@ -1,0 +1,8 @@
+{
+    "builder.serverUrl": " https://mcp.figma.com/mcp",
+    "builder.command": "",
+    "builder.runDevServer": false,
+    "builder.autoDetectDevServer": true,
+    "builder.launchType": "editor",
+    "cmake.sourceDirectory": "D:/FlutterProjects/Laundry_Delivery_App-main/linux"
+}

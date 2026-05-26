@@ -54,37 +54,61 @@ class OrderItemVerificationList extends StatelessWidget {
               itemBuilder: (context, index) {
                 final item = displayItems[index];
                 return Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2.h),
+                  padding: EdgeInsets.symmetric(vertical: 4.h),
                   child: Row(
                     children: [
                       if (isInteractive || (!isPending && order.isVerified))
-                        Checkbox(
-                          value: item.isVerified,
-                          activeColor: AppColors.primaryBlue,
-                          onChanged: (isInteractive) ? (_) => context.read<OrderViewModel>().toggleItemVerification(orderId, item.id) : null,
+                        SizedBox(
+                          height: 24.h, width: 24.w,
+                          child: Checkbox(
+                            value: item.isVerified,
+                            activeColor: AppColors.primaryBlue,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                            onChanged: (isInteractive) ? (_) => context.read<OrderViewModel>().toggleItemVerification(orderId, item.id) : null,
+                          ),
                         ),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
-                          "${item.name} x ${item.qty} ${item.unit}",
-                          style: GoogleFonts.poppins(fontSize: 13.sp, decoration: item.isVerified ? TextDecoration.lineThrough : null),
+                          "${item.name}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 13.sp, 
+                            fontWeight: FontWeight.w500,
+                            decoration: item.isVerified ? TextDecoration.lineThrough : null,
+                            color: item.isVerified ? AppColors.textGrey : AppColors.textDark,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                        decoration: BoxDecoration(color: AppColors.lightBlue, borderRadius: BorderRadius.circular(6.r)),
+                        child: Text(
+                          "x${item.qty}",
+                          style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
                         ),
                       ),
                       if (isInteractive)
                         IconButton(
-                          icon: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 18.sp),
-                          onPressed: () async {
-                            final orderVM = context.read<OrderViewModel>();
-                            if (await onConfirmDeletion(context, item.name)) {
-                              try {
-                                await orderVM.deleteItemFromOrder(orderId, item.id);
-                                if (!context.mounted) return;
-                                AppToast.showSuccess(title: "Success", message: "Item removed");
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                AppToast.showError(title: "Error", message: "Failed to remove item");
-                              }
-                            }
-                          },
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: displayItems.length <= 1 ? AppColors.grey : AppColors.errorRed,
+                            size: 18.sp,
+                          ),
+                          onPressed: displayItems.length <= 1
+                              ? null
+                              : () async {
+                                  final orderVM = context.read<OrderViewModel>();
+                                  if (await onConfirmDeletion(context, item.name)) {
+                                    try {
+                                      await orderVM.deleteItemFromOrder(orderId, item.id);
+                                      if (!context.mounted) return;
+                                      AppToast.showSuccess(title: "Success", message: "Item removed");
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      AppToast.showError(title: "Error", message: "Failed to remove item");
+                                    }
+                                  }
+                                },
                         ),
                     ],
                   ),

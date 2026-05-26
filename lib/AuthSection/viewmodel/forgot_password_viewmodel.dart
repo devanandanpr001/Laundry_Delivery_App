@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/repositories/auth_repository.dart';
-import '../../Constants/validators/signup_validators.dart';
 import 'base_viewmodel.dart';
 
 class ForgotPasswordViewModel extends BaseViewModel {

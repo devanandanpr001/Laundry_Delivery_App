@@ -2,35 +2,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/data/model/order_model.dart';
 import 'package:collection/collection.dart'; // Import for firstWhereOrNull
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/DeliveryStage.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:ziya_laundry_deliveryapp/Home/data/model/home_models.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/premium_dialog.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/DeliveryLocation_Screen.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/PickUp_location.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/view/Gallery_Screen.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/view/camera_capture_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/Bundle_Dialog.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/add_item_dialog.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/custom_widgets.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/order_card_elements.dart'; // Keep this for UI elements
-import '../../Home/viewmodel/home_viewmodel.dart';
-import 'order_item_verification_list.dart';
-import 'mismatch_reason_display.dart';
-import 'add_image_button.dart';
-import 'delivery_otp_section.dart';
-import 'pickup_verification_actions.dart';
-import 'order_header_section.dart';
-import 'order_customer_details.dart';
-import 'order_payment_info.dart';
-import 'order_item_list_section.dart';
-import 'order_bundle_list_section.dart';
-import 'order_gallery_section_wrapper.dart';
+import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/order_item_verification_list.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/mismatch_reason_display.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/add_image_button.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/delivery_otp_section.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/pickup_verification_actions.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/order_header_section.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/order_customer_details.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/widget/order_payment_info.dart';
+// Removed some unused imports to clean analyzer warnings
 
 class OrderCard extends StatefulWidget {
   final String orderid;
@@ -41,14 +39,9 @@ class OrderCard extends StatefulWidget {
   final OrderType orderType;
   final bool isPaid;
   final bool isDetailsPage;
-  final bool showOnlyItems;
   final Function()? onAccept;
   final List<OrderItem> items;
   final VoidCallback? onViewTap;
-  final String? selectedFilter;
-  // Re-added optional params to fix compilation errors in other files
-  final OrderStatus? status;
-  final DeliveryStage? deliveryStage;
 
   const OrderCard({
     super.key,
@@ -60,13 +53,9 @@ class OrderCard extends StatefulWidget {
     required this.orderType,
     required this.isPaid,
     this.isDetailsPage = false,
-    this.showOnlyItems = false,
     this.onAccept,
     required this.items,
     this.onViewTap,
-    this.selectedFilter,
-    this.status,
-    this.deliveryStage,
   });
 
   @override
@@ -74,31 +63,14 @@ class OrderCard extends StatefulWidget {
 
   /// Shows a confirmation dialog before deleting an item or bundle.
   static Future<bool> _confirmDeletion(BuildContext context, String itemName) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-        title: Text(
-          "Confirm Deletion",
-          style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          "Are you sure you want to remove '$itemName'?",
-          style: GoogleFonts.poppins(fontSize: 14.sp),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("Cancel", style: GoogleFonts.poppins(color: AppColors.grey, fontWeight: FontWeight.w600)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text("Delete", style: GoogleFonts.poppins(color: AppColors.errorRed, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
+    return await showPremiumConfirmationDialog(
+      context,
+      title: 'Confirm Deletion',
+      description: "Are you sure you want to remove '$itemName'?",
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmColor: AppColors.errorRed,
     );
-    return result ?? false;
   }
 }
 
@@ -154,8 +126,10 @@ class _OrderCardState extends State<OrderCard> {
                            (currentOrder.items.length != _baselineItemCount || 
                             currentOrder.bundles.length != _baselineBundleCount);
 
+    // Driver can only edit or verify items after clicking 'Start to Pick up' and arriving at the location.
     final bool isArrivedForPickup = currentOrder.orderType == OrderType.pickup && 
-                                   currentOrder.status == OrderStatus.assigned;
+                                   currentOrder.status == OrderStatus.assigned &&
+                                   currentOrder.deliveryStage != DeliveryStage.startPickup;
 
     // Professional Recovery: If images exist, the next logical step is always "Order Picked"
     // This handles app crashes or restarts after images were uploaded.
@@ -169,12 +143,31 @@ class _OrderCardState extends State<OrderCard> {
                                              effectiveStage == DeliveryStage.orderPicked && 
                                              currentOrder.pickedImages.isEmpty;
 
+    // Mismatch report required if items were changed
+    final bool isMismatchReportRequired = isModified || currentOrder.isMismatch;
+
+    // Enable only after mismatch report successfully submitted
+    final bool isMismatchReportSubmitted =
+        currentOrder.mismatchReason != null &&
+        currentOrder.mismatchReason!.trim().isNotEmpty;
+
+    // Pending when modified but report not submitted
+    final bool isMismatchReportPending =
+        isArrivedForPickup &&
+        currentOrder.isVerified &&
+        isMismatchReportRequired &&
+        !isMismatchReportSubmitted;
+
     // Condition: Disable the final delivery button until OTP is verified OR disable pickup progress buttons until items are verified (Checked).
+    // Also disable Order Picked button if mismatch report is required but not submitted yet.
     final bool isActionDisabled = 
         (currentOrder.orderType == OrderType.delivery && 
          effectiveStage == DeliveryStage.reachedDelivery && 
          !_otpVerified && (_otpController.text.length != 4 || _isVerifyingOtp)) ||
-        (isArrivedForPickup && !currentOrder.isVerified) ||
+        (isArrivedForPickup && !currentOrder.isVerified) || // Disable if not verified
+        // Disable until mismatch report submitted successfully
+        (isMismatchReportPending &&
+            currentOrder.deliveryStage == DeliveryStage.orderPicked) ||
         isWeightPickupMissingImages;
 
     return Container(
@@ -202,7 +195,11 @@ class _OrderCardState extends State<OrderCard> {
               isPending: isPending,
               isPaid: widget.isPaid,
             ),
-            if (currentOrder.status == OrderStatus.completed || currentOrder.mismatchReason != null)
+            // Show mismatch details if:
+            // 1. Order is completed, OR
+            // 2. Order is assigned and has a mismatch reason recorded, OR
+            // 3. Order has mismatch reason at any stage
+            if (currentOrder.mismatchReason != null && currentOrder.mismatchReason!.trim().isNotEmpty)
               MismatchReasonDisplay(
                 mismatchReason: currentOrder.mismatchReason,
                 orderStatus: currentOrder.status,
@@ -310,15 +307,52 @@ class _OrderCardState extends State<OrderCard> {
                   onAddImage: _handleAddImage,
                 ),
               if (currentOrder.status != OrderStatus.completed)
-                IgnorePointer(
-                  ignoring: isActionDisabled,
-                  child: Opacity(
-                    opacity: isActionDisabled ? 0.5 : 1.0,
-                    child: OrderProgressButton(
-                      stage: effectiveStage, 
-                      onPressed: isActionDisabled ? () {} : () => _handleProgressAction(context),
+                Column(
+                  children: [
+                    if (isMismatchReportPending && currentOrder.deliveryStage == DeliveryStage.orderPicked)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: Container(
+                          padding: EdgeInsets.all(10.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.errorRed.withValues(alpha: 0.1),
+                            border: Border.all(color: AppColors.errorRed.withValues(alpha: 0.3), width: 1.r),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: AppColors.errorRed, size: 16.sp),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  "Please submit the item mismatch report before proceeding",
+                                  style: GoogleFonts.poppins(fontSize: 11.sp, color: AppColors.errorRed, fontWeight: FontWeight.w500),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    IgnorePointer(
+                      ignoring: isActionDisabled,
+                      child: Opacity(
+                        opacity: isActionDisabled ? 0.5 : 1.0,
+                        child: OrderProgressButton(
+                          stage: effectiveStage, 
+                          onPressed: isActionDisabled ? () {
+                            if (isMismatchReportPending && currentOrder.deliveryStage == DeliveryStage.orderPicked) {
+                              AppToast.showInfo(
+                                title: "Mismatch Report Required",
+                                message: "Please report any item discrepancies before moving forward",
+                              );
+                            }
+                          } : () => _handleProgressAction(context),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
             ],
           ],
@@ -358,7 +392,6 @@ class _OrderCardState extends State<OrderCard> {
       stage = DeliveryStage.orderPicked;
     }
 
-    final ImagePicker picker = ImagePicker();
     if (stage == DeliveryStage.startPickup) {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const PickupLocationScreen())); // Simulate location confirmation
       if (!context.mounted) return;
@@ -367,11 +400,13 @@ class _OrderCardState extends State<OrderCard> {
         orderVM.updateOrderStage(widget.orderid, nextStage);
       }
     } else if (stage == DeliveryStage.uploadImages) {
-      final images = await picker.pickMultiImage();
+      final didUpload = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => CameraCaptureScreen(orderId: widget.orderid)),
+      );
       if (!context.mounted) return;
-      if (images.isNotEmpty) {
-        await orderVM.addOrderImages(currentOrder.orderId, images.map((i) => i.path).toList());
-        if (!mounted) return;
+      if (didUpload == true) {
+        await orderVM.fetchAllOrders(); // Instant refresh to show images properly
         AppToast.showSuccess(title: "Success", message: "Images uploaded successfully");
         orderVM.updateOrderStage(widget.orderid, DeliveryStage.orderPicked);
       }
@@ -381,12 +416,14 @@ class _OrderCardState extends State<OrderCard> {
       if (success && mounted) {
         await _showStatusDialog(context, AppImages.orderPickedGif, AppText.OrderPickedTitle);
         homeVM.setSelectedFilter("completed");
+        homeVM.refreshOrders(); // Sync counts after state change
       }
     } else if (stage == DeliveryStage.startDelivery) {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const DeliveryLocationScreen()));
       if (!context.mounted) return;
       if (result == true) {
-          orderVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
+        orderVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
+        AppToast.showSuccess(title: "Arrived", message: "You have reached the delivery location");
       }
     } else if (stage == DeliveryStage.reachedDelivery) {
       // If OTP is not yet verified, attempt to verify it using the input from _otpController
@@ -416,11 +453,13 @@ class _OrderCardState extends State<OrderCard> {
       }
 
       if (!mounted) return;
+      if (!context.mounted) return;
       // The backend 'verifyDeliveryOtp' already updates status to DELIVERED and marks it complete.
       await _showStatusDialog(context, AppImages.successGif, AppText.OrderDeliveredTitle); // Show success dialog after verification
 
       if (mounted) {
         homeVM.setSelectedFilter("completed");
+        homeVM.refreshOrders(); // Sync counts after state change
       }
     }
   }
@@ -437,24 +476,20 @@ class _OrderCardState extends State<OrderCard> {
       ])),
     );
     await Future.delayed(const Duration(seconds: 3));
-    if (mounted) Navigator.pop(context);
+    if (context.mounted) Navigator.pop(context);
   }
 
   Future<void> _handleAddImage() async {
-    final ImagePicker picker = ImagePicker();
-    final images = await picker.pickMultiImage();
-    if (!mounted) return;
-    if (images.isNotEmpty) {
-      // Capture VM before the next await to be extra safe
-      final orderVM = context.read<OrderViewModel>();
-      await orderVM.addOrderImages(widget.orderid, images.map((i) => i.path).toList());
-      if (!mounted) return;
+    final didUpload = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => CameraCaptureScreen(orderId: widget.orderid)),
+    );
+    if (didUpload == true && mounted) {
+      await context.read<OrderViewModel>().fetchAllOrders(); // Refresh locally instantly
       AppToast.showSuccess(
         title: "Success",
         message: "Images uploaded successfully",
       );
-    } else {
-      // Optionally show a toast if no images were picked
     }
   }
 

@@ -103,6 +103,28 @@ class OrderIndentText extends StatelessWidget {
   }
 }
 
+class OrderAddressCard extends StatelessWidget {
+  final String address;
+  const OrderAddressCard({super.key, required this.address});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(left: 28.w, top: 8.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.lightBackground,
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      child: Text(
+        address.trim().isEmpty ? 'No address provided' : address.trim(),
+        style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400, color: AppColors.textDark, height: 1.4),
+      ),
+    );
+  }
+}
+
 /// Helper for dash lines in steppers
 class DashLine extends StatelessWidget {
   const DashLine({super.key});
@@ -135,7 +157,6 @@ class OrderAssignedHeader extends StatelessWidget {
 
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text(statusText, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14.sp, color: statusColor)),
-      Text(AppText.DummyTime, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 12.sp)),
     ]);
   }
 }
@@ -143,15 +164,56 @@ class OrderAssignedHeader extends StatelessWidget {
 class OrderItemsList extends StatelessWidget {
   final List<OrderItem> items;
   const OrderItemsList({super.key, required this.items});
+
   @override
-  Widget build(BuildContext context) => Column(children: [
-    OrderInfoRow(icon: AppImages.iconItems, label: AppText.ItemsLabel),
-    SizedBox(height: 8.h),
-    ...items.map((item) => Padding(padding: EdgeInsets.only(left: 34.w, bottom: 6.h), child: Row(children: [
-      Expanded(child: Text(item.name, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w400))),
-      Text(item.qty, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w400, color: AppColors.primaryBlue)),
-    ]))),
-  ]);
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OrderInfoRow(icon: AppImages.iconItems, label: AppText.ItemsLabel),
+        SizedBox(height: 10.h),
+        Wrap(
+          spacing: 10.w,
+          runSpacing: 10.h,
+          children: items.map((item) {
+            return Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              constraints: BoxConstraints(maxWidth: 200.w),
+              decoration: BoxDecoration(
+                color: AppColors.lightBlue,
+                borderRadius: BorderRadius.circular(14.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Text(
+                      item.qty.toString(),
+                      style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.white),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+        SizedBox(height: 10.h),
+      ],
+    );
+  }
 }
 /// Progress Stepper for Delivery Stages
 

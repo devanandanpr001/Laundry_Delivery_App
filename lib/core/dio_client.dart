@@ -13,6 +13,8 @@ import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart'; // Import for GlobalKey and AlertDialog
 
+enum _RefreshStatus { success, networkFailure, authFailure }
+
 class DioClient {
   static final DioClient _instance = DioClient._internal();
   late final Dio _dio;
@@ -21,6 +23,7 @@ class DioClient {
   bool _isRefreshing = false;
   bool _sessionExpiredTriggered = false;
   final List<Completer<void>> _refreshQueue = [];
+  
   
   static void Function()? onSessionExpired;
 
@@ -102,6 +105,67 @@ class DioClient {
     _isRefreshing = false;
   }
 
+  bool _isNetworkError(DioException error) {
+    return error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout;
+  }
+
+  Future<_RefreshStatus> _refreshTokens() async {
+    if (_isRefreshing) {
+      final completer = Completer<void>();
+      _refreshQueue.add(completer);
+      try {
+        await completer.future;
+        return _RefreshStatus.success;
+      } catch (_) {
+        return _RefreshStatus.authFailure;
+      }
+    }
+
+    _isRefreshing = true;
+    try {
+      final refreshToken = await _tokenService.getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
+        await _handleSessionExpired();
+        return _RefreshStatus.authFailure;
+      }
+
+      final refreshDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+      final response = await refreshDio.post(
+        ApiConstants.refreshToken,
+        data: {'refreshToken': refreshToken},
+      );
+
+      if (response.statusCode == 200) {
+        final newAccessToken = response.data['token'] ?? response.data['accessToken'];
+        final newRefreshToken = response.data['refreshToken'];
+
+        if (newAccessToken != null && newAccessToken.toString().isNotEmpty) {
+          await _tokenService.saveTokens(
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken ?? refreshToken,
+          );
+          _clearQueue();
+          return _RefreshStatus.success;
+        }
+      }
+
+      await _handleSessionExpired();
+      return _RefreshStatus.authFailure;
+    } catch (err) {
+      debugPrint("DioClient: Refresh failed: $err");
+      if (err is DioException && _isNetworkError(err)) {
+        _clearQueue(error: err);
+        return _RefreshStatus.networkFailure;
+      }
+      await _handleSessionExpired();
+      return _RefreshStatus.authFailure;
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
   Interceptor _createInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -139,6 +203,68 @@ class DioClient {
               ),
             );
           }
+
+          // If token is expiring soon, proactively attempt refresh
+          final isExpiringSoon = await _tokenService.isAccessTokenExpiringSoon();
+          if (isExpiringSoon) {
+            final refreshResult = await _refreshTokens();
+            if (refreshResult == _RefreshStatus.success) {
+              final newToken = await _tokenService.getAccessToken();
+              if (newToken != null && !options.headers.containsKey('Authorization')) {
+                options.headers['Authorization'] = 'Bearer $newToken';
+              }
+              return handler.next(options);
+            }
+
+            if (refreshResult == _RefreshStatus.networkFailure) {
+              // If refresh couldn't run due to network, allow request to continue with current token
+              if (!options.headers.containsKey('Authorization')) {
+                options.headers['Authorization'] = 'Bearer $accessToken';
+              }
+              return handler.next(options);
+            }
+
+            // Auth failure: force session expired
+            await _handleSessionExpired();
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: "Session expired - token refresh failed",
+                type: DioExceptionType.unknown,
+              ),
+            );
+          }
+
+          // Normal path: if a refresh is already running, wait for it to finish
+          if (_isRefreshing) {
+            final completer = Completer<void>();
+            _refreshQueue.add(completer);
+            try {
+              await completer.future;
+              final token = await _tokenService.getAccessToken();
+              if (token == null || token.isEmpty) {
+                await _handleSessionExpired();
+                return handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    error: "Session expired - no valid token after refresh",
+                    type: DioExceptionType.unknown,
+                  ),
+                );
+              }
+              options.headers['Authorization'] = 'Bearer $token';
+              return handler.next(options);
+            } catch (_) {
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: "Session expired - refresh failed",
+                  type: DioExceptionType.unknown,
+                ),
+              );
+            }
+          }
+
           if (!options.headers.containsKey('Authorization')) {
             options.headers['Authorization'] = 'Bearer $accessToken';
           }
@@ -146,6 +272,12 @@ class DioClient {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
+        bool isNetworkRelatedError(DioException error) {
+          return error.type == DioExceptionType.connectionError ||
+              error.type == DioExceptionType.connectionTimeout ||
+              error.type == DioExceptionType.receiveTimeout;
+        }
+
         // List of paths that should NEVER trigger a token refresh cycle
         final authPaths = [
           ApiConstants.login,
@@ -159,10 +291,10 @@ class DioClient {
 
         // Handle 401 Unauthorized - Token expired or invalid
         if (e.response?.statusCode == 401 && !isAuthRequest) {
+          // Coordinate refresh and queued requests via centralized method
           if (_isRefreshing) {
             final completer = Completer<void>();
             _refreshQueue.add(completer);
-
             try {
               await completer.future;
               final token = await _tokenService.getAccessToken();
@@ -178,45 +310,25 @@ class DioClient {
             }
           }
 
-          _isRefreshing = true;
-          try {
-            final refreshToken = await _tokenService.getRefreshToken();
-            if (refreshToken == null || refreshToken.isEmpty) {
-              _isRefreshing = false;
+          final result = await _refreshTokens();
+          if (result == _RefreshStatus.success) {
+            final token = await _tokenService.getAccessToken();
+            if (token == null || token.isEmpty) {
               await _handleSessionExpired();
               return handler.reject(e);
             }
-
-            // Use a new Dio instance for the refresh token request to avoid interceptor recursion
-            final refreshDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
-            final response = await refreshDio.post(
-              ApiConstants.refreshToken,
-              data: {'refreshToken': refreshToken},
-            );
-
-            if (response.statusCode == 200) {
-              final newAccessToken = response.data['token'] ?? response.data['accessToken'];
-              final newRefreshToken = response.data['refreshToken'];
-
-              if (newAccessToken != null && newAccessToken.toString().isNotEmpty) {
-                await _tokenService.saveTokens(
-                  accessToken: newAccessToken,
-                  refreshToken: newRefreshToken ?? refreshToken,
-                );
-                _clearQueue();
-                e.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-                return handler.resolve(await _dio.fetch(e.requestOptions));
-              }
-            }
-            await _handleSessionExpired();
-            return handler.reject(e);
-          } catch (err) {
-            debugPrint("DioClient: Refresh failed: $err");
-            await _handleSessionExpired();
-            return handler.reject(e);
-          } finally {
-            _isRefreshing = false;
+            e.requestOptions.headers['Authorization'] = 'Bearer $token';
+            final response = await _dio.fetch(e.requestOptions);
+            return handler.resolve(response);
           }
+
+          if (result == _RefreshStatus.networkFailure) {
+            // Allow original 401 to continue to caller as network-related
+            return handler.next(e);
+          }
+
+          // Auth failure -> session expired already handled inside _refreshTokens
+          return handler.reject(e);
         }
         // Handle other errors or pass through
         return handler.next(e);

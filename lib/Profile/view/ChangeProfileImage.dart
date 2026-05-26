@@ -9,6 +9,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 
 class Changeprofileimage extends StatefulWidget {
   const Changeprofileimage({super.key});
@@ -60,35 +61,44 @@ class _ChangeprofileimageState extends State<Changeprofileimage> {
               /// PROFILE IMAGE
               Consumer<ProfileViewModel>(
                 builder: (context, provider, child) {
-                  return Container(
-                    height: 120.h,
-                    width: 120.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.grey, width: 1.w),
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(scale: animation, child: child),
                     ),
-                    child: ClipOval(
-                      child: provider.selectedImage != null
-                          ? Image.file(
-                              provider.selectedImage!,
-                              fit: BoxFit.cover,
-                            )
-                          : provider.profileImageUrl.isNotEmpty
-                                ? Image.network(
-                                    provider
-                                        .profileImageUrl, // Display the URL from the VM
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Image.network(
-                                              AppImages.defaultProfile,
-                                              fit: BoxFit.cover,
-                                            ),
-                                  )
-                                : Image.network(
-                                    AppImages.defaultProfile,
-                                    fit: BoxFit.cover,
-                                  ), // Fallback to network placeholder
+                    child: Container(
+                      key: ValueKey(provider.selectedImage?.path ?? provider.profileImageUrl),
+                      height: 120.h,
+                      width: 120.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.grey, width: 1.w),
+                      ),
+                      child: ClipOval(
+                        child: provider.selectedImage != null
+                            ? Image.file(
+                                provider.selectedImage!,
+                                fit: BoxFit.cover,
+                              )
+                            : provider.profileImageUrl.isNotEmpty
+                                  ? Image.network(
+                                      provider.profileImageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Image.network(
+                                                AppImages.defaultProfile,
+                                                fit: BoxFit.cover,
+                                              ),
+                                    )
+                                  : Image.network(
+                                      AppImages.defaultProfile,
+                                      fit: BoxFit.cover,
+                                    ),
+                      ),
                     ),
                   );
                 },
@@ -118,17 +128,18 @@ class _ChangeprofileimageState extends State<Changeprofileimage> {
                     onPressed:
                         (provider.selectedImage == null || provider.isLoading)
                         ? null // Button is disabled if no image selected or loading
-                        : () async { 
+                        : () async {
                             await provider.uploadProfileImage();
-                            // Use context.mounted to ensure the widget is still in tree after async
-                            if (context.mounted && 
-                                provider.errorMessage == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Profile image updated successfully",
-                                  ),
-                                ),
+                            if (!context.mounted) return;
+                            if (provider.errorMessage == null) {
+                              AppToast.showSuccess(
+                                title: "Success",
+                                message: "Profile image updated successfully",
+                              );
+                            } else {
+                              AppToast.showError(
+                                title: "Upload Failed",
+                                message: provider.errorMessage!,
                               );
                             }
                           },

@@ -17,126 +17,24 @@ import 'package:ziya_laundry_deliveryapp/Profile/view/PrivacyPolicy.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/premium_dialog.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/advanced_image.dart';
 
 class ProfileScreen extends StatelessWidget {
   final VoidCallback onBackToHome;
   const ProfileScreen({super.key, required this.onBackToHome});
 
-  void showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                padding: EdgeInsets.all(24.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(color: Colors.white.withOpacity(0.3)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    /// TITLE
-                    Text(
-                      "Log out",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.red,
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    /// SUBTITLE
-                    Text(
-                      "from your account?",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-
-                    SizedBox(height: 25.h),
-
-                    /// BUTTONS
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        /// YES BUTTON
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 35.w,
-                              vertical: 12.h,
-                            ),
-                          ),
-                          child: Text(
-                            "Yes",
-                            style: GoogleFonts.poppins(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(width: 20.w),
-
-                        /// NO BUTTON
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.black, width: 1.w),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 35.w,
-                              vertical: 12.h,
-                            ),
-                          ),
-                          child: Text(
-                            "No",
-                            style: GoogleFonts.poppins(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  Future<void> showLogoutDialog(BuildContext context) async {
+    final confirmed = await showPremiumLogoutDialog(context);
+    if (confirmed) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -180,7 +78,7 @@ class ProfileScreen extends StatelessWidget {
                 SizedBox(height: 20.h),
                 Consumer<ProfileViewModel>(
                   builder: (context, provider, child) {
-                    final user = provider.userProfile;
+                    // final user = provider.userProfile; // kept via provider where needed
 
                     return Row(
                       children: [
@@ -199,20 +97,20 @@ class ProfileScreen extends StatelessWidget {
                                     fit: BoxFit.cover,
                                   )
                                 : (provider.profileImageUrl.isNotEmpty == true)
-                                ? Image.network(
-                                    provider.profileImageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Image.network(
-                                              AppImages.defaultProfile,
-                                              fit: BoxFit.cover,
-                                            ),
-                                  )
-                                : Image.network(
-                                    AppImages.defaultProfile,
-                                    fit: BoxFit.cover,
-                                  ),
+                                    ? AdvancedCachedImage(
+                                        imageUrl: provider.profileImageUrl,
+                                        fit: BoxFit.cover,
+                                        width: 60.r,
+                                        height: 60.r,
+                                        borderRadius: BorderRadius.circular(60.r),
+                                      )
+                                    : AdvancedCachedImage(
+                                        imageUrl: AppImages.defaultProfile,
+                                        fit: BoxFit.cover,
+                                        width: 60.r,
+                                        height: 60.r,
+                                        borderRadius: BorderRadius.circular(60.r),
+                                      ),
                           ),
                         ),
                         SizedBox(width: 13.w),

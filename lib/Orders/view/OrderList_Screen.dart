@@ -10,8 +10,8 @@ import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomS
 import 'package:ziya_laundry_deliveryapp/common_widgets/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Orders/data/model/order_model.dart';
 import '../../Home/viewmodel/home_viewmodel.dart';
-import '../../Home/data/model/home_models.dart';
 import '../widget/OrderCard.dart';
 
 class OrderlistScreen extends StatefulWidget {
@@ -167,7 +167,6 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                             orderType: order.orderType,
                             isPaid: order.isPaid,
                             isDetailsPage: true,
-                            showOnlyItems: false,
                             items: order.items,
                           ),
                         );

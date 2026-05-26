@@ -7,7 +7,6 @@ import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/forgot_password_v
 import 'package:ziya_laundry_deliveryapp/Constants/validators/signup_validators.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/quick_popup_manager.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/widgets/custom_button.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 
@@ -244,6 +243,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
+                              settings: const RouteSettings(name: '/login'),
                               builder: (context) => const LoginScreen(),
                             ),
                             (route) => false,

@@ -7,9 +7,11 @@ class ConnectivityViewModel extends ChangeNotifier {
   final ConnectivityService _service;
   late final StreamSubscription<ConnectionStatus> _subscription;
   ConnectionStatus _status = ConnectionStatus.disconnected;
+  bool _isInitialized = false;
 
   ConnectivityViewModel(this._service) {
     _status = _service.status;
+    _isInitialized = true;
     _subscription = _service.statusStream.listen((status) {
       if (_status != status) {
         _status = status;
@@ -22,6 +24,7 @@ class ConnectivityViewModel extends ChangeNotifier {
   bool get isOnline =>
       _status == ConnectionStatus.connectedViaWifi ||
       _status == ConnectionStatus.connectedViaMobile;
+  bool get isInitialized => _isInitialized;
 
   Future<bool> refreshConnection() async {
     final connected = await _service.checkConnection();

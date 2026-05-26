@@ -21,20 +21,12 @@ class NotificationViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await _repository.getNotificationsResponse();
-      final rawNotifications = response['notifications'];
-      if (rawNotifications is List) {
-        _notifications = rawNotifications
-            .map((json) => NotificationModel.fromJson(Map<String, dynamic>.from(json)))
-            .toList();
-      } else {
-        _notifications = [];
-      }
-      _unreadCount = response['unreadCount'] is int
-          ? response['unreadCount'] as int
-          : _notifications.where((item) => !item.isRead).length;
+      _notifications = await _repository.getNotifications();
+      _unreadCount = _notifications.where((item) => !item.isRead).length;
     } catch (e) {
       debugPrint("NotificationViewModel Error: $e");
+      _notifications = [];
+      _unreadCount = 0;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -124,5 +116,14 @@ class NotificationViewModel extends ChangeNotifier {
   void deleteSelected() {
     _notifications.removeWhere((item) => item.isSelected);
     notifyListeners();
+  }
+
+  /// Initialize notification view model for a specific user.
+  /// Keeps signature compatible with existing callers: `init(userId, role)`.
+  Future<void> init(String userId, String role) async {
+    // Currently we don't need to use userId/role directly, but keep them
+    // in the signature for future use. Perform an initial fetch of
+    // notifications to populate the UI when the user is ready.
+    await fetchNotifications();
   }
 }

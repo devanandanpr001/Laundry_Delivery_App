@@ -76,8 +76,7 @@ class ServiceViewModel extends ChangeNotifier {
       }
 
       for (var item in items) {
-        if (item is! Map) continue;
-        final List itemServices = item['services'] as List? ?? [];
+        final List itemServices = (item['services'] as List?) ?? [];
         for (var s in itemServices) {
           final String? sId = (s is Map) ? (s['serviceId']?.toString() ?? s['id']?.toString()) : s?.toString();
           if (sId != null) {

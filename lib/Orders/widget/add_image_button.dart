@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
 class AddImageButton extends StatefulWidget {
@@ -37,11 +36,11 @@ class _AddImageButtonState extends State<AddImageButton> {
           },
           icon: _isAddingImage
               ? const SizedBox.shrink()
-              : Icon(Icons.add_a_photo, size: 20.sp, color: AppColors.primaryBlue),
+              : Icon(Icons.camera_alt, size: 20.sp, color: AppColors.primaryBlue),
           label: _isAddingImage
-              ? LoadingAnimationWidget.waveDots(color: AppColors.primaryBlue, size: 20.sp)
+              ? const SizedBox.shrink()
               : Text(
-                  "Add Image",
+                  "Capture photo",
                   style: GoogleFonts.poppins(
                       fontSize: 14.sp, color: AppColors.primaryBlue, fontWeight: FontWeight.w600),
                 ),

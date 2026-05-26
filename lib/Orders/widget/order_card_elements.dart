@@ -61,11 +61,28 @@ class BundleSection extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(radius: 12.w, backgroundColor: AppColors.cyanBlue, child: Text("${index + 1}", style: GoogleFonts.poppins(color: AppColors.white, fontSize: 11.sp))),
+                      Container(
+                        width: 24.w,
+                        height: 24.w,
+                        decoration: BoxDecoration(color: AppColors.cyanBlue, shape: BoxShape.circle),
+                        child: Center(child: Text("${index + 1}", style: GoogleFonts.poppins(color: AppColors.white, fontSize: 11.sp, fontWeight: FontWeight.bold))),
+                      ),
                       SizedBox(width: 10.w),
-                      Text(AppText.BundleLabel, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400)),
-                      SizedBox(width: 8.w),
-                      Text("${bundle.weight} KG", style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.grey)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "${AppText.BundleLabel} ${index + 1}", 
+                              style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.bold, color: AppColors.textDark)
+                            ),
+                            Text(
+                              "${bundle.weight} KG Weight",
+                              style: GoogleFonts.poppins(fontSize: 11.sp, color: AppColors.textGrey, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
                       const Spacer(),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
@@ -76,12 +93,13 @@ class BundleSection extends StatelessWidget {
                         ),
                       ),
                       if (!isReadOnly) ...[
+                        SizedBox(width: 12.w),
                         GestureDetector(
                           onTap: () => onDelete(index),
                           child: Container(
-                            height: 14.w, width: 14.w,
-                            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.red)),
-                            child: const Center(child: Icon(Icons.close, color: AppColors.red, size: 14)),
+                            padding: EdgeInsets.all(4.w),
+                            decoration: BoxDecoration(color: AppColors.errorRed.withOpacity(0.1), shape: BoxShape.circle),
+                            child: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 16.sp),
                           ),
                         ),
                       ]
@@ -159,13 +177,71 @@ class ImagePickerDialog extends StatelessWidget {
 }
 
 Widget _buildImage(String path, {double? height, double? width, BoxFit fit = BoxFit.cover}) {
-  if (path.startsWith('http')) {
-    return Image.network(path, height: height, width: width, fit: fit);
-  } else if (path.startsWith('assets/')) {
-    return Image.asset(path, height: height, width: width, fit: fit);
-  } else {
-    return Image.file(File(path), height: height, width: width, fit: fit);
+  final trimmedPath = path.trim();
+  if (trimmedPath.isEmpty) {
+    return _buildImagePlaceholder(height: height, width: width);
   }
+
+  if (trimmedPath.startsWith('http')) {
+    return Image.network(
+      trimmedPath,
+      height: height,
+      width: width,
+      fit: fit,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          height: height,
+          width: width,
+          color: AppColors.lightBackground,
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
+                  : null,
+              color: AppColors.primaryBlue,
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(height: height, width: width),
+    );
+  } else if (trimmedPath.startsWith('assets/')) {
+    return Image.asset(
+      trimmedPath,
+      height: height,
+      width: width,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(height: height, width: width),
+    );
+  }
+
+  final file = File(trimmedPath);
+  if (!file.existsSync()) {
+    return _buildImagePlaceholder(height: height, width: width);
+  }
+
+  return Image.file(
+    file,
+    height: height,
+    width: width,
+    fit: fit,
+    errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(height: height, width: width),
+  );
+}
+
+Widget _buildImagePlaceholder({double? height, double? width}) {
+  return Container(
+    height: height,
+    width: width,
+    color: AppColors.lightBackground,
+    alignment: Alignment.center,
+    child: Icon(
+      Icons.broken_image_outlined,
+      size: 28.sp,
+      color: AppColors.grey,
+    ),
+  );
 }
 
 /// Section displaying and managing uploaded images
@@ -216,7 +292,7 @@ class OrderProgressButton extends StatelessWidget {
     if (text != null) return text!;
     switch (stage) {
       case DeliveryStage.startPickup: return AppText.BtnStartPickup;
-      case DeliveryStage.uploadImages: return AppText.BtnUpload;
+      case DeliveryStage.uploadImages: return AppText.BtnCapturePhoto;
       case DeliveryStage.orderPicked: return AppText.BtnOrderPicked;
       case DeliveryStage.startDelivery: return AppText.BtnStartDeliver;
       case DeliveryStage.reachedDelivery: return AppText.ArrivedMsgD;

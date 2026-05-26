@@ -1,13 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/profile_repository.dart';
 
 class ProfileViewModel extends ChangeNotifier {
-  final ProfileRepository _repository;
-
-  ProfileViewModel(this._repository) {
-    _init();
-  }
+  final ProfileRepository _repository; // Fixed: Removed _init() call from constructor
+  ProfileViewModel(this._repository);
 
   File? _selectedImage;
   bool _isLoading = false;
@@ -21,8 +19,12 @@ class ProfileViewModel extends ChangeNotifier {
 
   // Getter for the profile image URL from the fetched profile data
   String get profileImageUrl {
-    // Ensure it doesn't return "null" string if the value is actually null
-    return _userProfile?['profileImage']?.toString() ?? '';
+    String url = _userProfile?['profileImage']?.toString() ?? '';
+    // Handle relative paths by prepending the media base URL from ApiConstants
+    if (url.isNotEmpty && !url.startsWith('http')) {
+      url = '${ApiConstants.mediaBaseUrl}${url.startsWith('/') ? url.substring(1) : url}';
+    }
+    return url;
   }
 
   // Getter for user name (example)
@@ -30,11 +32,6 @@ class ProfileViewModel extends ChangeNotifier {
 
   // Getter for user phone number (example)
   String get userPhone => _userProfile?['phone']?.toString() ?? '0000000000';
-
-
-  Future<void> _init() async {
-    await fetchProfileData(); // Fetch initial profile data when ViewModel is created
-  }
 
   /// Clears all cached data when session expires
   void clearAllCachedData() {
@@ -121,9 +118,8 @@ class ProfileViewModel extends ChangeNotifier {
 
   // Method to fetch CMS page content
   Future<Map<String, dynamic>?> fetchCmsPage(String type) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    // Removed _isLoading and _errorMessage updates and notifyListeners()
+    // as CmsPageScreen manages its own loading state for CMS content.
     try {
       final result = await _repository.getCmsPage(type);
       return result;
@@ -131,9 +127,6 @@ class ProfileViewModel extends ChangeNotifier {
       _errorMessage = e.toString();
       debugPrint("ProfileViewModel: Error fetching CMS page: $_errorMessage");
       return null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 }

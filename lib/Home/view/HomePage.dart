@@ -16,10 +16,9 @@ import 'package:ziya_laundry_deliveryapp/Orders/widget/OrderCard.dart' as home_o
 import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
-import '../../AuthSection/viewmodel/login_viewmodel.dart';
 import '../../common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../viewmodel/home_viewmodel.dart';
-import '../data/model/home_models.dart';
+import '../../Orders/data/model/order_model.dart';
 
 class Homepage extends StatefulWidget {
   final VoidCallback onGoToOrders;
@@ -57,7 +56,6 @@ class _HomepageState extends State<Homepage> {
         .toList();
     int completedOrdersCount = homeVM.completedCount;
     int assignedCount = homeVM.assignedCount;
-    final authVM = Provider.of<LoginViewModel>(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -71,9 +69,9 @@ class _HomepageState extends State<Homepage> {
                   Spacer(),
                   NotificationBell(),
                   SizedBox(width: 15.w),
-                  ProfileAvatar( ),
+                  ProfileAvatar(imageUrl: homeVM.profileImage),
                 ],
-              ),
+              ), 
               SizedBox(height: 20.h),
               Expanded(
                 child: CustomSmartRefresher(
@@ -93,7 +91,7 @@ class _HomepageState extends State<Homepage> {
                     physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
-                      WelcomeSection(name: authVM.loginName.isEmpty ? "Delivery Partner" : authVM.loginName),
+                      WelcomeSection(name: homeVM.userName.isEmpty ? "Delivery Partner" : homeVM.userName),
                       SizedBox(height: 20.h),
                       Row(
                         children: [
@@ -167,12 +165,8 @@ class _HomepageState extends State<Homepage> {
                                 address: order.address,
                                 isPaid: order.isPaid,
                                 isDetailsPage: false,
-                                showOnlyItems: false,
                                 items: order.items,
-                                deliveryStage: order.deliveryStage,
                                 onViewTap: widget.onGoToOrders,
-                                status: order.status,
-                                selectedFilter: 'all',
                                 onAccept: () async {
                                   if (_isAcceptingOrder) return;
                                   final connectivity = context.read<ConnectivityViewModel>();

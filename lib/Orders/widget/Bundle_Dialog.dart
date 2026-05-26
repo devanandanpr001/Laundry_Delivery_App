@@ -5,8 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/widget/service_service.dart';
+// service_repository and service_service are not required here; use provider to access VM
 import 'package:ziya_laundry_deliveryapp/Orders/widget/service_viewmodel.dart';
 
 import '../data/model/Bundle_Model.dart';
@@ -20,8 +19,7 @@ class BundleDialog extends StatefulWidget {
 }
 
 class _BundleDialogState extends State<BundleDialog> {
-  // Import ServiceViewModel
-  final ServiceViewModel _serviceViewModel = ServiceViewModel(ServiceRepository(ServiceService()));
+  // ServiceViewModel is obtained via Provider; remove unused local instance
   final TextEditingController _weightController = TextEditingController();
   double _unitPrice = 0.0;
   double _totalAmount = 0.0;

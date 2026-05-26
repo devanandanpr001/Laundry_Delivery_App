@@ -93,7 +93,12 @@ class HomeViewModel extends ChangeNotifier {
       if (profileData != null) {
         _userName = profileData['name']?.toString() ?? "User";
         _address = profileData['address']?.toString() ?? "";
-        _profileImage = profileData['profileImage']?.toString() ?? "";
+        String pImg = profileData['profileImage']?.toString() ?? "";
+        if (pImg.isNotEmpty && !pImg.startsWith('http')) {
+          _profileImage = '${ApiConstants.mediaBaseUrl}${pImg.startsWith('/') ? pImg.substring(1) : pImg}';
+        } else {
+          _profileImage = pImg;
+        }
         _isOnline = profileData['isOnline'] ?? _isOnline;
       } else {
         if (_userName.isEmpty) _userName = "User";

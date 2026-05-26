@@ -28,9 +28,9 @@ class OrderCustomerDetails extends StatelessWidget {
           value: name,
           trailing: by.isNotEmpty ? OrderStatusBadge(text: by) : null,
         ),
-        SizedBox(height: 5.h),
+        SizedBox(height: 10.h),
         OrderInfoRow(icon: AppImages.iconLocation, label: AppText.PickupAddress),
-        OrderIndentText(text: address),
+        OrderAddressCard(address: address),
       ],
     );
   }

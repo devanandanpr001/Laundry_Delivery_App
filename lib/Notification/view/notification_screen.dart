@@ -7,6 +7,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
 import '../viewmodel/notification_viewmodel.dart';
 import '../widgets/notification_item_widget.dart';
+import '../widgets/notification_popup_widget.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -17,35 +18,15 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   bool isDeleteMode = false;
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-  /// Handles the deletion with slide animation
-  void _handleAnimatedDelete(NotificationViewModel vm) {
-    final list = vm.notificationList;
-    // Iterate backwards to maintain correct indices during removal
-    for (int i = list.length - 1; i >= 0; i--) {
-      if (list[i].isSelected) {
-        final removedItem = list[i];
-        _listKey.currentState?.removeItem(
-          i,
-          (context, animation) => SlideTransition(
-            position: animation.drive(Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).chain(CurveTween(curve: Curves.easeOut))),
-            child: NotificationItemWidget(
-              title: removedItem.title,
-              createdAt: removedItem.createdAt,
-              message: removedItem.message,
-              isRead: removedItem.isRead, // Pass isRead
-              isSelected: true,
-              isSelectionMode: true,
-            ),
-          ),
-          duration: const Duration(milliseconds: 400),
-        );
-        vm.removeAt(i);
-      }
-    }
+
+  String _formatDate(String createdAt) {
+    final parts = createdAt.split(' ');
+    return parts.isNotEmpty ? parts.first : createdAt;
+  }
+
+  String _formatTime(String createdAt) {
+    final parts = createdAt.split(' ');
+    return parts.length > 1 ? parts.sublist(1).join(' ') : '';
   }
 
   @override
@@ -93,27 +74,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadiusGeometry.circular(10.r)),
-                        backgroundColor: (isDeleteMode || isSelectionMode) ? AppColors.red : AppColors.white,
+                        backgroundColor: isSelectionMode ? AppColors.red : AppColors.red.withOpacity(0.35),
                         minimumSize: Size(55.w, 32.h),
                       ),
-                      onPressed: () {
-                        if (isSelectionMode) {
-                          setState(() {
-                            if (!isDeleteMode) {
-                              isDeleteMode = true; // First click: Turn red/Confirm state
-                            } else {
-                              _handleAnimatedDelete(notificationVM); // Second click: Delete
-                              isDeleteMode = false;
+                      onPressed: isSelectionMode
+                          ? () {
+                              setState(() {
+                                if (!isDeleteMode) {
+                                  isDeleteMode = true;
+                                } else {
+                                  notificationVM.deleteSelected();
+                                  isDeleteMode = false;
+                                }
+                              });
                             }
-                          });
-                        }
-                      },
+                          : null,
                       child: Text(
                         isDeleteMode ? AppText.NotifConfirm : AppText.NotifDelete,
                         style: GoogleFonts.poppins(
-                          fontSize: 14.sp,fontWeight: FontWeight.w400,
-                          color: (isDeleteMode || isSelectionMode) ? AppColors.white : AppColors.red
-                      ),),
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.white,
+                        ),
+                      ),
                     ),
                     SizedBox(width: 18.w,),
                     ElevatedButton(
@@ -169,36 +152,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 itemBuilder: (context, index) {
                                   final notification = notifications[index];
                                   return GestureDetector(
-                                    onTap: () {
+                                    onTap: () async {
                                       if (isSelectionMode) {
                                         notificationVM.toggleSelection(index);
                                       } else {
-                                        notificationVM.markAsReadAt(index);
+                                        await notificationVM.markAsReadAt(index);
                                         showDialog(
                                           context: context,
                                           builder: (BuildContext context) {
-                                            return Dialog(
-                                              backgroundColor: Colors.transparent,
-                                              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  NotificationItemWidget(
-                                                    title: notification.title,
-                                                    createdAt: notification.createdAt,
-                                                    message: notification.message,
-                                                    isSelected: false,
-                                                    isRead: true,
-                                                    isSelectionMode: false,
-                                                    isExpanded: true,
-                                                  ),
-                                                  SizedBox(height: 10.h),
-                                                  IconButton(
-                                                    onPressed: () => Navigator.pop(context),
-                                                    icon: Icon(Icons.close, color: AppColors.white, size: 30.sp),
-                                                  )
-                                                ],
-                                              ),
+                                            return NotificationPopupWidget(
+                                              title: notification.title,
+                                              message: notification.message,
+                                              date: _formatDate(notification.createdAt),
+                                              time: _formatTime(notification.createdAt),
                                             );
                                           },
                                         );

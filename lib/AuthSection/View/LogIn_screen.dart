@@ -10,6 +10,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/bottom_navigation_page.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/forgot_password_screen.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/app_network_image.dart';
 
 import '../widgets/custom_button.dart';
 import '../viewmodel/login_viewmodel.dart';
@@ -42,9 +43,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     left: 0,
                     right: 0,
                     height: 0.55.sh,
-                    child: Image.network(
-                      AppImages.loginBg,
+                    child: AppNetworkImage(
+                      imageUrl: AppImages.loginBg,
+                      width: double.infinity,
+                      height: 0.55.sh,
                       fit: BoxFit.cover,
+                      placeholder: Container(color: AppColors.loginGradientStart),
+                      errorWidget: Container(color: AppColors.loginGradientEnd),
                     ),
                   ),
 
@@ -142,6 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
+                                                settings: const RouteSettings(name: '/forgot-password'),
                                                 builder: (context) => const ForgotPassword(),
                                               ),
                                             );
@@ -169,6 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               final verified = await Navigator.push<bool>(
                                                 context,
                                                 MaterialPageRoute(
+                                                  settings: const RouteSettings(name: '/verification'),
                                                   builder: (context) => VerificationScreen(
                                                     title: AppText.VrfTitle,
                                                     subtitle: AppText.VrfSubtitle,
@@ -186,6 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 Navigator.pushAndRemoveUntil(
                                                   context,
                                                   MaterialPageRoute(
+                                                      settings: const RouteSettings(name: '/home'),
                                                       builder: (context) => const BottomNavigationPage()),
                                                   (route) => false,
                                                 );

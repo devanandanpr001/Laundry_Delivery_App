@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+// app_shimmer uses neutral colors and doesn't require AppColors
 
 /// Centralized shimmer loading effects for the entire app
 class AppShimmer {
-  static const Color _baseColor = Color(0xFFE0E0E0);
-  static const Color _highlightColor = Color(0xFFF5F5F5);
+  static const Color _baseColor = Color(0xFFEFF6FF);
+  static const Color _highlightColor = Color(0xFFDCEEFF);
 
   /// Base shimmer wrapper
   static Widget _buildShimmer({
@@ -17,6 +17,7 @@ class AppShimmer {
       baseColor: _baseColor,
       highlightColor: _highlightColor,
       period: duration,
+      direction: ShimmerDirection.ltr,
       child: child,
     );
   }

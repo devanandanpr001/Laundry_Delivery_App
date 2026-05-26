@@ -6,7 +6,18 @@ import 'package:ziya_laundry_deliveryapp/core/network_status.dart';
 class ConnectivityService {
   ConnectivityService._internal() {
     _connectivity = Connectivity();
-    _subscription = _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    // Listen with a dynamic handler to support differing connectivity_plus signatures
+    _subscription = _connectivity.onConnectivityChanged.listen((dynamic evt) {
+      ConnectivityResult res;
+      if (evt is List && evt.isNotEmpty) {
+        res = evt.first as ConnectivityResult;
+      } else if (evt is ConnectivityResult) {
+        res = evt;
+      } else {
+        res = ConnectivityResult.none;
+      }
+      _onConnectivityChanged(res);
+    });
     _updateConnectivity();
     _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) => _updateConnectivity());
   }
@@ -14,12 +25,15 @@ class ConnectivityService {
   static final ConnectivityService instance = ConnectivityService._internal();
 
   late final Connectivity _connectivity;
-  late final StreamSubscription<List<ConnectivityResult>> _subscription;
+  late final StreamSubscription<dynamic> _subscription;
   late final Timer _pollingTimer;
   final StreamController<ConnectionStatus> _connectionController = StreamController<ConnectionStatus>.broadcast();
 
   ConnectionStatus _status = ConnectionStatus.disconnected;
-  List<ConnectivityResult>? _lastConnectivityResult;
+  ConnectivityResult? _lastConnectivityResult;
+
+  /// Last raw connectivity result as reported by `connectivity_plus`.
+  ConnectivityResult? get lastConnectivityResult => _lastConnectivityResult;
 
   Stream<ConnectionStatus> get statusStream => _connectionController.stream;
   ConnectionStatus get status => _status;
@@ -28,29 +42,39 @@ class ConnectivityService {
       _status == ConnectionStatus.connectedViaMobile;
 
   Future<void> _updateConnectivity() async {
-    final result = await _connectivity.checkConnectivity();
-    _lastConnectivityResult = result;
-    await _evaluateConnectivity(result);
+    final dynamic result = await _connectivity.checkConnectivity();
+    // handle both ConnectivityResult and List<ConnectivityResult>
+    if (result is List && result.isNotEmpty) {
+      _lastConnectivityResult = result.first;
+      final nextStatus = await _statusFromResult(result.first);
+      if (_status == nextStatus) return;
+      _status = nextStatus;
+      _connectionController.add(_status);
+      return;
+    }
+    if (result is ConnectivityResult) {
+      _lastConnectivityResult = result;
+      final nextStatus = await _statusFromResult(result);
+      if (_status == nextStatus) return;
+      _status = nextStatus;
+      _connectionController.add(_status);
+    }
   }
 
-  Future<void> _onConnectivityChanged(List<ConnectivityResult> result) async {
+  Future<void> _onConnectivityChanged(ConnectivityResult result) async {
     _lastConnectivityResult = result;
-    await _evaluateConnectivity(result);
-  }
-
-  Future<void> _evaluateConnectivity(List<ConnectivityResult> result) async {
     final nextStatus = await _statusFromResult(result);
     if (_status == nextStatus) return;
     _status = nextStatus;
     _connectionController.add(_status);
   }
 
-  Future<ConnectionStatus> _statusFromResult(List<ConnectivityResult> result) async {
-    if (result.isEmpty || result.contains(ConnectivityResult.none)) return ConnectionStatus.disconnected;
+  Future<ConnectionStatus> _statusFromResult(ConnectivityResult result) async {
+    if (result == ConnectivityResult.none) return ConnectionStatus.disconnected;
     final hasInternet = await _hasInternetAccess();
     if (!hasInternet) return ConnectionStatus.connectedButNoInternet;
-    if (result.contains(ConnectivityResult.wifi)) return ConnectionStatus.connectedViaWifi;
-    if (result.contains(ConnectivityResult.mobile)) return ConnectionStatus.connectedViaMobile;
+    if (result == ConnectivityResult.wifi) return ConnectionStatus.connectedViaWifi;
+    if (result == ConnectivityResult.mobile) return ConnectionStatus.connectedViaMobile;
     return ConnectionStatus.connectedButNoInternet;
   }
 

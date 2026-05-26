@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/bottom_navigation_page.dart';
+import 'package:ziya_laundry_deliveryapp/common_widgets/app_network_image.dart';
 
 class Onboardingscreen extends StatefulWidget {
   const Onboardingscreen({super.key});
@@ -22,7 +23,10 @@ class _OnboardingscreenState extends State<Onboardingscreen> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BottomNavigationPage()),
+        MaterialPageRoute(
+          settings: const RouteSettings(name: '/home'),
+          builder: (context) => BottomNavigationPage(),
+        ),
       );
     }
   }
@@ -111,7 +115,12 @@ class _OnboardingscreenState extends State<Onboardingscreen> {
 
   Widget _imagePage(String ntwrk) {
     return SizedBox.expand(
-      child: Image.network(ntwrk,fit: BoxFit.cover,)
+      child: AppNetworkImage(
+        imageUrl: ntwrk,
+        fit: BoxFit.cover,
+        placeholder: const Center(child: CircularProgressIndicator()),
+        errorWidget: Container(color: Colors.black12),
+      ),
     );
   }
 }

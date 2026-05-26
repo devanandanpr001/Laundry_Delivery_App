@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/SignUp_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/onBoarding/splash_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/widget/service_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
@@ -28,12 +30,48 @@ import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_controll
 import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
 import 'package:quick_popup_manager/quick_popup_manager.dart';
 
+class AppRouteObserver extends NavigatorObserver {
+  final ValueNotifier<String?> currentRoute = ValueNotifier<String?>(null);
+
+  void _updateRoute(Route<dynamic>? route) {
+    if (route == null) {
+      currentRoute.value = null;
+      return;
+    }
+
+    final routeName = route.settings.name?.isNotEmpty == true
+        ? route.settings.name!
+        : route.runtimeType.toString();
+    currentRoute.value = routeName;
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _updateRoute(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _updateRoute(newRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _updateRoute(previousRoute);
+  }
+}
+
 void main() {
-  runApp(const MyApp());
+  runApp(riverpod.ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  final AppRouteObserver _appRouteObserver = AppRouteObserver();
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +139,7 @@ class MyApp extends StatelessWidget {
                update: (_, repository, previous) => previous ?? ServiceViewModel(repository),
              ),
 
-            Provider(create: (_) => NotificationService()),
+            Provider<NotificationService>(create: (_) => NotificationService.instance),
             ProxyProvider<NotificationService, NotificationRepository>(
               update: (_, service, previous) => previous ?? NotificationRepository(service),
             ),
@@ -112,26 +150,59 @@ class MyApp extends StatelessWidget {
              ],
           child: MaterialApp(
             navigatorKey: DioClient.navigatorKey,
-            navigatorObservers: [QuickPopupNavigatorObserver()],
+            navigatorObservers: [QuickPopupNavigatorObserver(), _appRouteObserver],
             debugShowCheckedModeBanner: false,
             title: 'Ziya Laundry DeliveryApp',
-            initialRoute: '/login',
+            initialRoute: '/',
             routes: {
+              '/': (context) => const SplashScreen(),
               '/login': (context) => const LoginScreen(),
             },
             builder: (context, child) {
               final connectivity = context.watch<ConnectivityViewModel>();
+
               return Stack(
                 children: [
-                  if (child != null) child,
-                  if (!connectivity.isOnline)
-                    Positioned.fill(
-                      child: NoInternetConnectionScreen(
-                        onRetry: () async {
-                          await context.read<ConnectivityViewModel>().refreshConnection();
-                        },
-                      ),
-                    ),
+                  child ?? const SizedBox.shrink(),
+                  ValueListenableBuilder<String?>(
+                    valueListenable: _appRouteObserver.currentRoute,
+                    builder: (context, currentRoute, _) {
+                      final authRouteNames = [
+                        '/',
+                        '/login',
+                        '/onboarding',
+                        '/forgot-password',
+                        '/verification',
+                        '/new-password',
+                        '/signup',
+                        '/sign-up',
+                      ];
+                      final authRouteTypes = [
+                        'SplashScreen',
+                        'LoginScreen',
+                        'Onboardingscreen',
+                        'SignUp',
+                        'SignUpScreen',
+                        'VerificationScreen',
+                        'ForgotPassword',
+                        'NewPasswordScreen',
+                      ];
+                      final currentRouteName = currentRoute ?? '';
+                      final isAuthRoute = authRouteNames.contains(currentRouteName) ||
+                          authRouteTypes.any(currentRouteName.contains);
+                      final shouldShowOffline = connectivity.isInitialized &&
+                          !connectivity.isOnline &&
+                          !isAuthRoute;
+                      if (!shouldShowOffline) return const SizedBox.shrink();
+                      return Positioned.fill(
+                        child: NoInternetConnectionScreen(
+                          onRetry: () async {
+                            await context.read<ConnectivityViewModel>().refreshConnection();
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ],
               );
             },

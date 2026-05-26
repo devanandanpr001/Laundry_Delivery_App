@@ -52,7 +52,7 @@ class OrderService {
 
   Future<List<OrderModel>> fetchAllOrders() async {
     try {
-      final response = await _dioClient.get(ApiConstants.allOrders);
+      final response = await _dioClient.get(ApiConstants.completedOrders);
       if (response != null && response['success'] == true && response['data'] is List) {
         final allOrdersData = List<Map<String, dynamic>>.from(response['data']);
         return allOrdersData.map((json) {

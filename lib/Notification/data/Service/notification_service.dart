@@ -1,7 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
 
 class NotificationService {
+  NotificationService._internal();
+
+  static final NotificationService instance = NotificationService._internal();
+
+  /// If the app was launched from a terminated notification, the payload
+  /// can be stored here for the UI to handle once navigation is ready.
+  Map<String, dynamic>? pendingNavigationData;
+
   final DioClient _client = DioClient();
 
   Future<Map<String, dynamic>> fetchNotificationsResponse() async {
@@ -44,5 +53,24 @@ class NotificationService {
   Future<bool> undoNotifications(List<String> notificationIds) async {
     final resp = await _client.post(ApiConstants.notificationUndo, data: {"notificationIds": notificationIds});
     return resp != null && resp['success'] == true;
+  }
+
+  /// Handle any pending navigation payload. This method should be called
+  /// after the app's navigator is ready. Keep implementation minimal so
+  /// callers can invoke it safely without UI changes.
+  void handlePendingNavigation(Map<String, dynamic> data, BuildContext context) {
+    try {
+      // Example: if payload contains a route name, navigate to it.
+      final route = data['route'] as String?;
+      if (route != null && route.isNotEmpty) {
+        Navigator.pushNamed(context, route, arguments: data['args']);
+        return;
+      }
+
+      // If no route provided, log the payload for debugging.
+      debugPrint('handlePendingNavigation: no route found in payload: $data');
+    } catch (e) {
+      debugPrint('handlePendingNavigation error: $e');
+    }
   }
 }

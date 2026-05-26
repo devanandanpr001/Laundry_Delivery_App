@@ -254,7 +254,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // Ensure these point to your actual setup paths
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+// AppColors not required in this simplified popup
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 
 class NotificationPopupWidget extends StatelessWidget {
@@ -268,7 +268,7 @@ class NotificationPopupWidget extends StatelessWidget {
     required this.title,
     required this.message,
     required this.date,
-    required this.time, required String createdAt,
+    required this.time,
   });
 
   @override

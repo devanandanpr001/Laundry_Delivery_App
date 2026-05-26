@@ -23,7 +23,7 @@ class ApiConstants {
   static const String acceptDelivery = '/delivery-session/session/accept-delivery';
 
   
-  static const String allOrders = '/delivery-session/session/orders/all';
+  // static const String allOrders = '/delivery-session/session/orders/all';
   // static const String markDelivered = '/delivery-session/session/orders/mark-delivered'; // Assuming this endpoint for completing orders
   // static const String assignedOrders = '/delivery-session/session/orders/assigned';
 

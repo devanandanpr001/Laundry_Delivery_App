@@ -17,12 +17,17 @@ class OrderModel {
   final List<BundleModel> bundles;
   final List<OrderItem> items;
   final String totalAmount;
+  final String paidAmount;
+  final String payableAmount;
   final bool isVerified;
+  final bool isMismatch;
   final String paymentMethod;
   final String? mismatchReason;
   final String? pickupUserId;
   final String? deliveryUserId;
+  final String? roleType;
   final DateTime? updatedAt;
+  final String? createdAt;
 
   OrderModel({
     required this.orderId,
@@ -39,12 +44,17 @@ class OrderModel {
     this.bundles = const [],
     required this.items,
     required this.totalAmount,
+    this.paidAmount = '0',
+    this.payableAmount = '0',
     this.paymentMethod = '',
     this.isVerified = false,
+    this.isMismatch = false,
     this.mismatchReason,
     this.pickupUserId,
     this.deliveryUserId,
+    this.roleType,
     this.updatedAt,
+    this.createdAt,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json, OrderType type, {bool forceAssigned = false, bool forceCompleted = false}) {
@@ -191,12 +201,17 @@ class OrderModel {
                   ))
               .toList(),
       totalAmount: (json['totalAmount'] ?? details?['totalAmount'])?.toString() ?? '0',
+      paidAmount: (json['paidAmount'] ?? details?['paidAmount'])?.toString() ?? '0',
+      payableAmount: (json['payableAmount'] ?? details?['payableAmount'])?.toString() ?? '0',
       isVerified: json['isVerified'] ?? details?['isVerified'] ?? false,
+      isMismatch: json['isMismatch'] ?? details?['isMismatch'] ?? false,
       paymentMethod: (json['paymentMethod'] ?? details?['paymentMethod'])?.toString() ?? '',
       mismatchReason: json['mismatchReason']?.toString() ?? details?['mismatchReason']?.toString(),
       pickupUserId: json['pickupUserId']?.toString(),
       deliveryUserId: json['deliveryUserId']?.toString(),
+      roleType: json['roleType']?.toString(),
       updatedAt: (json['updatedAt'] ?? details?['updatedAt']) != null ? DateTime.tryParse((json['updatedAt'] ?? details?['updatedAt']).toString()) : null,
+      createdAt: (json['createdAt'] ?? details?['createdAt'])?.toString(),
     );
   }
 
@@ -215,12 +230,17 @@ class OrderModel {
     List<BundleModel>? bundles,
     List<OrderItem>? items,
     String? totalAmount,
+    String? paidAmount,
+    String? payableAmount,
     bool? isVerified,
+    bool? isMismatch,
     String? paymentMethod,
     String? mismatchReason,
     String? pickupUserId,
     String? deliveryUserId,
+    String? roleType,
     DateTime? updatedAt,
+    String? createdAt,
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
@@ -237,12 +257,17 @@ class OrderModel {
       bundles: bundles ?? this.bundles,
       items: items ?? this.items,
       totalAmount: totalAmount ?? this.totalAmount,
+      paidAmount: paidAmount ?? this.paidAmount,
+      payableAmount: payableAmount ?? this.payableAmount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       isVerified: isVerified ?? this.isVerified,
+      isMismatch: isMismatch ?? this.isMismatch,
       mismatchReason: mismatchReason ?? this.mismatchReason,
       pickupUserId: pickupUserId ?? this.pickupUserId,
       deliveryUserId: deliveryUserId ?? this.deliveryUserId,
+      roleType: roleType ?? this.roleType,
       updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
