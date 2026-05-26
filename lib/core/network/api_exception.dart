@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:ziya_laundry_deliveryapp/core/network_exceptions.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/network_exceptions.dart';
 
 class ApiException implements Exception {
   final String message;

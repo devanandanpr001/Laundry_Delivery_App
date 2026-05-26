@@ -4,11 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/forgot_password_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/validators/signup_validators.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import 'package:ziya_laundry_deliveryapp/core/validators/Validators.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/widgets/custom_button.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String phone;
@@ -215,10 +215,10 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   isLoading: provider.isLoading,
                   onPressed: () async {
                     // 1. Validate Empty
-                    final passErr = SignupValidator.validatePassword(
+                    final passErr = Validators.validatePassword(
                       provider.newPasswordController.text,
                     );
-                    final confErr = SignupValidator.validateConfirmPassword(
+                    final confErr = Validators.validateConfirmPassword(
                       provider.newPasswordController.text,
                       provider.confirmPasswordController.text,
                     );

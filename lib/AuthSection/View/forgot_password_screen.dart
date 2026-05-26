@@ -6,10 +6,10 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/forgot_password_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/NewPassword.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/AppToast.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import '../../../../AuthSection/widgets/custom_button.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
 
 class ForgotPassword extends StatelessWidget {
   const ForgotPassword({super.key});
@@ -150,38 +150,7 @@ class ForgotPassword extends StatelessWidget {
                                   );
                                 }
                               },
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.center,
-                      //   children: [
-                      //      Text(
-                      //       AppText.FrgtNoAcc,
-                      //       style: TextStyle(
-                      //         fontSize: 12.sp,
-                      //         fontFamily: GoogleFonts.roboto().fontFamily,
-                      //         color: AppColors.black,
-                      //       ),
-                      //     ),
-                      //     TextButton(
-                      //         onPressed: () {
-                      //           Navigator.push(
-                      //               context,
-                      //               MaterialPageRoute(
-                      //                 builder: (context) => const SignupScreen()));
-                      //         },
-                      //         child: Text(
-                      //           AppText.FrgtSignUp,
-                      //           style: TextStyle(
-                      //             fontSize: 12.sp,
-                      //             fontFamily: GoogleFonts.roboto().fontFamily,
-                      //             color: AppColors.primaryBlue,
-                      //           ),
-                      //         ))
-                      //   ],
-                      // ),
+                      )
                     ],
                   );
                 },

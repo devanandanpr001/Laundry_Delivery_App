@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
-import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/api_constants.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/dio_client.dart';
 
 class HomeService {
   final DioClient _dioClient = DioClient();

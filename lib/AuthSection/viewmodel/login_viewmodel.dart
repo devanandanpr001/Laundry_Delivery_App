@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/repositories/auth_repository.dart';
-import '../../Constants/validators/signup_validators.dart';
+import '../../core/validators/Validators.dart';
 import 'base_viewmodel.dart';
 
 class LoginViewModel extends BaseViewModel {
@@ -56,9 +56,9 @@ class LoginViewModel extends BaseViewModel {
   }
 
   bool validateLogin() {
-    loginNameError = SignupValidator.validateName(nameController.text);
-    loginMobileError = SignupValidator.validateMobile(mobileController.text);
-    loginPasswordError = SignupValidator.validatePassword(passwordController.text);
+    loginNameError = Validators.validateName(nameController.text);
+    loginMobileError = Validators.validateMobile(mobileController.text);
+    loginPasswordError = Validators.validatePassword(passwordController.text);
 
     notifyListeners();
     return loginNameError == null &&

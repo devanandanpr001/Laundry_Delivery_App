@@ -22,12 +22,6 @@ class ApiConstants {
   static const String acceptPickup = '/delivery-session/session/accept-pickup';
   static const String acceptDelivery = '/delivery-session/session/accept-delivery';
 
-  
-  // static const String allOrders = '/delivery-session/session/orders/all';
-  // static const String markDelivered = '/delivery-session/session/orders/mark-delivered'; // Assuming this endpoint for completing orders
-  // static const String assignedOrders = '/delivery-session/session/orders/assigned';
-
-
   // pending connection 
   static const String completedOrders = '/delivery-session/session/orders/completed';
   

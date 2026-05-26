@@ -5,8 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart'; // Import for firstWhereOrNull
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 
 class GalleryScreen extends StatefulWidget {

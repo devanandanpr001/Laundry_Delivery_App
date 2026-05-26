@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/Api_Constants.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/api_constants.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/core/api_exception.dart';
-import 'package:ziya_laundry_deliveryapp/core/connectivity_service.dart';
-import 'package:ziya_laundry_deliveryapp/core/network_exceptions.dart';
-import 'package:ziya_laundry_deliveryapp/core/token_service.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/session_expired_dialog.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/api_exception.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/network_exceptions.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/token_service.dart';
+import 'package:ziya_laundry_deliveryapp/core/widgets/session_expired_dialog.dart';
 import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart'; // Import for GlobalKey and AlertDialog
@@ -272,11 +272,6 @@ class DioClient {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
-        bool isNetworkRelatedError(DioException error) {
-          return error.type == DioExceptionType.connectionError ||
-              error.type == DioExceptionType.connectionTimeout ||
-              error.type == DioExceptionType.receiveTimeout;
-        }
 
         // List of paths that should NEVER trigger a token refresh cycle
         final authPaths = [

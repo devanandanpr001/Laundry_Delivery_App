@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/bottom_navigation_page.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/app_network_image.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/bottom_navigation_page.dart';
+import 'package:ziya_laundry_deliveryapp/core/widgets/app_network_image.dart';
 
 class Onboardingscreen extends StatefulWidget {
   const Onboardingscreen({super.key});

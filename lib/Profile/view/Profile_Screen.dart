@@ -5,9 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/Notification/view/notification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/view/ChangePassword_Screen.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/view/ChangeProfileImage.dart';
@@ -16,9 +16,9 @@ import 'package:ziya_laundry_deliveryapp/Profile/view/MyOrders.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/view/PrivacyPolicy.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/premium_dialog.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/advanced_image.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/premium_dialog.dart';
+import 'package:ziya_laundry_deliveryapp/core/widgets/advanced_image.dart';
 
 class ProfileScreen extends StatelessWidget {
   final VoidCallback onBackToHome;

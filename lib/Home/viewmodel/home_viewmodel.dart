@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/data/repository/service_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/profile_repository.dart';
-import '../../Constants/Api_Constants.dart';
-import '../../core/dio_client.dart';
+import '../../core/Constants/api_constants.dart';
+import '../../core/network/dio_client.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final HomeRepository _repository;

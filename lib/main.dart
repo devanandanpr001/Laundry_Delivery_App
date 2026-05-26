@@ -19,15 +19,15 @@ import 'package:ziya_laundry_deliveryapp/Notification/viewmodel/notification_vie
 import 'package:ziya_laundry_deliveryapp/Orders/data/service/service_service.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/profile_repository.dart';
-import 'package:ziya_laundry_deliveryapp/core/connectivity_service.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/no_internet_connection_screen.dart';
+import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_connection_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/service/help_support_service.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/service/profile_service.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/data/repository/help_support_repository.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_controller.dart';
-import 'package:ziya_laundry_deliveryapp/core/dio_client.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/dio_client.dart';
 import 'package:quick_popup_manager/quick_popup_manager.dart';
 
 class AppRouteObserver extends NavigatorObserver {

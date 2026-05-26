@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/model/user_model.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/repositories/auth_repository.dart';
 import 'package:ziya_laundry_deliveryapp/AuthSection/data/services/auth_service.dart';
-import '../../Constants/validators/signup_validators.dart';
+import '../../core/validators/Validators.dart';
 import 'base_viewmodel.dart';
 
 class SignupViewModel extends BaseViewModel {
@@ -49,14 +49,14 @@ class SignupViewModel extends BaseViewModel {
   }
 
   bool validateSignup() {
-    signupNameError = SignupValidator.validateName(_signupModel.name);
-    signupMobileError = SignupValidator.validateMobile(_signupModel.mobile);
-    signupPasswordError = SignupValidator.validatePassword(_signupModel.password);
-    confirmPasswordError = SignupValidator.validateConfirmPassword(
+    signupNameError = Validators.validateName(_signupModel.name);
+    signupMobileError = Validators.validateMobile(_signupModel.mobile);
+    signupPasswordError = Validators.validatePassword(_signupModel.password);
+    confirmPasswordError = Validators.validateConfirmPassword(
       _signupModel.password,
       _signupModel.confirmPassword,
     );
-    agreementError = SignupValidator.validateAgreement(_signupModel.agreed);
+    agreementError = Validators.validateAgreement(_signupModel.agreed);
 
     notifyListeners();
 
@@ -91,7 +91,7 @@ class SignupViewModel extends BaseViewModel {
       if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
         return "All fields are required";
       }
-      final newPasswordError = SignupValidator.validatePassword(newPassword);
+      final newPasswordError = Validators.validatePassword(newPassword);
       if (newPasswordError != null) return newPasswordError;
       
       if (newPassword != confirmPassword) return "Passwords do not match";

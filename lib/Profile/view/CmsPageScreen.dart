@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
 
 class CmsPageScreen extends StatefulWidget {
   final String type; // 'PRIVACY', 'TERMS', 'ABOUT', 'FAQ'

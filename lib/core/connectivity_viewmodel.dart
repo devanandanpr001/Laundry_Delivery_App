@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/core/connectivity_service.dart';
-import 'package:ziya_laundry_deliveryapp/core/network_status.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/network_status.dart';
 
 class ConnectivityViewModel extends ChangeNotifier {
   final ConnectivityService _service;

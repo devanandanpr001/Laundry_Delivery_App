@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:ziya_laundry_deliveryapp/core/network_status.dart';
+import 'package:ziya_laundry_deliveryapp/core/network/network_status.dart';
 
 class ConnectivityService {
   ConnectivityService._internal() {

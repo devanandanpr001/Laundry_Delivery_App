@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 // Ensure these point to your actual setup paths
 // AppColors not required in this simplified popup
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_images.dart';
 
 class NotificationPopupWidget extends StatelessWidget {
   final String title;       // e.g., "Notification for delivery test"

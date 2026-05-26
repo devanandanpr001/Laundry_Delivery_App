@@ -1,4 +1,4 @@
-class SignupValidator {
+class Validators {
   static String? validateName(String value) {
     if (value.trim().isEmpty) {
       return 'Name is required';

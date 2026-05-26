@@ -3,13 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_text.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/core/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/BottomNavigation/CustomSmartRefresher.dart';
-import 'package:ziya_laundry_deliveryapp/common_widgets/app_shimmer.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 
 import '../../Orders/data/model/order_model.dart';
 
