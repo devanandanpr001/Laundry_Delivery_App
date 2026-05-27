@@ -1,32 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/View/LogIn_screen.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/SignUp_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/onBoarding/splash_screen.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/data/repository/service_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Home/data/repository/home_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Home/data/service/home_service.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/data/repository/order_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/data/service/order_service.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Notification/data/repository/notification_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Notification/data/Service/notification_service.dart';
-import 'package:ziya_laundry_deliveryapp/Notification/viewmodel/notification_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/data/service/service_service.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/data/repository/profile_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/login_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/SignUp_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/onBoarding/splash_screen.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/data/repository/service_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Home/data/repository/home_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/Home/data/service/home_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/data/repository/order_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/data/service/order_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Notification/data/repository/notification_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/Notification/data/Service/notification_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Notification/viewmodel/notification_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/data/service/service_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/service_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/data/repository/profile_repository.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_connection_screen.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/data/service/help_support_service.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/data/service/profile_service.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/profile_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/data/repository/help_support_repository.dart';
-import 'package:ziya_laundry_deliveryapp/Profile/viewmodel/help_support_controller.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/data/service/help_support_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/data/service/profile_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/profile_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/data/repository/help_support_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/help_support_controller.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/dio_client.dart';
 import 'package:quick_popup_manager/quick_popup_manager.dart';
 
@@ -64,7 +65,9 @@ class AppRouteObserver extends NavigatorObserver {
   }
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(riverpod.ProviderScope(child: MyApp()));
 }
 

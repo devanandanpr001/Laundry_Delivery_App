@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:ziya_laundry_deliveryapp/core/Constants/api_constants.dart';
-import 'package:ziya_laundry_deliveryapp/AuthSection/viewmodel/login_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/order_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/Orders/viewmodel/service_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/service_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/api_exception.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/network_exceptions.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/token_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/session_expired_dialog.dart';
-import 'package:ziya_laundry_deliveryapp/Home/viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/material.dart'; // Import for GlobalKey and AlertDialog
+import 'package:flutter/material.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/login_viewmodel.dart'; // Import for GlobalKey and AlertDialog
 
 enum _RefreshStatus { success, networkFailure, authFailure }
 

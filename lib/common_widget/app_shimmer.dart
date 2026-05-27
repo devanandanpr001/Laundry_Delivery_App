@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
-// app_shimmer uses neutral colors and doesn't require AppColors
+// Moved to lib/core/utils/app_shimmer.dart
 
 /// Centralized shimmer loading effects for the entire app
 class AppShimmer {
