@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/core/validators/Validators.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/data/repositories/auth_repository.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/SocketService.dart';
 import 'base_viewmodel.dart';
 
 class LoginViewModel extends BaseViewModel {
@@ -100,6 +101,16 @@ class LoginViewModel extends BaseViewModel {
     try {
       final result = await _repository.verifyOtp(mobileController.text, pin);
       if (result['success'] == true) {
+        // Extract user data from response safely
+        final userJson = _extractUserMap(result);
+        
+        // Extract credentials safely to pass to SocketService
+        final String userId = (userJson['id'] ?? userJson['_id'] ?? userJson['userId'] ?? '').toString();
+        final String role = userJson['role']?.toString() ?? 'USER';
+
+        // Connect socket for the authenticated user session
+        await SocketService().connect(userId: userId, role: role);
+
         return true;
       } else {
         setError(result['msg'] ?? "Invalid OTP");
@@ -127,5 +138,16 @@ class LoginViewModel extends BaseViewModel {
     mobileController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  Map<String, dynamic> _extractUserMap(dynamic response) {
+    if (response is! Map) return {};
+    if (response['user'] is Map) return Map<String, dynamic>.from(response['user']);
+    if (response['data'] is Map) {
+      final data = response['data'];
+      if (data['user'] is Map) return Map<String, dynamic>.from(data['user']);
+      return Map<String, dynamic>.from(data);
+    }
+    return Map<String, dynamic>.from(response);
   }
 }

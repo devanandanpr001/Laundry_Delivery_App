@@ -21,132 +21,139 @@
       required this.isSelected,
       required this.isRead,
       required this.isSelectionMode,
-      this.isExpanded = false,
+      required this.isExpanded,
     });
 
     @override
     Widget build(BuildContext context) {
-      return Stack(
-        children: [
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 8.h),
-            width: double.infinity,
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        margin: EdgeInsets.symmetric(vertical: 8.h),
+        width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(14.r),
           color: isSelected ? AppColors.notifSelectedRed : AppColors.white,
           boxShadow: [
             BoxShadow(
-              color: AppColors.black12,
-              offset: Offset(0, 3),
-              blurRadius: 6,
+              color: Colors.black.withOpacity(0.05),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isSelectionMode)
-              Padding(
-                padding: EdgeInsets.only(right: 10.w, top: 10.h),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  height: 24.h,
-                  width: 24.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? AppColors.red : AppColors.primaryBlue,
-                      width: 2,
-                    ),
-                    color: isSelected ? AppColors.red : AppColors.transparent,
-                  ),
-                  child: isSelected
-                      ? const Center(
-                          child: Icon(Icons.check, size: 16, color: AppColors.white),
-                        )
-                      : null,
-                ),
-              ),
-
-            /// Icon Circle
-            SizedBox(
-              height: 40.w,
-              width: 40.w,
-              child: Stack(
-                alignment: Alignment.center,
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    height: 40.w,
-                    width: 40.w,
-                    decoration: BoxDecoration(
-                      color: AppColors.notifBadgeBlue,
-                      shape: BoxShape.circle,
+                  if (isSelectionMode)
+                    Padding(
+                      padding: EdgeInsets.only(right: 12.w),
+                      child: Container(
+                        height: 22.h,
+                        width: 22.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? AppColors.red : AppColors.primaryBlue,
+                            width: 2,
+                          ),
+                          color: isSelected ? AppColors.red : AppColors.transparent,
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check, size: 14, color: AppColors.white)
+                            : null,
+                      ),
                     ),
-                  ),
-                  Image.asset(AppImages.iconPackage, height: 15.h, width: 15.w),
-                ],
-              ),
-            ),
 
-            SizedBox(width: 14.w),
-
-            /// Text Section
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  /// Title + Time Row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  /// Icon and Unread Indicator
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: isExpanded ? null : 1,
-                          overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w500),
+                      Container(
+                        height: 42.w,
+                        width: 42.w,
+                        decoration: const BoxDecoration(
+                          color: Color(0xffE8F0FE),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Image.asset(AppImages.iconPackage, height: 20.h, width: 20.w),
                         ),
                       ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        createdAt,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13.sp,
-                          color: AppColors.notifTimeBlue,
-                          fontWeight: FontWeight.w500,
+                      if (!isRead && !isSelectionMode)
+                        Positioned(
+                          top: -2.h,
+                          right: -2.w,
+                          child: Container(
+                            height: 10.h,
+                            width: 10.h,
+                            decoration: const BoxDecoration(
+                              color: AppColors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                  SizedBox(height: 6.h),
-                  /// Notification message
-                  Text(
-                    message,
-                    maxLines: isExpanded ? null : 2,
-                    overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w400, color: AppColors.black54),
+                  SizedBox(width: 12.w),
+
+                  /// Title and Date
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          createdAt,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12.sp,
+                            color: AppColors.primaryBlue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    color: AppColors.grey,
+                    size: 20.sp,
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-          ),
-          if (!isRead && !isSelectionMode)
-            Positioned(
-              top: 12.h,
-              right: 4.w,
-              child: Container(
-                height: 10.h,
-                width: 10.h,
-                decoration: const BoxDecoration(
-                  color: AppColors.red,
-                  shape: BoxShape.circle,
+              if (isExpanded) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: AppColors.black12),
                 ),
-              ),
-            ),
-        ],
+                Text(
+                  message,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.sp,
+                    color: Colors.black87,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       );
     }
   }

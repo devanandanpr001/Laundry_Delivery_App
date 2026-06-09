@@ -23,6 +23,15 @@ class NotificationRepository {
     }
   }
 
+  /// Bulk clear notifications
+  Future<bool> clearNotifications(List<String> notificationIds) async {
+    try {
+      return await _service.clearNotifications(notificationIds);
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> clearNotification(String notificationId) async {
     try {
       return await _service.clearNotifications([notificationId]);

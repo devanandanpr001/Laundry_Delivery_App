@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/SocketService.dart';
 import '../viewmodel/notification_viewmodel.dart';
 import '../widgets/notification_item_widget.dart';
-import '../widgets/notification_popup_widget.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -18,6 +18,21 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   bool isDeleteMode = false;
+  final Set<String> _expandedIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<NotificationViewModel>().initSocket();
+    });
+  }
+
+  @override
+  void dispose() {
+    SocketService().off('notification-change');
+    super.dispose();
+  }
 
   String _formatDate(String createdAt) {
     final parts = createdAt.split(' ');
@@ -156,18 +171,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                       if (isSelectionMode) {
                                         notificationVM.toggleSelection(index);
                                       } else {
-                                        await notificationVM.markAsReadAt(index);
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return NotificationPopupWidget(
-                                              title: notification.title,
-                                              message: notification.message,
-                                              date: _formatDate(notification.createdAt),
-                                              time: _formatTime(notification.createdAt),
-                                            );
-                                          },
-                                        );
+                                        if (!notification.isRead) await notificationVM.markAsReadAt(index);
+                                        // Toggle expansion on single tap
+                                        setState(() {
+                                          if (!_expandedIds.contains(notification.id)) {
+                                            _expandedIds.add(notification.id);
+                                          } else {
+                                            _expandedIds.remove(notification.id);
+                                          }
+                                        });
                                       }
                                     },
                                     onLongPress: () {
@@ -184,6 +196,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                       isSelected: notification.isSelected,
                                       isRead: notification.isRead,
                                       isSelectionMode: isSelectionMode,
+                                      isExpanded: _expandedIds.contains(notification.id),
                                     ),
                                   );
                                 },

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/features/Notification/data/repository/notification_repository.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/SocketService.dart';
 import '../data/model/notification_model.dart';
 
 class NotificationViewModel extends ChangeNotifier {
@@ -11,6 +12,7 @@ class NotificationViewModel extends ChangeNotifier {
   List<NotificationModel> _notifications = [];
   bool _isLoading = false;
   int _unreadCount = 0;
+  bool _socketInitialized = false;
 
   List<NotificationModel> get notificationList => _notifications;
   bool get isLoading => _isLoading;
@@ -113,17 +115,69 @@ class NotificationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void deleteSelected() {
-    _notifications.removeWhere((item) => item.isSelected);
+  Future<void> deleteSelected() async {
+    final selectedIds = _notifications
+        .where((e) => e.isSelected)
+        .map((e) => e.id)
+        .toList();
+
+    if (selectedIds.isEmpty) return;
+
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      final success = await _repository
+          .clearNotifications(selectedIds);
+
+      if (success) {
+        _notifications.removeWhere(
+          (e) => e.isSelected,
+        );
+
+        _unreadCount =
+            _notifications.where((e) => !e.isRead).length;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Initialize notification view model for a specific user.
   /// Keeps signature compatible with existing callers: `init(userId, role)`.
   Future<void> init(String userId, String role) async {
-    // Currently we don't need to use userId/role directly, but keep them
-    // in the signature for future use. Perform an initial fetch of
-    // notifications to populate the UI when the user is ready.
+    await SocketService().connect(userId: userId, role: role);
+    initSocket();
     await fetchNotifications();
+  }
+
+  /// Initialize Socket listeners for real-time notifications.
+  void initSocket() {
+    if (_socketInitialized) return;
+
+    _socketInitialized = true;
+    SocketService().listenNotificationChange((data) {
+      debugPrint(
+        '🔔 Live Notification Received => $data',
+      );
+      // Re-fetch all notifications to ensure UI is always in sync with backend
+      // This avoids client-side parsing issues and duplicate checks.
+      fetchNotifications();
+    });
+
+    SocketService().listenJoinSuccess((data) {
+      debugPrint(
+        '✅ Joined Room => $data',
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    // Clean up socket listeners when the ViewModel is disposed
+    SocketService().off('notification-change');
+    SocketService().off('joined-successfully');
+    super.dispose();
   }
 }

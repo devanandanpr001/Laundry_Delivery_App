@@ -45,13 +45,13 @@ class NotificationService {
   Future<bool> clearNotifications(List<String> notificationIds, {bool clearAll = false}) async {
     final body = clearAll
         ? {"clearAll": true}
-        : {"notificationIds": notificationIds};
-    final resp = await _client.post(ApiConstants.notificationClear, data: body);
+        : {"notificationIds": notificationIds}; // Changed to PATCH
+    final resp = await _client.patch(ApiConstants.notificationClear, data: body);
     return resp != null && resp['success'] == true;
   }
 
   Future<bool> undoNotifications(List<String> notificationIds) async {
-    final resp = await _client.post(ApiConstants.notificationUndo, data: {"notificationIds": notificationIds});
+    final resp = await _client.patch(ApiConstants.notificationUndo, data: {"notificationIds": notificationIds});
     return resp != null && resp['success'] == true;
   }
 
