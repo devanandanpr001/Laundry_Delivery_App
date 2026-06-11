@@ -1,23 +1,25 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants { // Moved from lib/Constants/Api_Constants.dart
-  // static const String baseUrl = 'http://192.168.0.105:5001/api';
+  // static const String baseUrl = 'http://192.168.1.36:5001/api';
   // static const String mediaBaseUrl = 'http://192.168.0.105:5001/'; // Base for images
     static final String baseUrl = dotenv.env['BASE_URL'] ?? '';
 
-    /// Base URL used to load media assets (images/files).
-    ///
-    /// Priority:
-    /// 1. `MEDIA_BASE_URL` environment variable (if provided)
-    /// 2. Derived from `BASE_URL` by removing a trailing `/api` and ensuring a trailing slash
-    /// 3. Empty string if none available
     static String get mediaBaseUrl {
       final env = dotenv.env['MEDIA_BASE_URL'];
       if (env != null && env.isNotEmpty) return env.endsWith('/') ? env : '$env/';
-      if (baseUrl.isNotEmpty) {
-        // If baseUrl contains '/api' at the end, strip it to get host root
-        if (baseUrl.endsWith('/api')) return baseUrl.substring(0, baseUrl.length - 4) + '/';
-        return baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
+
+      String base = baseUrl;
+      if (base.isNotEmpty) {
+        // Normalize the base URL by removing the trailing slash if present
+        if (base.endsWith('/')) {
+          base = base.substring(0, base.length - 1);
+        }
+        // If the normalized baseUrl ends with '/api', strip it to get the server's root directory for media
+        if (base.endsWith('/api')) {
+          return '${base.substring(0, base.length - 4)}/';
+        }
+        return '$base/';
       }
       return '';
     }

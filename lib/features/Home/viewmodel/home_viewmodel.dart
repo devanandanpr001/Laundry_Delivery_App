@@ -11,10 +11,12 @@ class HomeViewModel extends ChangeNotifier {
   final ServiceRepository _serviceRepository;
 
   HomeViewModel(this._repository, this._profileRepository, this._serviceRepository) {
-    _init();
+    DioClient.onSessionExpired = _handleSessionExpired;
+    _isSessionExpired = false;
   }
 
   bool _isOnline = false;
+  bool _isOnlineInitialized = false;
   bool _isLoading = false;
   bool _isSessionExpired = false;
   String _selectedFilter = "all";
@@ -39,20 +41,6 @@ class HomeViewModel extends ChangeNotifier {
   String get userName => _userName;
   String get profileImage => _profileImage;
   String get address => _address;
-
-  Future<void> _init() async {
-    try {
-      _isOnline = await _repository.getInitialOnlineStatus();
-      // Touch service repository to avoid unused-field analyzer warning
-      _serviceRepository.hashCode;
-    } catch (e) {
-      debugPrint("HomeViewModel: Failed to fetch initial online status: $e");
-      _isOnline = false;
-    }
-    _isSessionExpired = false;
-    DioClient.onSessionExpired = _handleSessionExpired;
-    refreshOrders();
-  }
 
   void _handleSessionExpired() {
     _isSessionExpired = true;
@@ -80,6 +68,16 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      if (!_isOnlineInitialized) {
+        try {
+          _isOnline = await _repository.getInitialOnlineStatus();
+          _isOnlineInitialized = true;
+        } catch (e) {
+          debugPrint("HomeViewModel: Failed to fetch initial online status: $e");
+        }
+      }
+      _serviceRepository.hashCode; // Keep field usage reference
+
       final results = await Future.wait<dynamic>([
         _repository.getDashboardCounts().catchError((e) {
           debugPrint("HomeViewModel: Counts fetch failed: $e");
@@ -146,7 +144,7 @@ class HomeViewModel extends ChangeNotifier {
     _scrollToOrderId = null;
   }
 
-  Future<void> toggleOnlineStatus() async {
+  Future<bool> toggleOnlineStatus() async {
     final newStatus = !_isOnline;
     // Optimistic UI update
     _isOnline = newStatus;
@@ -162,10 +160,12 @@ class HomeViewModel extends ChangeNotifier {
       if (response == null || response['success'] != true) {
         throw Exception("Failed to update status");
       }
+      return true;
     } catch (e) {
       _isOnline = !newStatus; // Revert on failure
       notifyListeners();
       debugPrint("Error updating online status: $e");
+      return false;
     }
   }
 }

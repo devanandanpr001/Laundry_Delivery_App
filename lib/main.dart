@@ -30,6 +30,8 @@ import 'package:ziya_laundry_deliveryapp/features/Profile/data/repository/help_s
 import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/help_support_controller.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/dio_client.dart';
 import 'package:quick_popup_manager/quick_popup_manager.dart';
+import 'package:ziya_laundry_deliveryapp/core/services/network_service.dart';
+import 'package:ziya_laundry_deliveryapp/core/widgets/offline_indicator.dart';
 
 class AppRouteObserver extends NavigatorObserver {
   final ValueNotifier<String?> currentRoute = ValueNotifier<String?>(null);
@@ -67,6 +69,7 @@ class AppRouteObserver extends NavigatorObserver {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NetworkService.instance.startMonitoring();
   await dotenv.load(fileName: ".env");
   runApp(riverpod.ProviderScope(child: MyApp()));
 }
@@ -151,64 +154,20 @@ class MyApp extends StatelessWidget {
               update: (_, repository, previous) => previous ?? NotificationViewModel(repository),
             ),
              ],
-          child: MaterialApp(
+          child: OfflineIndicatorWrapper(
             navigatorKey: DioClient.navigatorKey,
-            navigatorObservers: [QuickPopupNavigatorObserver(), _appRouteObserver],
-            debugShowCheckedModeBanner: false,
-            title: 'Ziya Laundry DeliveryApp',
-            initialRoute: '/',
-            routes: {
-              '/': (context) => const SplashScreen(),
-              '/login': (context) => const LoginScreen(),
-            },
-            builder: (context, child) {
-              final connectivity = context.watch<ConnectivityViewModel>();
-
-              return Stack(
-                children: [
-                  child ?? const SizedBox.shrink(),
-                  ValueListenableBuilder<String?>(
-                    valueListenable: _appRouteObserver.currentRoute,
-                    builder: (context, currentRoute, _) {
-                      final authRouteNames = [
-                        '/',
-                        '/login',
-                        '/onboarding',
-                        '/forgot-password',
-                        '/verification',
-                        '/new-password',
-                        '/signup',
-                        '/sign-up',
-                      ];
-                      final authRouteTypes = [
-                        'SplashScreen',
-                        'LoginScreen',
-                        'Onboardingscreen',
-                        'SignUp',
-                        'SignUpScreen',
-                        'VerificationScreen',
-                        'ForgotPassword',
-                        'NewPasswordScreen',
-                      ];
-                      final currentRouteName = currentRoute ?? '';
-                      final isAuthRoute = authRouteNames.contains(currentRouteName) ||
-                          authRouteTypes.any(currentRouteName.contains);
-                      final shouldShowOffline = connectivity.isInitialized &&
-                          !connectivity.isOnline &&
-                          !isAuthRoute;
-                      if (!shouldShowOffline) return const SizedBox.shrink();
-                      return Positioned.fill(
-                        child: NoInternetConnectionScreen(
-                          onRetry: () async {
-                            await context.read<ConnectivityViewModel>().refreshConnection();
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
+            child: MaterialApp(
+              navigatorKey: DioClient.navigatorKey,
+              navigatorObservers: [QuickPopupNavigatorObserver(), _appRouteObserver],
+              debugShowCheckedModeBanner: false,
+              title: 'Ziya Laundry DeliveryApp',
+              initialRoute: '/',
+              routes: {
+                '/': (context) => const SplashScreen(),
+                '/login': (context) => const LoginScreen(),
+              },
+              builder: (context, child) => child!,
+            ),
           ),
         );
       },

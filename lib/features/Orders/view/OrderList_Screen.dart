@@ -10,6 +10,7 @@ import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/data/model/order_model.dart';
 import '../../Home/viewmodel/home_viewmodel.dart';
 
@@ -26,21 +27,68 @@ class OrderlistScreen extends StatefulWidget {
 
 class _OrderlistScreenState extends State<OrderlistScreen> {
   OrderType _selectedType = OrderType.pickup;
+  String? _fetchError;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final homeVM = context.read<HomeViewModel>();
-      final orderVM = context.read<OrderViewModel>();
-      Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
+      _initialLoad();
     });
+  }
+
+  Future<void> _initialLoad() async {
+    if (mounted) setState(() => _fetchError = null);
+    final homeVM = context.read<HomeViewModel>();
+    final orderVM = context.read<OrderViewModel>();
+
+    try {
+      await Future.wait([
+        homeVM.refreshOrders(),
+        orderVM.fetchAllOrders(),
+      ]);
+    } catch (e) {
+      if (mounted) setState(() => _fetchError = _parseError(e));
+      debugPrint("OrderlistScreen: Error during _initialLoad: $e");
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    final connectivity = context.read<ConnectivityViewModel>();
+    if (!await connectivity.refreshConnection()) {
+      if (mounted) setState(() => _fetchError = "No internet connection");
+      return;
+    }
+
+    final homeVM = context.read<HomeViewModel>();
+    final orderVM = context.read<OrderViewModel>();
+
+    try {
+      if (mounted) setState(() => _fetchError = null);
+      await Future.wait([
+        homeVM.refreshOrders(),
+        orderVM.fetchAllOrders(),
+      ]);
+    } catch (e) {
+      if (mounted) setState(() => _fetchError = _parseError(e));
+      debugPrint("OrderlistScreen: Error during _onRefresh: $e");
+    }
+  }
+
+  String _parseError(dynamic e) {
+    String msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
+    final lower = msg.toLowerCase();
+    if (lower.contains("socket") || lower.contains("network") || lower.contains("connection")) {
+      return "No internet connection";
+    }
+    return msg.isEmpty ? "An unexpected error occurred" : msg;
   }
 
   @override
   Widget build(BuildContext context) {
     final homeVM = context.watch<HomeViewModel>();
     final orderVM = context.watch<OrderViewModel>();
+    final connectivityVM = context.watch<ConnectivityViewModel>();
     final selectedFilter = homeVM.selectedFilter;
     final isOnline = homeVM.isOnline;
 
@@ -60,7 +108,17 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
+      body: _fetchError != null && !homeVM.isLoading && !orderVM.isLoading && !connectivityVM.isOnline
+          ? NoInternetWidget(
+              message: _fetchError ?? AppText.UrOffline,
+              onRetry: () async {
+                final connected = await connectivityVM.refreshConnection();
+                if (connected) {
+                  await _onRefresh();
+                }
+              },
+            )
+          : SafeArea(
         child: Column(
           children: [
             // Fixed Header Section
@@ -124,17 +182,8 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
             // Efficient List Rendering
             Expanded(
               child: CustomSmartRefresher(
-                onRefresh: () async {
-                  final connectivity = context.read<ConnectivityViewModel>();
-                  if (!await connectivity.refreshConnection()) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppText.UrOffline)),
-                    );
-                    return;
-                  }
-                  await Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
-                },
-                child: orderVM.isLoading
+                onRefresh: _onRefresh,
+                child: (orderVM.isLoading || homeVM.isLoading)
                     ? ListView.builder(
                         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
                         itemCount: 6,

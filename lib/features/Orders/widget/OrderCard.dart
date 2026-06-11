@@ -252,8 +252,34 @@ class _OrderCardState extends State<OrderCard> {
               ],
               SizedBox(height: 10.h),
               widget.isDetailsPage 
-                ? OrderProgressButton(text: AppText.BtnAccept, stage: currentOrder.orderType == OrderType.delivery ? DeliveryStage.startDelivery : DeliveryStage.startPickup, onPressed: widget.onAccept ?? () {})
-                : AcceptViewActionRow(isOnline: isOnline, onView: widget.onViewTap ?? () {}, onAccept: widget.onAccept),
+                ? OrderProgressButton(
+                    text: AppText.BtnAccept, 
+                    stage: currentOrder.orderType == OrderType.delivery ? DeliveryStage.startDelivery : DeliveryStage.startPickup, 
+                    onPressed: () {
+                      if (!isOnline) {
+                        AppToast.showOnlineAction(
+                          context,
+                          isOnline: isOnline,
+                          homeVM: homeVM,
+                        );
+                      } else {
+                        widget.onAccept?.call();
+                      }
+                    })
+                : AcceptViewActionRow(
+                    isOnline: isOnline, 
+                    onView: widget.onViewTap ?? () {}, 
+                    onAccept: () {
+                      if (!isOnline) {
+                        AppToast.showOnlineAction(
+                          context,
+                          isOnline: isOnline,
+                          homeVM: homeVM,
+                        );
+                      } else {
+                        widget.onAccept?.call();
+                      }
+                    }),
             ] else ...[
               // Show item verification list
               if (widget.by == "Per Piece")

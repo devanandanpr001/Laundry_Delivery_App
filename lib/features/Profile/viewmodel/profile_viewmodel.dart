@@ -20,10 +20,14 @@ class ProfileViewModel extends ChangeNotifier {
   // Getter for the profile image URL from the fetched profile data
   String get profileImageUrl {
     String url = _userProfile?['profileImage']?.toString() ?? '';
-    // Handle relative paths by prepending the media base URL from ApiConstants
-    if (url.isNotEmpty && !url.startsWith('http')) {
+
+    if (url.isNotEmpty &&
+        !url.startsWith('http://') &&
+        !url.startsWith('https://')) {
       url = '${ApiConstants.mediaBaseUrl}${url.startsWith('/') ? url.substring(1) : url}';
     }
+
+    debugPrint("UI IMAGE = $url");
     return url;
   }
 
@@ -52,6 +56,8 @@ class ProfileViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _userProfile = await _repository.getProfile(); // Call repository method
+      debugPrint("API IMAGE = ${_userProfile?['profileImage']}");
+      debugPrint("UI IMAGE = $profileImageUrl");
       _errorMessage = null;
     } catch (e) {
       // This will now capture "Server error" from your backend response

@@ -134,7 +134,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                           index < _pinController.text.length ? '*' : '',
                           style: TextStyle(
                             fontSize: 24.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.primaryBlue,
                           ),
                         ),
@@ -154,8 +154,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       decoration: const InputDecoration(
                         counterText: "",
                         border: OutlineInputBorder(borderSide: BorderSide.none),
-                        fillColor: AppColors.transparent,
-                        filled: true,
+                        fillColor: Colors.transparent,
+                        filled: false,
                       ),
                       style: const TextStyle(color: AppColors.transparent),
                       onChanged: (value) {

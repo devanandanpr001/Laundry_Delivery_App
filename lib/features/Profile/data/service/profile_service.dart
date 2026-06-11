@@ -20,7 +20,10 @@ class ProfileService {
 
         // Ensure the profile image is a full URL if it's a relative path
         String? pImg = userData['profileImage']?.toString();
-        if (pImg != null && pImg.isNotEmpty && !pImg.startsWith('http')) {
+        if (pImg != null &&
+            pImg.isNotEmpty &&
+            !pImg.startsWith('http://') &&
+            !pImg.startsWith('https://')) {
           userData['profileImage'] = '${ApiConstants.mediaBaseUrl}$pImg';
         } else if (pImg == null || pImg.isEmpty) {
           // If explicitly null from server, ensure it's an empty string for UI logic
@@ -44,7 +47,7 @@ class ProfileService {
       final String fileExtension = fileName.split('.').last.toLowerCase();
 
       final formData = FormData.fromMap({
-        'profileImage': await MultipartFile.fromFile(
+        'image': await MultipartFile.fromFile(
           image.path,
           filename: fileName,
           contentType: MediaType(
