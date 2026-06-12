@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/custom_widgets.dart';
 
 class OrderCustomerDetails extends StatelessWidget {

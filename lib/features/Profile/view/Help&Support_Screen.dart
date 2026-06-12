@@ -4,10 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/data/models/help_support_model.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/help_support_controller.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 
 class HelpsupportScreen extends StatefulWidget {
   const HelpsupportScreen({super.key});

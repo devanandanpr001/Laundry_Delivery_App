@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/network_service.dart';
 
 
@@ -25,6 +25,7 @@ class OfflineIndicatorWrapper extends StatefulWidget {
 class _OfflineIndicatorWrapperState extends State<OfflineIndicatorWrapper> {
   OverlayEntry? _noInternetPopup;
   bool _waitingForOverlay = false;
+  bool _isExiting = false;
 
   @override
   void initState() {
@@ -40,7 +41,15 @@ class _OfflineIndicatorWrapperState extends State<OfflineIndicatorWrapper> {
       if (!isOnline) {
         _showNoInternetPopup();
       } else {
-        _removePopup();
+        if (_noInternetPopup != null) {
+          setState(() => _isExiting = true);
+          // Trigger the internal rebuild of the overlay to start exit animation
+          _noInternetPopup?.markNeedsBuild();
+          // Wait for animation to finish before removal
+          Future.delayed(const Duration(milliseconds: 400), () {
+            _removePopup();
+          });
+        }
       }
     };
   }
@@ -52,7 +61,7 @@ class _OfflineIndicatorWrapperState extends State<OfflineIndicatorWrapper> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      try {
+      try { // Start of try block
         final overlay = widget.navigatorKey.currentState?.overlay;
         if (overlay == null) {
           if (!_waitingForOverlay) {
@@ -67,47 +76,66 @@ class _OfflineIndicatorWrapperState extends State<OfflineIndicatorWrapper> {
         }
 
         _noInternetPopup = OverlayEntry(
-          builder: (context) => Positioned(
-            bottom: 40.h,
-            left: 16.w,
-            right: 16.w,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: double.infinity,
-                height: 40.h,
-                //margin: EdgeInsets.symmetric(horizontal: 5.w),
-                padding: EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.grey.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(CupertinoIcons.info, color: Colors.white),
-                    SizedBox(width: 12),
-                    const Text(
-                      "No Internet Connection",
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                  ],
+          builder: (context) {
+            return TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              tween: Tween(
+                begin: _isExiting ? 0.0 : 100.0, 
+                end: _isExiting ? 100.0 : 0.0
+              ),
+              builder: (context, value, child) {
+                return Positioned(
+                  bottom: 40.h - value,
+                  left: 16.w,
+                  right: 16.w,
+                  child: Opacity(
+                    opacity: ((100 - value) / 100).clamp(0.0, 1.0),
+                    child: child,
+                  ),
+                );
+              },
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: double.infinity,
+                  height: 45.h,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12.r),
+                    boxShadow: const [ // Added const and corrected closing bracket
+                      BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(CupertinoIcons.wifi_exclamationmark, color: Colors.white),
+                      SizedBox(width: 12.w),
+                      Text(
+                        "No Internet Connection",
+                        style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
 
-        overlay.insert(_noInternetPopup!);
-      } catch (e) {
+        overlay.insert(_noInternetPopup!); // This is now correctly inside the try block
+      } catch (e) { // End of try-catch block
         debugPrint('Failed to show offline indicator: $e');
         _noInternetPopup = null;
       }
-    });
+    }); // Corrected: closing ')' for addPostFrameCallback
   }
 
   void _removePopup() {
     _noInternetPopup?.remove();
     _noInternetPopup = null;
+    _isExiting = false;
   }
 
   @override

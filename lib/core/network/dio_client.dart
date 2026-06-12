@@ -1,17 +1,13 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/api_constants.dart';
-import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/service_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/api_constants.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/api_exception.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/network_exceptions.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/token_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/session_expired_dialog.dart';
-import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/login_viewmodel.dart'; // Import for GlobalKey and AlertDialog
 
 enum _RefreshStatus { success, networkFailure, authFailure }
 
@@ -22,7 +18,9 @@ class DioClient {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   bool _isRefreshing = false;
   bool _sessionExpiredTriggered = false;
-  final List<Completer<void>> _refreshQueue = [];
+  
+  /// Global future to synchronize concurrent refresh requests
+  Future<void>? _refreshFuture;
   
   
   static void Function()? onSessionExpired;
@@ -35,62 +33,84 @@ class DioClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
         responseType: ResponseType.json,
       ),
     );
     _dio.interceptors.add(_createInterceptor());
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        request: true,
-        requestHeader: true,
-      ),
-    );
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          request: true,
+          requestHeader: true,
+        ),
+      );
+    }
   }
 
   Future<void> _handleSessionExpired() async {
     if (_sessionExpiredTriggered) return;
     _sessionExpiredTriggered = true;
 
+    if (kDebugMode) debugPrint("DioClient: Handling Session Expiry...");
     await _tokenService.deleteTokens();
-    _clearQueue(error: "Session Expired");
-    _isRefreshing = false; // Reset refresh flag
+    _isRefreshing = false;
+    _refreshFuture = null;
 
-    // Professional: Handle global session expired UI via navigatorKey
-    // This ensures the dialog appears regardless of which screen the user is currently viewing.
-    final context = navigatorKey.currentContext;
-    if (context != null) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => SessionExpiredDialog(
-          expirationTime: const Duration(seconds: 5),
-          onLoginAgain: () {
-            // Clear UI states and navigate to login
-            try {
-              // Notify all relevant ViewModels to clear their data
-              context.read<OrderViewModel>().clearAllCachedData();
-              context.read<ServiceViewModel>().clearAllCachedData();
-              context.read<HomeViewModel>().resetSessionExpired();
-              context.read<LoginViewModel>().clearFields();
-            } catch (e) {
-              debugPrint("DioClient: Error clearing viewmodel state: $e");
-            }
-            
-            navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
-          },
-        ),
-      );
+    // Define routes where the session expired dialog should NOT be shown
+    final excludedRoutes = [
+      '/login',
+      '/forgot-password',
+      '/verify-otp',
+      '/verify-forgot-otp',
+    ];
+
+    // Get the safest context available from the navigator state for route checking
+    final contextForRouteCheck = navigatorKey.currentState?.overlay?.context;
+    String? currentRouteName;
+    if (contextForRouteCheck != null) {
+      currentRouteName = ModalRoute.of(contextForRouteCheck)?.settings.name;
     }
 
-    // Notify ViewModels to clear local cached data
-    onSessionExpired?.call();
+    if (currentRouteName != null && excludedRoutes.contains(currentRouteName)) {
+      if (kDebugMode) debugPrint("DioClient: Session expired on an excluded route ($currentRouteName). Not showing dialog. Resetting _sessionExpiredTriggered.");
+      _sessionExpiredTriggered = false; // Reset flag as dialog won't be shown
+      return;
+    }
 
-    _sessionExpiredTriggered = false; 
-    debugPrint("DioClient: Session expired triggered.");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Notify app layer immediately to stop background syncs/sockets
+      onSessionExpired?.call();
+
+      // Get the safest context available from the navigator state
+      final context = navigatorKey.currentState?.overlay?.context;
+      
+      if (context != null && navigatorKey.currentState?.mounted == true) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => SessionExpiredDialog(
+            onLoginAgain: () {
+              _sessionExpiredTriggered = false;
+
+              // 1. Close the dialog
+              Navigator.of(dialogContext).pop();
+              
+              // 2. Navigate to login
+              navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                '/login', 
+                (route) => false,
+              );
+            },
+          ),
+        );
+      } else {
+        _sessionExpiredTriggered = false;
+      }
+    });
   }
 
   /// Check if token is valid and not empty
@@ -103,6 +123,8 @@ class DioClient {
   Future<void> clearSession() async {
     await _tokenService.deleteTokens();
     _isRefreshing = false;
+  _refreshFuture = null; // Ensure no pending refresh future
+  _sessionExpiredTriggered = false; // Reset session expiry flag
   }
 
   bool _isNetworkError(DioException error) {
@@ -113,10 +135,8 @@ class DioClient {
 
   Future<_RefreshStatus> _refreshTokens() async {
     if (_isRefreshing) {
-      final completer = Completer<void>();
-      _refreshQueue.add(completer);
       try {
-        await completer.future;
+        await _refreshFuture;
         return _RefreshStatus.success;
       } catch (_) {
         return _RefreshStatus.authFailure;
@@ -124,14 +144,24 @@ class DioClient {
     }
 
     _isRefreshing = true;
+    final completer = Completer<void>();
+    _refreshFuture = completer.future;
+
     try {
       final refreshToken = await _tokenService.getRefreshToken();
+      if (kDebugMode) debugPrint("DioClient: Attempting refresh. RefreshToken found: ${refreshToken != null}");
+
       if (refreshToken == null || refreshToken.isEmpty) {
+        completer.completeError("No refresh token");
         await _handleSessionExpired();
         return _RefreshStatus.authFailure;
       }
 
-      final refreshDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+      ));
+
       final response = await refreshDio.post(
         ApiConstants.refreshToken,
         data: {'refreshToken': refreshToken},
@@ -146,23 +176,25 @@ class DioClient {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken ?? refreshToken,
           );
-          _clearQueue();
+          completer.complete();
           return _RefreshStatus.success;
         }
       }
 
+      completer.completeError("Invalid refresh response");
       await _handleSessionExpired();
       return _RefreshStatus.authFailure;
     } catch (err) {
-      debugPrint("DioClient: Refresh failed: $err");
+      if (kDebugMode) debugPrint("DioClient: Refresh failed: $err");
+      completer.completeError(err);
       if (err is DioException && _isNetworkError(err)) {
-        _clearQueue(error: err);
         return _RefreshStatus.networkFailure;
       }
       await _handleSessionExpired();
       return _RefreshStatus.authFailure;
     } finally {
       _isRefreshing = false;
+      _refreshFuture = null;
     }
   }
 
@@ -193,7 +225,7 @@ class DioClient {
           final accessToken = await _tokenService.getAccessToken();
           // Reject request if token is missing or empty for protected endpoints
           if (accessToken == null || accessToken.isEmpty) {
-            debugPrint("DioClient: Token is missing or empty for protected request: ${options.path}");
+            if (kDebugMode) debugPrint("DioClient: Token is missing or empty for protected request: ${options.path}");
             await _handleSessionExpired();
             return handler.reject(
               DioException(
@@ -237,13 +269,11 @@ class DioClient {
 
           // Normal path: if a refresh is already running, wait for it to finish
           if (_isRefreshing) {
-            final completer = Completer<void>();
-            _refreshQueue.add(completer);
             try {
-              await completer.future;
+              await _refreshFuture;
               final token = await _tokenService.getAccessToken();
               if (token == null || token.isEmpty) {
-                await _handleSessionExpired();
+                if (!_sessionExpiredTriggered) await _handleSessionExpired();
                 return handler.reject(
                   DioException(
                     requestOptions: options,
@@ -286,15 +316,23 @@ class DioClient {
 
         // Handle 401 Unauthorized - Token expired or invalid
         if (e.response?.statusCode == 401 && !isAuthRequest) {
+          
+          // Retry protection: increment retry count
+          final int retryCount = e.requestOptions.extra['retryCount'] ?? 0;
+          if (retryCount >= 1) {
+            if (kDebugMode) debugPrint("DioClient: Max retry reached for ${e.requestOptions.path}");
+            await _handleSessionExpired();
+            return handler.reject(e);
+          }
+          e.requestOptions.extra['retryCount'] = retryCount + 1;
+
           // Coordinate refresh and queued requests via centralized method
           if (_isRefreshing) {
-            final completer = Completer<void>();
-            _refreshQueue.add(completer);
             try {
-              await completer.future;
+              await _refreshFuture;
               final token = await _tokenService.getAccessToken();
               if (token == null || token.isEmpty) {
-                await _handleSessionExpired();
+                if (!_sessionExpiredTriggered) await _handleSessionExpired();
                 return handler.reject(e);
               }
               e.requestOptions.headers['Authorization'] = 'Bearer $token';
@@ -384,18 +422,5 @@ class DioClient {
     } catch (e) {
       throw ApiException(message: e.toString());
     }
-  }
-
-  void _clearQueue({dynamic error}) {
-    for (var completer in _refreshQueue) {
-      if (!completer.isCompleted) {
-        if (error != null) {
-          completer.completeError(error);
-        } else {
-          completer.complete();
-        }
-      }
-    }
-    _refreshQueue.clear();
   }
 }

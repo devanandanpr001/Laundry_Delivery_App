@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 
 class AdvancedCachedImage extends StatefulWidget {
   final String imageUrl;

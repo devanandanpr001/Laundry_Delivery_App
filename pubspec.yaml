@@ -61,6 +61,8 @@ dependencies:
   in_app_update: ^4.2.5
   flutter_dotenv: ^6.0.1
   lottie: ^3.3.3
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
   
 dev_dependencies:
   flutter_test:
@@ -119,3 +121,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/icons/laundry_logo.png
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  android: true
+  ios: true
+
+  android_12:
+    color: "#FFFFFF"
+    image: assets/icons/laundry_logo.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/app_logo.png"

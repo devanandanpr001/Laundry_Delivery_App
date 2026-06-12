@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/dio_client.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/api_constants.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/api_constants.dart';
 
 class NotificationService {
   NotificationService._internal();
 
   static final NotificationService instance = NotificationService._internal();
 
-  /// If the app was launched from a terminated notification, the payload
-  /// can be stored here for the UI to handle once navigation is ready.
   Map<String, dynamic>? pendingNavigationData;
 
   final DioClient _client = DioClient();

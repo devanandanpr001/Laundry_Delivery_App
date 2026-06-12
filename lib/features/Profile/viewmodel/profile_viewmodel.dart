@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/api_constants.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/api_constants.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/data/repository/profile_repository.dart';
 
 class ProfileViewModel extends ChangeNotifier {

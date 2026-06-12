@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import '../viewmodel/home_viewmodel.dart';
 
 class OnlineToggle extends StatelessWidget {

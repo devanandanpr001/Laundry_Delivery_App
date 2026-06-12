@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ziya_laundry_deliveryapp/features/Profile/view/CmsPageScreen.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/widgets/CmsPageWidget.dart';
 
 class Privacypolicy extends StatelessWidget {
   const Privacypolicy({super.key});

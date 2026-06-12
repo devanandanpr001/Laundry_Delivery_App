@@ -22,7 +22,6 @@ import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/service_viewm
 import 'package:ziya_laundry_deliveryapp/features/Profile/data/repository/profile_repository.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_connection_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/data/service/help_support_service.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/data/service/profile_service.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/profile_viewmodel.dart';

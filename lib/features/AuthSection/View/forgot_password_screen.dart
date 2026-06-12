@@ -8,8 +8,8 @@ import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/NewPassword.d
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/forgot_password_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/widgets/custom_button.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 
 class ForgotPassword extends StatelessWidget {
   const ForgotPassword({super.key});

@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/online_toggle.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/order_type_toggle.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_strings.dart';
-import 'package:ziya_laundry_deliveryapp/core/Constants/app_images.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/notification_bell.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/profile_avatar.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/status_count_card.dart';
@@ -144,17 +144,21 @@ class _HomepageState extends State<Homepage> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: _fetchError != null && !homeVM.isLoading && !orderVM.isLoading && !connectivityVM.isOnline
-          ? NoInternetWidget(
-              message: _fetchError ?? AppText.UrOffline,
-              onRetry: () async {
-                final connected = await connectivityVM.refreshConnection();
-                if (connected) {
-                  await _onRefresh();
-                }
-              },
-            )
-          : SafeArea(
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 800),
+        child: _fetchError != null && !homeVM.isLoading && !orderVM.isLoading && !connectivityVM.isOnline
+            ? NoInternetWidget(
+                key: const ValueKey('no_internet_screen'),
+                message: _fetchError ?? AppText.UrOffline,
+                onRetry: () async {
+                  final connected = await connectivityVM.refreshConnection();
+                  if (connected) {
+                    await _onRefresh();
+                  }
+                },
+              )
+            : SafeArea(
+                key: const ValueKey('home_content'),
               child: Padding(
                 padding: EdgeInsets.only(left: 20.w, right: 20.w, top: 20.h),
                 child: Column(
@@ -304,6 +308,7 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
             ),
+      ),
     );
   }
 }
