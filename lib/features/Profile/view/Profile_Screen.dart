@@ -21,7 +21,6 @@ import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart
 import 'package:ziya_laundry_deliveryapp/common_widget/premium_dialog.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/widgets/advanced_image.dart';
-import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onBackToHome;
@@ -30,7 +29,7 @@ class ProfileScreen extends StatefulWidget {
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
-
+  
 class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> showLogoutDialog(BuildContext context) async {

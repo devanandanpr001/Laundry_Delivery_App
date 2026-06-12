@@ -66,6 +66,8 @@ class DioClient {
       '/forgot-password',
       '/verify-otp',
       '/verify-forgot-otp',
+      '/reset-password',
+      '/verification',
     ];
 
     // Get the safest context available from the navigator state for route checking
@@ -217,6 +219,8 @@ class DioClient {
           ApiConstants.verifyOtp,
           ApiConstants.verifyForgotOtp,
           ApiConstants.refreshToken,
+          ApiConstants.resetPassword,
+          ApiConstants.resendOtp,
         ];
         
         final isAuthRequest = authPaths.any((path) => options.path.contains(path));
@@ -310,6 +314,8 @@ class DioClient {
           ApiConstants.verifyOtp,
           ApiConstants.verifyForgotOtp,
           ApiConstants.refreshToken,
+          ApiConstants.resetPassword,
+          ApiConstants.resendOtp,
         ];
 
         final isAuthRequest = authPaths.any((path) => e.requestOptions.path.contains(path));

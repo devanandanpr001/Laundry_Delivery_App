@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/login_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/SignUp_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/forgot_password_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/onBoarding/splash_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/data/repository/service_repository.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
@@ -89,6 +90,7 @@ class MyApp extends StatelessWidget {
            providers: [
              ChangeNotifierProvider(create: (_) => LoginViewModel()),
              ChangeNotifierProvider(create: (_) => SignupViewModel()),
+             ChangeNotifierProvider(create: (_) => ForgotPasswordViewModel()),
              
              // Profile Section Dependencies
              Provider(create: (_) => ProfileService()),
