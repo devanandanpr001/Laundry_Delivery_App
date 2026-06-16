@@ -31,4 +31,8 @@ class AppImages {
   static const String iconSecurity = 'assets/security.png';
   static const String iconCheck = 'assets/icons/check.png';
   static const String iconNoCircle = 'assets/icons/NoCircle.png';
+
+  static const String loading = 'assets/gifs/Loading_animation_blue.json';
+  static const String history = 'assets/gifs/history.json';
+
 }

@@ -393,15 +393,13 @@ class _AddItemDialogState extends State<AddItemDialog> {
       );
 
       if (mounted) {
+        AppToast.showItemAdded(context, itemName: _selectedItem ?? "");
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        AppToast.showError(
-          title: "Error",
-          message: "Failed to add items: $e",
-        );
+        AppToast.showError(title: "Error", message: "Failed to add items: $e", context: context);
       }
     }
   }

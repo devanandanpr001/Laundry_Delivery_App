@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,6 +20,8 @@ import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart
 import 'package:ziya_laundry_deliveryapp/common_widget/premium_dialog.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/widgets/advanced_image.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/login_viewmodel.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onBackToHome;
@@ -29,18 +30,22 @@ class ProfileScreen extends StatefulWidget {
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
-  
+
 class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> showLogoutDialog(BuildContext context) async {
     final confirmed = await showPremiumLogoutDialog(context);
     if (confirmed) {
-      Navigator.pushAndRemoveUntil(
+      final loginVM = context.read<LoginViewModel>();
+      AppLoader.navigateAndRemoveUntilWithTask(
         context,
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-        (route) => false,
+        task: () async {
+          context.read<ProfileViewModel>().clearAllCachedData();
+          // Performs API call, socket disconnect, token delete, and remember me logic
+          await loginVM.clearAllSavedData(); 
+        },
+        page: const LoginScreen(),
+        message: "Logging out safely...",
       );
     }
   }
@@ -155,11 +160,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     image: 'assets/icons/orders.png',
                     text: AppText.MyOdrBtn,
                     onPressed: () {
-                      Navigator.push(
+                      AppLoader.navigateWithLoader(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const MyOrdersScreen(),
-                        ),
+                        const MyOrdersScreen(),
                       );
                     },
                   ),
@@ -184,11 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     image: 'assets/icons/edit.png',
                     text: AppText.ChangePfleBtn,
                     onPressed: () {
-                      Navigator.push(
+                      AppLoader.navigateWithLoader(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const Changeprofileimage(),
-                        ),
+                        const Changeprofileimage(),
                       );
                     },
                   ),
@@ -197,11 +198,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     image: 'assets/icons/lock.png',
                     text: AppText.ChangePswd,
                     onPressed: () {
-                      Navigator.push(
+                      AppLoader.navigateWithLoader(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const ChangepasswordScreen(),
-                        ),
+                        const ChangepasswordScreen(),
                       );
                     },
                   ),
@@ -210,11 +209,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     image: 'assets/icons/notification.png',
                     text: AppText.Notfcn,
                     onPressed: () {
-                      Navigator.push(
+                      AppLoader.navigateWithLoader(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationScreen(),
-                        ),
+                        const NotificationScreen(),
                       );
                     },
                   ),
@@ -238,11 +235,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     image: 'assets/icons/help.png',
                     text: AppText.SupportBtn,
                     onPressed: () {
-                      Navigator.push(
+                      AppLoader.navigateWithLoader(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const HelpsupportScreen(),
-                        ),
+                        const HelpsupportScreen(),
                       );
                     },
                   ),
@@ -251,9 +246,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     image: 'assets/icons/privacypolicy.png',
                     text: AppText.Privacy,
                     onPressed: () {
-                      Navigator.push(
+                      AppLoader.navigateWithLoader(
                         context,
-                        MaterialPageRoute(builder: (context) => Privacypolicy()),
+                        const Privacypolicy(),
                       );
                     },
                   ),

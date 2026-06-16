@@ -23,78 +23,89 @@ class OrderPaymentInfo extends StatelessWidget {
     final double paidAmount = double.tryParse(order.paidAmount) ?? 0.0;
     final double payableAmount = double.tryParse(order.payableAmount) ?? 0.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 5.h),
-        Container(
-          margin: EdgeInsets.symmetric(vertical: 4.h),
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: AppColors.lightBackground,
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(color: AppColors.grey.withOpacity(0.2)),
-          ),
-          child: Column(
+    return Container(
+      margin: EdgeInsets.only(top: 4.h, bottom: 8.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Image.asset(AppImages.iconPay, height: 20.h, width: 20.w, color: AppColors.primaryBlue),
-                      SizedBox(width: 10.w),
-                      Text(
-                        order.paymentMethod == "ONLINE" ? "Online Payment" : "Cash on Delivery",
-                        style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w500, color: AppColors.textDark),
-                      ),
-                    ],
+                  Container(
+                    padding: EdgeInsets.all(6.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Image.asset(AppImages.iconPay, height: 16.h, width: 16.w, color: AppColors.primaryBlue),
                   ),
+                  SizedBox(width: 10.w),
                   Text(
-                    "₹ ${totalAmount.toStringAsFixed(2)}",
-                    style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w700, color: AppColors.primaryBlue),
+                    order.paymentMethod == "ONLINE" ? "Online Payment" : "Cash on Delivery",
+                    style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w600, color: const Color(0xFF2D3142)),
                   ),
                 ],
               ),
-              Divider(height: 16.h, thickness: 0.5),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle_outline, color: AppColors.green, size: 14.sp),
-                      SizedBox(width: 8.w),
-                      Text("Advance Amt", style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.green)),
-                    ],
-                  ),
-                  Text("₹ ${paidAmount.toStringAsFixed(2)}", style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.green)),
-                ],
-              ),
-              SizedBox(height: 6.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        payableAmount > 0 ? Icons.error_outline : Icons.check_circle,
-                        color: payableAmount > 0 ? AppColors.errorRed : AppColors.green,
-                        size: 14.sp,
-                      ),
-                      SizedBox(width: 8.w),
-                      Text("Balance Amt", style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600, color: payableAmount > 0 ? AppColors.errorRed : AppColors.green)),
-                    ],
-                  ),
-                  Text(
-                    "₹ ${payableAmount.toStringAsFixed(2)}",
-                    style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w700, color: payableAmount > 0 ? AppColors.errorRed : AppColors.green),
-                  ),
-                ],
+              Text(
+                "₹ ${totalAmount.toStringAsFixed(2)}",
+                style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: AppColors.primaryBlue),
               ),
             ],
           ),
-        ),
-      ],
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 10.h),
+            child: Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: AppColors.green, size: 16.sp),
+                  SizedBox(width: 6.w),
+                  Text("Advance Paid", style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w500, color: Colors.grey[700])),
+                ],
+              ),
+              Text("₹ ${paidAmount.toStringAsFixed(2)}", style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w600, color: AppColors.green)),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    payableAmount > 0 ? Icons.error_rounded : Icons.check_circle_rounded,
+                    color: payableAmount > 0 ? AppColors.errorRed : AppColors.green,
+                    size: 16.sp,
+                  ),
+                  SizedBox(width: 6.w),
+                  Text("Balance Due", style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w500, color: Colors.grey[700])),
+                ],
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: (payableAmount > 0 ? AppColors.errorRed : AppColors.green).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Text(
+                  "₹ ${payableAmount.toStringAsFixed(2)}",
+                  style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w700, color: payableAmount > 0 ? AppColors.errorRed : AppColors.green),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

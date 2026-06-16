@@ -11,6 +11,7 @@ import 'package:ziya_laundry_deliveryapp/BottomNavigation/bottom_navigation_page
 import 'package:ziya_laundry_deliveryapp/core/widgets/app_network_image.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/forgot_password_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/verification_screen.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/widgets/app_checkbox.dart';
 import '../widgets/custom_button.dart';
 import '../viewmodel/login_viewmodel.dart';
 import '../widgets/Reusable_inputfield.dart';
@@ -23,6 +24,14 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 class _LoginScreenState extends State<LoginScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<LoginViewModel>(context, listen: false).loadSavedCredentials();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,11 +137,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                           children: [
                                             Transform.scale(
                                               scale: 1.25,
-                                              child: Checkbox(
-                                                value: vm.isRememberMe,
-                                                onChanged: (v) => vm.toggleRememberMe(v ?? false),
-                                              ),
+                                              child:  AppCheckbox(
+                                      value: vm.isRememberMe,
+                                      onChanged: (v) => vm.toggleRememberMe(v ?? false),
+                                      isLoginStyle: true,
+                                    ),
                                             ),
+                                            SizedBox(width: 8.w),
                                             Text(
                                               AppText.RememberMe,
                                               style: GoogleFonts.poppins(fontSize: 12.sp),
@@ -182,10 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               );
 
                                               if (verified == true && context.mounted) {
-                                                AppToast.showSuccess(
-                                                  title: "Success",
-                                                  message: AppText.LoginSuccess, 
-                                                );
+                                                AppToast.showLoginSuccess(context);
                                                 Navigator.pushAndRemoveUntil(
                                                   context,
                                                   MaterialPageRoute(
@@ -196,10 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               }
                                             } else {
                                               if (!context.mounted) return;
-                                              AppToast.showError(
-                                                title: "Login Failed",
-                                                message: vm.errorMessage ?? "Please check your credentials",
-                                              );
+                                              AppToast.showLoginFailed(context, error: vm.errorMessage);
                                             }
                                           },
                                         ),

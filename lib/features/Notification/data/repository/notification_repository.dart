@@ -47,4 +47,12 @@ class NotificationRepository {
       return false;
     }
   }
+
+  Future<bool> undoClearMultiple(List<String> notificationIds) async {
+    try {
+      return await _service.undoNotifications(notificationIds);
+    } catch (e) {
+      return false;
+    }
+  }
 }

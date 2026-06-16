@@ -232,10 +232,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     onTap: (_isLoading || _isTimerActive)
                         ? null
                         : () {
-                            widget.onResend();
-                            AppToast.showSuccess(
-                              message: AppText.OtpSentSuccess, title: 'success',
-                            );
+                            AppToast.showOtpSentSuccess(context);
                             startTimer();
                           },
                     child: Text(

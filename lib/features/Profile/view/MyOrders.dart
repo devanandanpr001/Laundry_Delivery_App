@@ -10,6 +10,7 @@ import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmod
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
 
 import '../../Orders/data/model/order_model.dart';
 
@@ -137,16 +138,10 @@ import '../../Orders/data/model/order_model.dart';
                             ? ListView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 children: [
-                                  SizedBox(height: 180.h),
-                                  Center(
-                                    child: Text(
-                                      AppText.NoOrdersAvailable,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.grey,
-                                      ),
-                                      textAlign: TextAlign.center,
+                                  SizedBox(
+                                    height: 0.6.sh,
+                                    child: const OrderEmptyState(
+                                      message: AppText.NoOrdersAvailable,
                                     ),
                                   ),
                                 ],

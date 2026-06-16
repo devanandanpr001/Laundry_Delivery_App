@@ -166,9 +166,9 @@ class AuthService implements IAuthService {
   }
 
   @override
-  Future<Map<String, dynamic>> logout(String token) async {
+  Future<Map<String, dynamic>> logout(String? token) async {
     try {
-      final data = await _dioClient.post(ApiConstants.logout);
+      final data = await _dioClient.post(ApiConstants.logout); // Interceptor adds Authorization header
       final response = data as Map<String, dynamic>;
       return {'success': true, ...response};
     } on ApiException catch (e) {

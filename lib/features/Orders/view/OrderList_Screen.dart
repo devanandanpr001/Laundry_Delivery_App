@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
@@ -9,6 +10,7 @@ import 'package:ziya_laundry_deliveryapp/features/Orders/widget/OrderCard.dart' 
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/data/model/order_model.dart';
@@ -194,7 +196,9 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
                         children: [
-                          _buildEmptyState(selectedFilter),
+                          SizedBox(
+                            height: 0.6.sh,
+                            child: _buildEmptyState(selectedFilter)),
                         ],
                       )
                     : ListView.builder(
@@ -289,22 +293,8 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     if (filter == "assigned") message = AppText.NoAssgnd;
     if (filter == "completed") message = AppText.NoCmpltd;
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inventory_2_outlined, size: 60.sp, color: AppColors.grey.withValues(alpha: 0.4)),
-          SizedBox(height: 15.h),
-          Text(
-            message,
-            style: GoogleFonts.poppins(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.grey,
-            ),
-          ),
-        ],
-      ),
+    return OrderEmptyState(
+      message: message,
     );
   }
 

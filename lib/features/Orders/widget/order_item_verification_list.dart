@@ -102,7 +102,7 @@ class OrderItemVerificationList extends StatelessWidget {
                                     try {
                                       await orderVM.deleteItemFromOrder(orderId, item.id);
                                       if (!context.mounted) return;
-                                      AppToast.showSuccess(title: "Success", message: "Item removed");
+                                      AppToast.showItemDeleted(context, itemName: 'Item');
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       AppToast.showError(title: "Error", message: "Failed to remove item");

@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/api_constants.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/api_exception.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/connectivity_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/network/network_exceptions.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/token_service.dart';
-import 'package:ziya_laundry_deliveryapp/core/widgets/session_expired_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:quick_popup_manager/quick_popup_manager.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 enum _RefreshStatus { success, networkFailure, authFailure }
 
@@ -55,63 +57,131 @@ class DioClient {
     if (_sessionExpiredTriggered) return;
     _sessionExpiredTriggered = true;
 
-    if (kDebugMode) debugPrint("DioClient: Handling Session Expiry...");
-    await _tokenService.deleteTokens();
+    // Notify app layer immediately to stop background syncs/sockets
     _isRefreshing = false;
     _refreshFuture = null;
 
-    // Define routes where the session expired dialog should NOT be shown
-    final excludedRoutes = [
-      '/login',
-      '/forgot-password',
-      '/verify-otp',
-      '/verify-forgot-otp',
-      '/reset-password',
-      '/verification',
-    ];
-
-    // Get the safest context available from the navigator state for route checking
-    final contextForRouteCheck = navigatorKey.currentState?.overlay?.context;
-    String? currentRouteName;
-    if (contextForRouteCheck != null) {
-      currentRouteName = ModalRoute.of(contextForRouteCheck)?.settings.name;
+    try {
+      await _tokenService.deleteTokens();
+    } catch (e) {
+      debugPrint("DioClient: Error clearing tokens: $e");
     }
 
-    if (currentRouteName != null && excludedRoutes.contains(currentRouteName)) {
-      if (kDebugMode) debugPrint("DioClient: Session expired on an excluded route ($currentRouteName). Not showing dialog. Resetting _sessionExpiredTriggered.");
-      _sessionExpiredTriggered = false; // Reset flag as dialog won't be shown
+    // Reliably determine the current route name from the navigator state stack
+    final excludedRoutes = [
+      '/login', '/forgot-password', '/verify-otp', 
+      '/verify-forgot-otp', '/reset-password', '/verification',
+    ];
+
+    bool isAlreadyOnAuthScreen = false;
+    navigatorKey.currentState?.popUntil((route) {
+      if (excludedRoutes.contains(route.settings.name)) {
+        isAlreadyOnAuthScreen = true;
+      }
+      return true;
+    });
+
+    if (isAlreadyOnAuthScreen) {
+      _sessionExpiredTriggered = false;
       return;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Notify app layer immediately to stop background syncs/sockets
-      onSessionExpired?.call();
-
-      // Get the safest context available from the navigator state
-      final context = navigatorKey.currentState?.overlay?.context;
-      
-      if (context != null && navigatorKey.currentState?.mounted == true) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => SessionExpiredDialog(
-            onLoginAgain: () {
-              _sessionExpiredTriggered = false;
-
-              // 1. Close the dialog
-              Navigator.of(dialogContext).pop();
-              
-              // 2. Navigate to login
-              navigatorKey.currentState?.pushNamedAndRemoveUntil(
-                '/login', 
-                (route) => false,
-              );
-            },
+      QuickPopupManager().showDialogPopup(
+        barrierDismissible: false,
+        animation: const AnimationConfig.scale(),
+        style: PopupStyle(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          dialogAlignment: Alignment.center,
+        ),
+        confirmText: '',
+        cancelText: '',
+        onConfirm: null,
+        onCancel: null,
+        content: Center(
+          child: Container(
+            width: 500.w,
+            // margin: EdgeInsets.symmetric(horizontal: 24.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 40.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16.r),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon( 
+                      Icons.lock_clock_outlined,
+                      color: Colors.orange,
+                      size: 40.sp,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Text(
+                    "Session Expired",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12.h),
+                  Text(
+                    "Your session has timed out for security. Please log in again to continue.",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.sp,
+                      color: const Color(0xFF475569),
+                      height: 1.5,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  GestureDetector(
+                    onTap: () {
+                      onSessionExpired?.call();
+                      QuickPopupManager().dismissAll();
+                      _sessionExpiredTriggered = false;
+                      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                        '/login', 
+                        (route) => false,
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF42B883),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        "Login Again",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        );
-      } else {
-        _sessionExpiredTriggered = false;
-      }
+        ),
+      );
     });
   }
 
@@ -155,7 +225,6 @@ class DioClient {
 
       if (refreshToken == null || refreshToken.isEmpty) {
         completer.completeError("No refresh token");
-        await _handleSessionExpired();
         return _RefreshStatus.authFailure;
       }
 
@@ -192,7 +261,6 @@ class DioClient {
       if (err is DioException && _isNetworkError(err)) {
         return _RefreshStatus.networkFailure;
       }
-      await _handleSessionExpired();
       return _RefreshStatus.authFailure;
     } finally {
       _isRefreshing = false;
@@ -261,7 +329,7 @@ class DioClient {
             }
 
             // Auth failure: force session expired
-            await _handleSessionExpired();
+            _handleSessionExpired();
             return handler.reject(
               DioException(
                 requestOptions: options,
@@ -277,7 +345,7 @@ class DioClient {
               await _refreshFuture;
               final token = await _tokenService.getAccessToken();
               if (token == null || token.isEmpty) {
-                if (!_sessionExpiredTriggered) await _handleSessionExpired();
+                _handleSessionExpired();
                 return handler.reject(
                   DioException(
                     requestOptions: options,
@@ -322,43 +390,42 @@ class DioClient {
 
         // Handle 401 Unauthorized - Token expired or invalid
         if (e.response?.statusCode == 401 && !isAuthRequest) {
-          
           // Retry protection: increment retry count
           final int retryCount = e.requestOptions.extra['retryCount'] ?? 0;
           if (retryCount >= 1) {
             if (kDebugMode) debugPrint("DioClient: Max retry reached for ${e.requestOptions.path}");
-            await _handleSessionExpired();
+            _handleSessionExpired();
             return handler.reject(e);
           }
           e.requestOptions.extra['retryCount'] = retryCount + 1;
 
-          // Coordinate refresh and queued requests via centralized method
           if (_isRefreshing) {
             try {
               await _refreshFuture;
               final token = await _tokenService.getAccessToken();
               if (token == null || token.isEmpty) {
-                if (!_sessionExpiredTriggered) await _handleSessionExpired();
+                _handleSessionExpired();
                 return handler.reject(e);
               }
               e.requestOptions.headers['Authorization'] = 'Bearer $token';
               final response = await _dio.fetch(e.requestOptions);
               return handler.resolve(response);
             } catch (err) {
+              _handleSessionExpired();
               return handler.reject(e);
             }
           }
 
           final result = await _refreshTokens();
           if (result == _RefreshStatus.success) {
-            final token = await _tokenService.getAccessToken();
-            if (token == null || token.isEmpty) {
-              await _handleSessionExpired();
-              return handler.reject(e);
-            }
-            e.requestOptions.headers['Authorization'] = 'Bearer $token';
-            final response = await _dio.fetch(e.requestOptions);
-            return handler.resolve(response);
+             final token = await _tokenService.getAccessToken();
+             if (token == null || token.isEmpty) {
+               _handleSessionExpired();
+               return handler.reject(e);
+             }
+             e.requestOptions.headers['Authorization'] = 'Bearer $token';
+             final response = await _dio.fetch(e.requestOptions);
+             return handler.resolve(response);
           }
 
           if (result == _RefreshStatus.networkFailure) {
@@ -366,7 +433,7 @@ class DioClient {
             return handler.next(e);
           }
 
-          // Auth failure -> session expired already handled inside _refreshTokens
+          _handleSessionExpired();
           return handler.reject(e);
         }
         // Handle other errors or pass through

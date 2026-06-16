@@ -130,74 +130,74 @@
 //     );
 //   }
 // }
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:google_fonts/google_fonts.dart';
+// import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
-class SessionExpiredDialog extends StatelessWidget {
-  final VoidCallback onLoginAgain;
+// class SessionExpiredDialog extends StatelessWidget {
+//   final VoidCallback onLoginAgain;
 
-  const SessionExpiredDialog({super.key, required this.onLoginAgain});
+//   const SessionExpiredDialog({super.key, required this.onLoginAgain});
 
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Prevent dismissing with back button
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: EdgeInsets.all(24.w),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-          Container(
-            padding: EdgeInsets.all(16.r),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.lock_clock_outlined,
-              color: Colors.orange,
-              size: 40.sp,
-            ),
-          ),
-          20.verticalSpace,
-          Text(
-            "Session Expired",
-        style: GoogleFonts.poppins( // Corrected
-          fontSize: 18.sp,
-          fontWeight: FontWeight.bold,
-          color: AppColors.primaryBlue,
-            ),
-          ),
-          10.verticalSpace,
-          Text(
-            "For your security, your session has timed out. Please log in again to continue managing your laundry.",
-            textAlign: TextAlign.center,
-        style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.grey[600], height: 1.4), // Corrected
-          ),
-          24.verticalSpace,
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onLoginAgain,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-              ),
-          child: Text("Login Again", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp)), // Corrected
-            ),
-          ),
-        ],
-      ),
-    )));
+//   @override
+//   Widget build(BuildContext context) {
+//     return PopScope(
+//       canPop: false, // Prevent dismissing with back button
+//       child: Dialog(
+//         backgroundColor: Colors.transparent,
+//         child: Container(
+//           padding: EdgeInsets.all(24.w),
+//           decoration: BoxDecoration(
+//             color: AppColors.white,
+//             borderRadius: BorderRadius.circular(20.r),
+//           ),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//           Container(
+//             padding: EdgeInsets.all(16.r),
+//             decoration: BoxDecoration(
+//               color: Colors.orange.withOpacity(0.1),
+//               shape: BoxShape.circle,
+//             ),
+//             child: Icon(
+//               Icons.lock_clock_outlined,
+//               color: Colors.orange,
+//               size: 40.sp,
+//             ),
+//           ),
+//           20.verticalSpace,
+//           Text(
+//             "Session Expired",
+//         style: GoogleFonts.poppins( // Corrected
+//           fontSize: 18.sp,
+//           fontWeight: FontWeight.bold,
+//           color: AppColors.primaryBlue,
+//             ),
+//           ),
+//           10.verticalSpace,
+//           Text(
+//             "For your security, your session has timed out. Please log in again to continue managing your laundry.",
+//             textAlign: TextAlign.center,
+//         style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.grey[600], height: 1.4), // Corrected
+//           ),
+//           24.verticalSpace,
+//           SizedBox(
+//             width: double.infinity,
+//             child: ElevatedButton(
+//               onPressed: onLoginAgain,
+//               style: ElevatedButton.styleFrom(
+//                 backgroundColor: AppColors.primaryBlue,
+//                 padding: EdgeInsets.symmetric(vertical: 12.h),
+//                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+//               ),
+//           child: Text("Login Again", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp)), // Corrected
+//             ),
+//           ),
+//         ],
+//       ),
+//     )));
       
-  }
-}
+//   }
+// }

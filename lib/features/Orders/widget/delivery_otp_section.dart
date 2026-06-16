@@ -89,10 +89,7 @@ class _DeliveryOtpSectionState extends State<DeliveryOtpSection> {
 
         _startCooldown();
 
-        AppToast.showSuccess(
-          title: "Success",
-          message: AppText.OtpSentSuccess,
-        );
+        AppToast.showOrderDelivered(context, orderId: widget.order.orderId);
       }
     } catch (e) {
       debugPrint("OTP send error: $e");

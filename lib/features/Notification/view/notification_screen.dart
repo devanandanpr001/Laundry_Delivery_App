@@ -8,6 +8,7 @@ import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart
 import 'package:ziya_laundry_deliveryapp/core/services/SocketService.dart';
 import '../viewmodel/notification_viewmodel.dart';
 import '../widgets/notification_item_widget.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -53,161 +54,201 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(onPressed: (){
-                   Navigator.pop(context);
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
                     },
-                        icon: Icon(Icons.arrow_back_ios, size: 24.sp)),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(AppText.NotifTitle, style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w500, fontSize: 18.sp
-                          ),),
-                          SizedBox(height: 5.h),
-                          Text('${notifications.length}${AppText.NotifCountSuffix}', 
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                            fontSize: 14.sp, fontWeight: FontWeight.w400,
+                    icon: Icon(Icons.arrow_back_ios, size: 24.sp),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppText.NotifTitle,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 18.sp,
                           ),
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          '${notifications.length}${AppText.NotifCountSuffix}',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w400,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 23.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadiusGeometry.circular(10.r),
                       ),
-                    )
-                  ],
-                ),
-                SizedBox(height: 23.h,),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadiusGeometry.circular(10.r)),
-                        backgroundColor: isSelectionMode ? AppColors.red : AppColors.red.withOpacity(0.35),
-                        minimumSize: Size(55.w, 32.h),
-                      ),
-                      onPressed: isSelectionMode
-                          ? () {
-                              setState(() {
-                                if (!isDeleteMode) {
-                                  isDeleteMode = true;
+                      backgroundColor: isSelectionMode
+                          ? AppColors.red
+                          : AppColors.red.withOpacity(0.35),
+                      minimumSize: Size(55.w, 32.h),
+                    ),
+                    onPressed: isSelectionMode
+                        ? () {
+                            setState(() {
+                              if (!isDeleteMode) {
+                                isDeleteMode = true;
                                 } else {
-                                  notificationVM.deleteSelected();
+                                  notificationVM.deleteSelected().then((deletedIds) {
+                                    if (deletedIds.isNotEmpty && mounted) {
+                                      AppToast.showNotificationDeleted(context, onUndo: () async {
+                                        await notificationVM.undoMultipleClear(deletedIds);
+                                      });
+                                    }
+                                  });
                                   isDeleteMode = false;
                                 }
-                              });
-                            }
-                          : null,
-                      child: Text(
-                        isDeleteMode ? AppText.NotifConfirm : AppText.NotifDelete,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.white,
-                        ),
+                            });
+                          }
+                        : null,
+                    child: Text(
+                      isDeleteMode ? AppText.NotifConfirm : AppText.NotifDelete,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.white,
                       ),
                     ),
-                    SizedBox(width: 18.w,),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadiusGeometry.circular(10.r)),
-                        backgroundColor: isSelectionMode ? AppColors.primaryBlue : AppColors.white,
-                        minimumSize: Size(60.w, 32.h),
+                  ),
+                  SizedBox(width: 18.w),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadiusGeometry.circular(10.r),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          bool allSelected = notifications.every((item) => item.isSelected);
-                          notificationVM.selectAll(!allSelected);
-                        });
-                      },
+                      backgroundColor: isSelectionMode
+                          ? AppColors.primaryBlue
+                          : AppColors.white,
+                      minimumSize: Size(60.w, 32.h),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        bool allSelected = notifications.every(
+                          (item) => item.isSelected,
+                        );
+                        notificationVM.selectAll(!allSelected);
+                      });
+                    },
 
-                      child: Text(AppText.NotifSelectAll,style: GoogleFonts.poppins(
-                          fontSize: 14.sp,fontWeight: FontWeight.w400,color: isSelectionMode ? AppColors.white : AppColors.primaryBlue,
-                      ),),
+                    child: Text(
+                      AppText.NotifSelectAll,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w400,
+                        color: isSelectionMode
+                            ? AppColors.white
+                            : AppColors.primaryBlue,
+                      ),
                     ),
-                  ],
-                ),
-                Expanded(
-                  child: CustomSmartRefresher(
-                    onRefresh: () => notificationVM.fetchNotifications(),
-                    child: notificationVM.isLoading
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              SizedBox(height: 180.h),
-                              Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CustomSmartRefresher(
+                  onRefresh: () => notificationVM.fetchNotifications(),
+                  child: notificationVM.isLoading
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(height: 180.h),
+                            Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.primaryBlue,
                                 ),
                               ),
-                            ],
-                          )
-                        : notifications.isEmpty
-                            ? ListView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                children: [
-                                  SizedBox(height: 180.h),
-                                  Center(
-                                    child: Text(AppText.NoNotifications,
-                                        style: GoogleFonts.poppins(
-                                            fontSize: 20.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.grey)),
-                                  ),
-                                ],
-                              )
-                            : ListView.builder(
-                                itemCount: notifications.length,
-                                itemBuilder: (context, index) {
-                                  final notification = notifications[index];
-                                  return GestureDetector(
-                                    onTap: () async {
-                                      if (isSelectionMode) {
-                                        notificationVM.toggleSelection(index);
-                                      } else {
-                                        if (!notification.isRead) await notificationVM.markAsReadAt(index);
-                                        // Toggle expansion on single tap
-                                        setState(() {
-                                          if (!_expandedIds.contains(notification.id)) {
-                                            _expandedIds.add(notification.id);
-                                          } else {
-                                            _expandedIds.remove(notification.id);
-                                          }
-                                        });
-                                      }
-                                    },
-                                    onLongPress: () {
-                                      if (!isSelectionMode) {
-                                        setState(() {
-                                          notificationVM.toggleSelection(index);
-                                        });
-                                      }
-                                    },
-                                    child: NotificationItemWidget(
-                                      title: notification.title,
-                                      createdAt: notification.createdAt,
-                                      message: notification.message,
-                                      isSelected: notification.isSelected,
-                                      isRead: notification.isRead,
-                                      isSelectionMode: isSelectionMode,
-                                      isExpanded: _expandedIds.contains(notification.id),
-                                    ),
-                                  );
-                                },
+                            ),
+                          ],
+                        )
+                      : notifications.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(height: 180.h),
+                            Center(
+                              child: Text(
+                                AppText.NoNotifications,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.grey,
+                                ),
                               ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          itemCount: notifications.length,
+                          itemBuilder: (context, index) {
+                            final notification = notifications[index];
+                            return GestureDetector(
+                              onTap: () async {
+                                if (isSelectionMode) {
+                                  notificationVM.toggleSelection(index);
+                                } else {
+                                  if (!notification.isRead)
+                                    await notificationVM.markAsReadAt(index);
+                                  // Toggle expansion on single tap
+                                  setState(() {
+                                    if (!_expandedIds.contains(
+                                      notification.id,
+                                    )) {
+                                      _expandedIds.add(notification.id);
+                                    } else {
+                                      _expandedIds.remove(notification.id);
+                                    }
+                                  });
+                                }
+                              },
+                              onLongPress: () {
+                                if (!isSelectionMode) {
+                                  setState(() {
+                                    notificationVM.toggleSelection(index);
+                                  });
+                                }
+                              },
+                              child: NotificationItemWidget(
+                                title: notification.title,
+                                createdAt: notification.createdAt,
+                                message: notification.message,
+                                isSelected: notification.isSelected,
+                                isRead: notification.isRead,
+                                isSelectionMode: isSelectionMode,
+                                isExpanded: _expandedIds.contains(
+                                  notification.id,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                 ),
-
-
-                )
-              ],
-            ),
-          )),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

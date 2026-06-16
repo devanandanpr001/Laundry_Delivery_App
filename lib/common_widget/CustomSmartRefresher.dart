@@ -33,6 +33,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:s_liquid_pull_to_refresh/s_liquid_pull_to_refresh.dart';
 
 class CustomSmartRefresher extends StatefulWidget {
   final Widget child;
@@ -81,18 +82,14 @@ class _CustomSmartRefresherState
       return widget.child;
     }
 
-    return RefreshIndicator.adaptive(
+    return SLiquidPullToRefresh(
       onRefresh: _handleRefresh,
-      edgeOffset: 8,
-      displacement: 80,
-      color: widget.indicatorColor ??
-          AppColors.primaryBlue,
-      backgroundColor:
-          widget.backgroundColor ?? AppColors.white,
-      notificationPredicate:
-          (ScrollNotification notification) {
-        return notification.depth == 0;
-      },
+      color: widget.backgroundColor ?? AppColors.white,
+      backgroundColor: widget.indicatorColor ?? AppColors.primaryBlue,
+      height: 80,
+      animSpeedFactor: 2.0,
+      showChildOpacityTransition: false,
+      springAnimationDurationInMilliseconds: 300,
       child: widget.child,
     );
   }

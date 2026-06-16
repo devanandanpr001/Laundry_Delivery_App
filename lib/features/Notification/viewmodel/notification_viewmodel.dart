@@ -108,6 +108,20 @@ class NotificationViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> undoMultipleClear(List<String> notificationIds) async {
+    if (notificationIds.isEmpty) return false;
+    try {
+      final success = await _repository.undoClearMultiple(notificationIds);
+      if (success) {
+        await fetchNotifications();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('undoMultipleClear error: $e');
+      return false;
+    }
+  }
+
   void selectAll(bool selected) {
     _notifications = _notifications
         .map((item) => item.copyWith(isSelected: selected))
@@ -115,13 +129,13 @@ class NotificationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteSelected() async {
+  Future<List<String>> deleteSelected() async {
     final selectedIds = _notifications
         .where((e) => e.isSelected)
         .map((e) => e.id)
         .toList();
 
-    if (selectedIds.isEmpty) return;
+    if (selectedIds.isEmpty) return [];
 
     _isLoading = true;
     notifyListeners();
@@ -137,7 +151,9 @@ class NotificationViewModel extends ChangeNotifier {
 
         _unreadCount =
             _notifications.where((e) => !e.isRead).length;
+        return selectedIds;
       }
+      return [];
     } finally {
       _isLoading = false;
       notifyListeners();

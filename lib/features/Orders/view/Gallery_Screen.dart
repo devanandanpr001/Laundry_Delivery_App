@@ -8,6 +8,8 @@ import 'package:collection/collection.dart'; // Import for firstWhereOrNull
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/premium_dialog.dart';
 
 class GalleryScreen extends StatefulWidget {
   final String orderId;
@@ -22,13 +24,30 @@ class GalleryScreen extends StatefulWidget {
 class _GalleryScreenState extends State<GalleryScreen> {
   final Set<int> _selectedIndices = {};
 
-  void _deleteSelectedImages() {
+  void _deleteSelectedImages() async {
+    final confirmed = await showPremiumConfirmationDialog(
+      context,
+      title: 'Delete Images?',
+      description: 'Are you sure you want to delete the selected images?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    );
+    if (!confirmed) return;
+
     final orderVM = context.read<OrderViewModel>();
-    // Sort indices descending to avoid index shifting issues while deleting
     List<int> sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
     
-    for (int index in sortedIndices) {
-      orderVM.removeOrderImage(widget.orderId, index);
+    try {
+      for (int index in sortedIndices) {
+        orderVM.removeOrderImage(widget.orderId, index);
+      }
+      if (mounted) {
+        AppToast.showImageDeleteSuccess(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppToast.showImageDeleteFailed(context, error: "Failed to delete images");
+      }
     }
     
     setState(() => _selectedIndices.clear());

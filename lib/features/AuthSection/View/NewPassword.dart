@@ -224,19 +224,13 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                     );
 
                     if (passErr != null || confErr != null) {
-                      AppToast.showError(
-                        message: passErr ?? confErr!,
-                        title: 'Error',
-                      );
+                      AppToast.showPasswordChangedFailed(context, error: "Passwords do not match");
                       return;
                     }
 
                     if (await provider.submitReset(widget.phone)) {
                       if (!context.mounted) return;
-                      AppToast.showSuccess(
-                        message: AppText.NewPasswordSuccess,
-                        title: 'Success',
-                      );
+                      AppToast.showPasswordChangedSuccess(context);
 
                       Future.delayed(const Duration(seconds: 2), () {
                         if (context.mounted) {
@@ -251,11 +245,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                         }
                       });
                     } else if (context.mounted) {
-                      AppToast.showError(
-                        message:
-                            provider.errorMessage ?? "Failed to reset password",
-                        title: 'Error',
-                      );
+                      AppToast.showPasswordChangedFailed(context, error: provider.errorMessage ?? "Failed to reset password");
                     }
                   },
                 ),

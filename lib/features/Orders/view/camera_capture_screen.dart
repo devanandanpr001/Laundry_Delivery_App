@@ -104,7 +104,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         setState(() {});
       }
     } catch (e) {
-      AppToast.showError(title: 'Capture failed', message: e.toString());
+      AppToast.showImageUploadFailed(context, error: 'Capture failed: $e');
     } finally {
       if (mounted) setState(() => _isCapturing = false);
     }
@@ -151,10 +151,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         _capturedPhotos.map((file) => file.path).toList(),
       );
       if (!mounted) return;
-      AppToast.showSuccess(title: 'Uploaded', message: 'Photos sent successfully.');
+      AppToast.showImageUploadSuccess(context);
       Navigator.pop(context, true);
     } catch (e) {
-      AppToast.showError(title: 'Upload failed', message: e.toString());
+      AppToast.showImageUploadFailed(context, error: e.toString());
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }

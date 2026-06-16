@@ -132,15 +132,9 @@ class _ChangeprofileimageState extends State<Changeprofileimage> {
                             await provider.uploadProfileImage();
                             if (!context.mounted) return;
                             if (provider.errorMessage == null) {
-                              AppToast.showSuccess(
-                                title: "Success",
-                                message: "Profile image updated successfully",
-                              );
+                              AppToast.showImageUploadSuccess(context);
                             } else {
-                              AppToast.showError(
-                                title: "Upload Failed",
-                                message: provider.errorMessage!,
-                              );
+                              AppToast.showImageUploadFailed(context, error: provider.errorMessage);
                             }
                           },
                     backgroundColor: AppColors.primaryBlue,

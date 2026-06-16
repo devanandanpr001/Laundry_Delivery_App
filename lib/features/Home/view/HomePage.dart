@@ -17,6 +17,7 @@ import 'package:ziya_laundry_deliveryapp/features/Notification/viewmodel/notific
 import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import '../../../../common_widget/CustomSmartRefresher.dart';
 import '../viewmodel/home_viewmodel.dart';
@@ -225,19 +226,13 @@ class _HomepageState extends State<Homepage> {
                                   children: List.generate(4, (index) => AppShimmer.orderCard()),
                                 )
                               else if (newOrders.isEmpty)
-                                Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 40.h),
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.assignment_late_outlined, size: 60.sp, color: AppColors.grey.withValues(alpha: 0.5)),
-                                      SizedBox(height: 10.h),
-                                      Text(
-                                        "No ${_selectedOrderType == OrderType.pickup ? 'Pickup' : 'Delivery'} orders available",
-                                        style: GoogleFonts.poppins(color: AppColors.grey, fontSize: 14.sp),
-                                      ),
-                                    ],
+                                SizedBox(
+                                  height: 0.6.sh,
+                                  child: const OrderEmptyState(
+                                    message: AppText.NoOrdersAvailable,
                                   ),
                                 )
+                                
                               else
                                 Column(
                                   children: newOrders.map((order) {

@@ -143,11 +143,7 @@ class ForgotPassword extends StatelessWidget {
                                     );
                                   }
                                 } else if (context.mounted) {
-                                  AppToast.showError(
-                                 
-                                    title: "Error",
-                                    message: AppText.FrgtValidPhone,
-                                  );
+                                  AppToast.showOtpSentFailed(context, error: provider.errorMessage);
                                 }
                               },
                       )

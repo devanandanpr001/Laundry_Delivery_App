@@ -28,7 +28,7 @@ import 'package:ziya_laundry_deliveryapp/features/Orders/widget/pickup_verificat
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_header_section.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_customer_details.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_payment_info.dart';
-// Removed some unused imports to clean analyzer warnings
+import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
 
 class OrderCard extends StatefulWidget {
   final String orderid;
@@ -61,15 +61,13 @@ class OrderCard extends StatefulWidget {
   @override
   State<OrderCard> createState() => _OrderCardState();
 
-  /// Shows a confirmation dialog before deleting an item or bundle.
   static Future<bool> _confirmDeletion(BuildContext context, String itemName) async {
     return await showPremiumConfirmationDialog(
       context,
-      title: 'Confirm Deletion',
-      description: "Are you sure you want to remove '$itemName'?",
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      confirmColor: AppColors.errorRed,
+      title: 'Delete Item?',
+      description: "Are you sure you want to delete this item?",
+      confirmText: 'Yes',
+      cancelText: 'No',
     );
   }
 }
@@ -189,9 +187,22 @@ class _OrderCardState extends State<OrderCard> {
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10.w), border: Border.all(color: AppColors.grey)),
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.white, 
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+            spreadRadius: 1,
+          ),
+        ],
+        border: Border.all(color: AppColors.grey.withOpacity(0.15), width: 1),
+      ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: isPending ? 10.h : 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: isPending ? 14.h : 16.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -415,12 +426,12 @@ class _OrderCardState extends State<OrderCard> {
   }
 
   void _showImagePickerGrid(BuildContext context, bool isReadOnly) {
-    Navigator.push(
+    AppLoader.navigateWithLoader(
       context,
-      MaterialPageRoute(builder: (context) => GalleryScreen(
+      GalleryScreen(
         orderId: widget.orderid,
         isReadOnly: isReadOnly,
-      )),
+      ),
     );
   }
 
@@ -436,7 +447,7 @@ class _OrderCardState extends State<OrderCard> {
     }
 
     if (stage == DeliveryStage.startPickup) {
-      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const PickupLocationScreen())); // Simulate location confirmation
+      final result = await AppLoader.navigateWithLoader(context, const PickupLocationScreen()); // Simulate location confirmation
       if (!context.mounted) return;
       if (result == true) {
         final nextStage = currentOrder.by == "Per Piece" ? DeliveryStage.orderPicked : DeliveryStage.uploadImages;
@@ -453,7 +464,7 @@ class _OrderCardState extends State<OrderCard> {
         orderVM.updateOrderStage(widget.orderid, DeliveryStage.orderPicked);
         // Trigger refresh in background
         orderVM.fetchAllOrders(); 
-        AppToast.showSuccess(title: "Success", message: "Images uploaded successfully");
+        AppToast.showImageUploadSuccess(context);
       }
     } else if (stage == DeliveryStage.orderPicked) {
       // Connect to confirm-pickup API endpoint
@@ -464,7 +475,7 @@ class _OrderCardState extends State<OrderCard> {
         homeVM.refreshOrders(); // Sync counts after state change
       }
     } else if (stage == DeliveryStage.startDelivery) {
-      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const DeliveryLocationScreen()));
+      final result = await AppLoader.navigateWithLoader(context, const DeliveryLocationScreen());
       if (!context.mounted) return;
       if (result == true) {
         orderVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
@@ -475,9 +486,9 @@ class _OrderCardState extends State<OrderCard> {
       if (!_otpVerified) {
         if (_otpController.text.length != 4) {
           AppToast.showError(
-            // context: context,
             title: "Validation Error",
             message: "Enter 4 digit OTP",
+            context: context,
           );
           return;
         }
@@ -489,7 +500,7 @@ class _OrderCardState extends State<OrderCard> {
             AppToast.showError(
               title: "Verification Failed",
               message: AppText.InvalidOtp,
-              // context: context,
+              context: context,
             );
             return; // Stop if OTP verification fails
           }
@@ -525,16 +536,13 @@ class _OrderCardState extends State<OrderCard> {
   }
 
   Future<void> _handleAddImage() async {
-    final didUpload = await Navigator.push<bool>(
+    final didUpload = await AppLoader.navigateWithLoader<bool>(
       context,
-      MaterialPageRoute(builder: (_) => CameraCaptureScreen(orderId: widget.orderid)),
+      CameraCaptureScreen(orderId: widget.orderid),
     );
     if (didUpload == true && mounted) {
       context.read<OrderViewModel>().fetchAllOrders(); // Refresh in background
-      AppToast.showSuccess(
-        title: "Success",
-        message: "Images uploaded successfully",
-      );
+      AppToast.showImageUploadSuccess(context);
     }
   }
 
