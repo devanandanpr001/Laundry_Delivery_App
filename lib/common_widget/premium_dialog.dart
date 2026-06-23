@@ -96,7 +96,6 @@ Future<bool> showPremiumConfirmationDialog(
                 ),
               ),
               SizedBox(width: 12.w),
-              // Confirm button (Yes)
               Expanded(
                 child: GestureDetector(
                   onTap: () {
@@ -111,7 +110,7 @@ Future<bool> showPremiumConfirmationDialog(
                         topRight: Radius.circular(8.r),
                         bottomRight: Radius.circular(8.r),
                         bottomLeft: Radius.circular(8.r),
-                        topLeft: Radius.circular(0), // Replicating screenshot artifact
+                        topLeft: Radius.circular(0),
                       ),
                     ),
                     alignment: Alignment.center,

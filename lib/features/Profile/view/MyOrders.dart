@@ -320,11 +320,7 @@ import '../../Orders/data/model/order_model.dart';
                       style: GoogleFonts.poppins(fontSize: 11.sp, fontWeight: FontWeight.w500),
                     ),
                   ),
-                  SizedBox(height: 8.h),
-                  Padding(
-                    padding: EdgeInsets.only(right: 8.w),
-                    child: _buildRoleBadge(roleType),
-                  ),
+                  // SizedBox(height: 8.h),
                 ],
               ),
             ),
@@ -333,29 +329,4 @@ import '../../Orders/data/model/order_model.dart';
       );
     }
 
-    Widget _buildRoleBadge(String role) {
-      Color bgColor;
-      String label;
-      switch (role) {
-        case "PICKUP":
-          bgColor = AppColors.primaryBlue;
-          label = "Pickup Only";
-          break;
-        case "PICKUP_AND_DELIVERY":
-          bgColor = AppColors.pinkPurple;
-          label = "Full Cycle";
-          break;
-        default:
-          bgColor = AppColors.green;
-          label = "Delivery Only";
-      }
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(4.r)),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600),
-        ),
-      );
-    }
   }
