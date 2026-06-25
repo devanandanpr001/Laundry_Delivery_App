@@ -13,7 +13,7 @@ class VerificationScreen extends StatefulWidget {
   final String title;
   final String subtitle;
   final Future<dynamic> Function(String pin) onCompleted;
-  final VoidCallback onResend;
+  final Future<bool> Function() onResend;
 
   const VerificationScreen({
     super.key,
@@ -231,15 +231,31 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   GestureDetector(
                     onTap: (_isLoading || _isTimerActive)
                         ? null
-                        : () {
-                            AppToast.showOtpSentSuccess(context);
-                            startTimer();
+                        : () async {
+                            setState(() {
+                              _isLoading = true;
+                              _error = null;
+                            });
+
+                            final success = await widget.onResend();
+                            if (!mounted) return;
+
+                            setState(() => _isLoading = false);
+
+                            if (success) {
+                              AppToast.showOtpSentSuccess(context);
+                              startTimer();
+                            } else {
+                              AppToast.showOtpSentFailed(context);
+                            }
                           },
                     child: Text(
                       AppText.ResendOtp,
                       style: TextStyle(
                         fontSize: 14.sp,
-                        color: (_isLoading || _isTimerActive) ? AppColors.grey : AppColors.resendGreen,
+                        color: (_isLoading || _isTimerActive)
+                            ? AppColors.grey
+                            : AppColors.resendGreen,
                         fontFamily: GoogleFonts.poppins().fontFamily,
                         fontWeight: FontWeight.w500,
                       ),

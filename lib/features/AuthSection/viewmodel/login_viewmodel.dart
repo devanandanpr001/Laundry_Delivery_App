@@ -151,11 +151,26 @@ class LoginViewModel extends BaseViewModel {
   }
 
   Future<bool> resendOtp() async {
-    final result = await _repository.resendOtp(loginNumber);
-    if (result['success'] != true) {
-      setError(result['msg'] ?? "Failed to resend OTP");
+    if (loginNumber.isEmpty || loginNumber.length < 10) {
+      setError("Please enter a valid mobile number");
+      return false;
     }
-    return result['success'] == true;
+
+    setLoading(true);
+    try {
+      final result = await _repository.resendOtp(loginNumber);
+      if (result['success'] == true) {
+        return true;
+      }
+
+      setError(result['msg'] ?? "Failed to resend OTP");
+      return false;
+    } catch (e) {
+      setError("Failed to resend OTP");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }
 
   /// Save credentials securely

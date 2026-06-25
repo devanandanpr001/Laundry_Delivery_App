@@ -28,6 +28,14 @@ class AuthRepository {
     }
   }
 
+  Future<Map<String, dynamic>> resendForgotOtp(String phone) async {
+    try {
+      return await _authService.resendForgotOtp(phone);
+    } catch (e) {
+      return {'success': false, 'msg': e.toString()};
+    }
+  }
+
   Future<Map<String, dynamic>> refreshToken(String token) async {
     try {
       return await _authService.refreshToken(token);
@@ -52,9 +60,21 @@ class AuthRepository {
     }
   }
 
-  Future<Map<String, dynamic>> resetPassword(String phone, String password, String confirmPassword) async {
+  Future<Map<String, dynamic>> resetPassword(
+    String phone,
+    String password,
+    String confirmPassword, {
+    String? otp,
+    String? resetToken,
+  }) async {
     try {
-      return await _authService.resetPassword(phone, password, confirmPassword);
+      return await _authService.resetPassword(
+        phone,
+        password,
+        confirmPassword,
+        otp: otp,
+        resetToken: resetToken,
+      );
     } catch (e) {
       return {'success': false, 'msg': e.toString()};
     }

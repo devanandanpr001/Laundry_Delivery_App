@@ -4,5 +4,5 @@
     "builder.runDevServer": false,
     "builder.autoDetectDevServer": true,
     "builder.launchType": "editor",
-    "cmake.sourceDirectory": "D:/FlutterProjects/Laundry_Delivery_App-main/linux"
+    "cmake.sourceDirectory": "D:/FlutterProjects/Laundry_Delivery_App/linux"
 }

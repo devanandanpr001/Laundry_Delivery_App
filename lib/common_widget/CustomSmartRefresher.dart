@@ -33,8 +33,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:s_liquid_pull_to_refresh/s_liquid_pull_to_refresh.dart';
 
+/// A customized pull-to-refresh wrapper that provides consistent pull-to-refresh
+/// physics and visual styling across the application.
+///z
+/// It wraps a scrollable [child] and triggers [onRefresh] when pulled down past the top.
+/// Safely filters out nested scroll notifications to avoid accidental triggers.
 class CustomSmartRefresher extends StatefulWidget {
   final Widget child;
   final Future<void> Function() onRefresh;
@@ -52,27 +56,31 @@ class CustomSmartRefresher extends StatefulWidget {
   });
 
   @override
-  State<CustomSmartRefresher> createState() =>
-      _CustomSmartRefresherState();
+  State<CustomSmartRefresher> createState() => _CustomSmartRefresherState();
 }
 
-class _CustomSmartRefresherState
-    extends State<CustomSmartRefresher> {
+class _CustomSmartRefresherState extends State<CustomSmartRefresher> {
   bool _isRefreshing = false;
 
   Future<void> _handleRefresh() async {
     if (_isRefreshing) return;
 
-    _isRefreshing = true;
+    if (mounted) {
+      setState(() {
+        _isRefreshing = true;
+      });
+    }
 
     try {
       await widget.onRefresh();
     } catch (e, stackTrace) {
-      debugPrint(
-        'Refresh Error: $e\n$stackTrace',
-      );
+      debugPrint('Refresh Error: $e\n$stackTrace');
     } finally {
-      _isRefreshing = false;
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
     }
   }
 
@@ -82,14 +90,19 @@ class _CustomSmartRefresherState
       return widget.child;
     }
 
-    return SLiquidPullToRefresh(
+    return RefreshIndicator(
       onRefresh: _handleRefresh,
-      color: widget.backgroundColor ?? AppColors.white,
-      backgroundColor: widget.indicatorColor ?? AppColors.primaryBlue,
-      height: 80,
-      animSpeedFactor: 2.0,
-      showChildOpacityTransition: false,
-      springAnimationDurationInMilliseconds: 300,
+      color: widget.indicatorColor ?? AppColors.primaryBlue,
+      backgroundColor: widget.backgroundColor ?? AppColors.white,
+      displacement: 40.0,
+      edgeOffset: 8.0,
+      strokeWidth: 2.5,
+      notificationPredicate: (ScrollNotification notification) {
+        // Only trigger refresh when the primary vertical scroll view (depth == 0)
+        // is overscrolled at the top. This prevents nested horizontal item lists
+        // or inner scrolling sections from accidentally triggering the refresh.
+        return notification.depth == 0;
+      },
       child: widget.child,
     );
   }

@@ -9,10 +9,17 @@ abstract class IAuthService {
   Future<Map<String, dynamic>> login(String name, String phone, String password);
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp);
   Future<Map<String, dynamic>> resendOtp(String phone);
+  Future<Map<String, dynamic>> resendForgotOtp(String phone);
   Future<Map<String, dynamic>> refreshToken(String refreshToken);
   Future<Map<String, dynamic>> forgotPassword(String phone);
   Future<Map<String, dynamic>> verifyForgotOtp(String phone, String otp);
-  Future<Map<String, dynamic>> resetPassword(String phone, String password, String confirmPassword);
+  Future<Map<String, dynamic>> resetPassword(
+    String phone,
+    String password,
+    String confirmPassword, {
+    String? otp,
+    String? resetToken,
+  });
   Future<Map<String, dynamic>> getProfile(String token);
   Future<Map<String, dynamic>> logout(String token);
   Future<bool> sendOtp(String phoneNumber);
@@ -85,6 +92,20 @@ class AuthService implements IAuthService {
       return {'success': false, 'msg': 'Connection failed'};
     }
   }
+  @override
+  Future<Map<String, dynamic>> resendForgotOtp(String phone) async {
+    try {
+      final data = await _dioClient.post(ApiConstants.resendOtp, data: {
+        'phone': phone.trim(),
+      });
+      final response = data as Map<String, dynamic>;
+      return {'success': true, ...response};
+    } on ApiException catch (e) {
+      return {'success': false, 'msg': e.message};
+    } catch (e) {
+      return {'success': false, 'msg': 'Connection failed'};
+    }
+  }
 
   @override
   Future<Map<String, dynamic>> refreshToken(String token) async {
@@ -133,13 +154,24 @@ class AuthService implements IAuthService {
   }
 
   @override
-  Future<Map<String, dynamic>> resetPassword(String phone, String password, String confirmPassword) async {
+  Future<Map<String, dynamic>> resetPassword(
+    String phone,
+    String password,
+    String confirmPassword, {
+    String? otp,
+    String? resetToken,
+  }) async {
     try {
-      final data = await _dioClient.post(ApiConstants.resetPassword, data: {
-        'phone': phone,
+      final requestData = {
+        'phone': phone.trim(),
         'password': password,
-        'confirmPassword': confirmPassword
-      });
+        'confirmPassword': confirmPassword,
+        if (otp != null && otp.trim().isNotEmpty) 'otp': otp.trim(),
+        if (resetToken != null && resetToken.trim().isNotEmpty)
+          'resetToken': resetToken.trim(),
+      };
+
+      final data = await _dioClient.post(ApiConstants.resetPassword, data: requestData);
       final response = data as Map<String, dynamic>;
       return {'success': true, ...response};
     } on ApiException catch (e) {
