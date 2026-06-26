@@ -151,7 +151,7 @@ class OrderViewModel extends ChangeNotifier {
 
     final originalItems = List<OrderItem>.from(_orders[orderIndex].items);
 
-    // Optimistic update
+    // Optimistic update - remove item immediately
     final updatedItems = originalItems.where((item) => item.id != itemId).toList();
     _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
     notifyListeners();
@@ -159,27 +159,17 @@ class OrderViewModel extends ChangeNotifier {
     try {
       await _repository.deleteItemFromOrder(orderId, itemId);
     } catch (e) {
-      // Detect PostgreSQL transaction errors and retry with refresh
-      final isTransactionError = e.toString().toLowerCase().contains('transaction is aborted');
+      // Detect PostgreSQL transaction errors
+      final isTransactionError = e.toString().toLowerCase().contains('transaction is aborted') ||
+                                e.toString().toLowerCase().contains('aborted');
       if (isTransactionError) {
-        debugPrint("CONSOLE: Delete transaction error, retrying after refresh...");
-        // Wait for backend transaction to complete, then refresh
-        await Future.delayed(const Duration(milliseconds: 300));
-        await fetchAllOrders();
-        // Item should be removed after refresh, check if it still exists
-        final refreshedOrder = _orders.indexWhere((o) => o.orderId == orderId);
-        if (refreshedOrder != -1) {
-          final itemsAfterRefresh = _orders[refreshedOrder].items;
-          final itemStillExists = itemsAfterRefresh.any((item) => item.id == itemId);
-          if (!itemStillExists) {
-            // Item was deleted on backend, optimistic update was correct
-            return;
-          }
-        }
+        debugPrint("CONSOLE: Delete transaction error - optimistic update kept");
+        // Optimistic update already removed item - backend will sync on next refresh
+        return;
       }
+      // For other errors, revert the optimistic update
       debugPrint("CONSOLE: Delete NO-REFRESH Error: $e");
       _errorMessage = "Failed to remove item: $e";
-      // Revert optimistic update
       _orders[orderIndex] = _orders[orderIndex].copyWith(items: originalItems);
       notifyListeners();
       rethrow;
@@ -293,12 +283,22 @@ class OrderViewModel extends ChangeNotifier {
     try {
       final response = await _repository.addItemToOrder(orderId, payload);
       
-      // Update the temp item with the server-generated ID
+      // Update the temp item with the full server data
       if (response != null && response['data'] != null) {
-        final serverItemId = response['data']['id']?.toString() ?? response['data']['_id']?.toString() ?? tempId;
+        final serverData = response['data'];
+        final serverItemId = serverData['id']?.toString() ?? serverData['_id']?.toString() ?? tempId;
+        final serverTitle = serverData['title']?.toString() ?? optimisticItem.name;
+        final serverQty = serverData['quantity']?.toString() ?? optimisticItem.qty;
+        final serverUnit = serverData['unitType']?.toString() ?? optimisticItem.unit;
+        
         final updatedItems = _orders[orderIndex].items.map((item) {
           if (item.id == tempId) {
-            return item.copyWith(id: serverItemId);
+            return item.copyWith(
+              id: serverItemId,
+              name: serverTitle,
+              qty: serverQty,
+              unit: serverUnit,
+            );
           }
           return item;
         }).toList();

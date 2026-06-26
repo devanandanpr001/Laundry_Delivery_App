@@ -382,7 +382,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
       }
       final double unitPrice = totalAmount / _quantity;
 
-      await orderVM.addItemToOrder(
+      await orderVM.addItemToOrderNoRefresh(
         widget.orderId,
         OrderItem(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -395,10 +395,10 @@ class _AddItemDialogState extends State<AddItemDialog> {
         serviceNames: serviceNames,
       );
 
-      if (mounted) {
-        AppToast.showItemAdded(context, itemName: _selectedItem ?? "");
-        Navigator.pop(context, true);
-      }
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      AppToast.showItemAdded(context, itemName: _selectedItem ?? "");
+      Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
