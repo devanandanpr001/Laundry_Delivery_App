@@ -127,7 +127,7 @@ class OrderService {
     return response != null && response['success'] == true;
   }
 
-  Future<void> addItemApi(String orderId, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>?> addItemApi(String orderId, Map<String, dynamic> payload) async {
     final response = await _dioClient.post(
       "${ApiConstants.orderItem}/$orderId/item",
       data: payload,
@@ -135,6 +135,7 @@ class OrderService {
     if (response == null || response['success'] != true) {
       throw Exception("API failed to add item");
     }
+    return response;
   }
 
   Future<void> deleteItemApi(String orderId, String itemId) async {

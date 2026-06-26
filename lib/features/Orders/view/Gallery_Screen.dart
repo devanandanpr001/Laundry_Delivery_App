@@ -125,7 +125,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
     final images = order.pickedImages;
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: const Color(0xFFbEEF2F7
+),
       body: SafeArea(
         child: Column(
           children: [

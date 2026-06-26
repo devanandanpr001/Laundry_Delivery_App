@@ -317,10 +317,12 @@ class _OrderCardState extends State<OrderCard> {
                         try {
                           await orderVM.removeOrderBundle(widget.orderid, i);
                           if (!mounted) return;
-                          AppToast.showSuccess(title: "Success", message: "Bundle removed");
+                          AppToast.showSuccess(context: context,title: "Success", message: "Bundle removed");
                         } catch (e) {
                           if (!mounted) return;
-                          AppToast.showError(title: "Error", message: "Failed to remove bundle");
+                          AppToast.showError(
+                            context: context,
+                            title: "Error", message: "Failed to remove bundle");
                         }
                       }
                     },
@@ -342,20 +344,17 @@ class _OrderCardState extends State<OrderCard> {
                 ),
               ],
 
-              // Show OTP section for assigned delivery orders only after arrival
               if (currentOrder.orderType == OrderType.delivery &&
                   stage == DeliveryStage.reachedDelivery)
                 DeliveryOtpSection(order: currentOrder, orderId: widget.orderid, otpController: _otpController, otpVerified: _otpVerified, onOtpVerifiedChanged: (value) => setState(() => _otpVerified = value)),
 
               SizedBox(height: 15.h),
-              // Image Gallery Section (only if images exist)
               if (currentOrder.pickedImages.isNotEmpty)
                 ImageGallerySection(
                   pickedImages: currentOrder.pickedImages,
                   onSeeMore: () => _showImagePickerGrid(context, currentOrder.status == OrderStatus.completed || currentOrder.orderType == OrderType.delivery || !isArrivedForPickup),
                 ),
 
-              // Add Image button for assigned pickup orders (always show if applicable)
               if (isArrivedForPickup && currentOrder.by == "By Weight")
                 AddImageButton(
                   onAddImage: _handleAddImage,
@@ -364,7 +363,7 @@ class _OrderCardState extends State<OrderCard> {
                 Column(
                   children: [
                     if (isMismatchReportPending && currentOrder.deliveryStage == DeliveryStage.orderPicked)
-                      Padding( // This message is shown when the button is disabled due to pending mismatch report
+                      Padding(
                         padding: EdgeInsets.only(bottom: 8.h),
                         child: Container(
                           padding: EdgeInsets.all(10.w),
@@ -414,7 +413,6 @@ class _OrderCardState extends State<OrderCard> {
       ),
     );
   }
-
   void _openBundleDialog(BuildContext context) async {
     final orderVM = context.read<OrderViewModel>();
     final result = await showDialog(
@@ -445,7 +443,6 @@ class _OrderCardState extends State<OrderCard> {
     if (stage == DeliveryStage.uploadImages && currentOrder.pickedImages.isNotEmpty) {
       stage = DeliveryStage.orderPicked;
     }
-
     if (stage == DeliveryStage.startPickup) {
       final result = await AppLoader.navigateWithLoader(context, const PickupLocationScreen()); // Simulate location confirmation
       if (!context.mounted) return;
@@ -479,7 +476,7 @@ class _OrderCardState extends State<OrderCard> {
       if (!context.mounted) return;
       if (result == true) {
         orderVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
-        AppToast.showSuccess(title: "Arrived", message: "You have reached the delivery location");
+        AppToast.showSuccess(title: "Arrived", message: "You have reached the delivery location", context: context);
       }
     } else if (stage == DeliveryStage.reachedDelivery) {
       // If OTP is not yet verified, attempt to verify it using the input from _otpController
@@ -495,27 +492,26 @@ class _OrderCardState extends State<OrderCard> {
         setState(() => _isVerifyingOtp = true); // Set local loading state for the main button
         final success = await orderVM.verifyDeliveryOtp(currentOrder.orderId, _otpController.text); // Use orderVM
         if (mounted) {
-          setState(() => _isVerifyingOtp = false);
+         setState(() => _isVerifyingOtp = false);
           if (!success) {
             AppToast.showError(
               title: "Verification Failed",
               message: AppText.InvalidOtp,
               context: context,
             );
-            return; // Stop if OTP verification fails
+            return; 
           }
-          setState(() => _otpVerified = true); // Mark as verified if successful
+          setState(() => _otpVerified = true);
         }
       }
 
       if (!mounted) return;
       if (!context.mounted) return;
-      // The backend 'verifyDeliveryOtp' already updates status to DELIVERED and marks it complete.
-      await _showStatusDialog(context, AppImages.successGif, AppText.OrderDeliveredTitle); // Show success dialog after verification
+      await _showStatusDialog(context, AppImages.successGif, AppText.OrderDeliveredTitle); 
 
       if (mounted) {
         homeVM.setSelectedFilter("completed");
-        homeVM.refreshOrders(); // Sync counts after state change
+        homeVM.refreshOrders();
       }
     }
   }

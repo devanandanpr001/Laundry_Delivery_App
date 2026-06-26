@@ -1,0 +1,3 @@
+- [ ] Update OrderItemVerificationList to prevent deleting the last remaining item.
+- [ ] Disable checkboxes when there is only 1 item remaining.
+- [ ] Ensure selection is cleared when item count drops to 1.

@@ -142,6 +142,50 @@ class OrderViewModel extends ChangeNotifier {
     }
   }
 
+  /// Deletes an item with optimistic UI update WITHOUT refreshing the whole orders list.
+  /// This prevents the full Order section flicker / reload.
+  /// Automatically retries on transaction errors to handle backend commit delays.
+  Future<void> deleteItemFromOrderNoRefresh(String orderId, String itemId) async {
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex == -1) return;
+
+    final originalItems = List<OrderItem>.from(_orders[orderIndex].items);
+
+    // Optimistic update
+    final updatedItems = originalItems.where((item) => item.id != itemId).toList();
+    _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
+    notifyListeners();
+
+    try {
+      await _repository.deleteItemFromOrder(orderId, itemId);
+    } catch (e) {
+      // Detect PostgreSQL transaction errors and retry with refresh
+      final isTransactionError = e.toString().toLowerCase().contains('transaction is aborted');
+      if (isTransactionError) {
+        debugPrint("CONSOLE: Delete transaction error, retrying after refresh...");
+        // Wait for backend transaction to complete, then refresh
+        await Future.delayed(const Duration(milliseconds: 300));
+        await fetchAllOrders();
+        // Item should be removed after refresh, check if it still exists
+        final refreshedOrder = _orders.indexWhere((o) => o.orderId == orderId);
+        if (refreshedOrder != -1) {
+          final itemsAfterRefresh = _orders[refreshedOrder].items;
+          final itemStillExists = itemsAfterRefresh.any((item) => item.id == itemId);
+          if (!itemStillExists) {
+            // Item was deleted on backend, optimistic update was correct
+            return;
+          }
+        }
+      }
+      debugPrint("CONSOLE: Delete NO-REFRESH Error: $e");
+      _errorMessage = "Failed to remove item: $e";
+      // Revert optimistic update
+      _orders[orderIndex] = _orders[orderIndex].copyWith(items: originalItems);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> addItemToOrder(String orderId, OrderItem newItem, {double price = 0, String? serviceName, List<String>? serviceNames}) async {
     if (_isLoading) return;
     _isLoading = true;
@@ -175,7 +219,21 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.addItemToOrder(orderId, payload);
+      final response = await _repository.addItemToOrder(orderId, payload);
+      
+      // Update the temp item with the server-generated ID
+      if (response != null && response['data'] != null) {
+        final serverItemId = response['data']['id']?.toString() ?? response['data']['_id']?.toString() ?? tempId;
+        final updatedItems = _orders[orderIndex].items.map((item) {
+          if (item.id == tempId) {
+            return item.copyWith(id: serverItemId);
+          }
+          return item;
+        }).toList();
+        _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
+        notifyListeners();
+      }
+      
       await fetchAllOrders();
     } catch (e) {
       debugPrint("CONSOLE: Add Item Error: $e");
@@ -183,6 +241,79 @@ class OrderViewModel extends ChangeNotifier {
       // Revert optimistic update
       _orders[orderIndex] = _orders[orderIndex].copyWith(items: _orders[orderIndex].items.where((item) => item.id != tempId).toList());
       notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Adds an item with optimistic UI update WITHOUT refreshing the whole orders list.
+  /// Updates the temp item with the server-generated ID after successful creation.
+  Future<void> addItemToOrderNoRefresh(
+    String orderId,
+    OrderItem newItem, {
+    double price = 0,
+    String? serviceName,
+    List<String>? serviceNames,
+  }) async {
+    if (_isLoading) return;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    debugPrint("--- CONSOLE: ADD ITEM NO-REFRESH START ---");
+
+    final nameParts = newItem.name.split(" - ");
+    final List<String> services =
+        serviceNames ?? [serviceName ?? (nameParts.isNotEmpty ? nameParts[0] : "General")];
+    final title = nameParts.length > 1 ? nameParts[1] : newItem.name;
+
+    final payload = {
+      "title": title,
+      "serviceType": services,
+      "unitType": newItem.unit.toUpperCase(),
+      "quantity": int.tryParse(newItem.qty) ?? 1,
+      "unitPrice": price,
+    };
+
+    final orderIndex = _orders.indexWhere((o) => o.orderId == orderId);
+    if (orderIndex == -1) {
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    final optimisticItem = newItem.copyWith(id: tempId, qty: payload['quantity'].toString());
+    _orders[orderIndex] = _orders[orderIndex].copyWith(
+      items: [..._orders[orderIndex].items, optimisticItem],
+    );
+    notifyListeners();
+
+    try {
+      final response = await _repository.addItemToOrder(orderId, payload);
+      
+      // Update the temp item with the server-generated ID
+      if (response != null && response['data'] != null) {
+        final serverItemId = response['data']['id']?.toString() ?? response['data']['_id']?.toString() ?? tempId;
+        final updatedItems = _orders[orderIndex].items.map((item) {
+          if (item.id == tempId) {
+            return item.copyWith(id: serverItemId);
+          }
+          return item;
+        }).toList();
+        _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("CONSOLE: Add Item NO-REFRESH Error: $e");
+      _errorMessage = "Failed to add item: $e";
+      // Revert optimistic update
+      _orders[orderIndex] = _orders[orderIndex].copyWith(
+        items: _orders[orderIndex].items.where((item) => item.id != tempId).toList(),
+      );
+      notifyListeners();
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();

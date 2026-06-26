@@ -32,9 +32,7 @@ class ApiConstants {
   static const String profileImage = '/delivery/auth/profile-image';
   static const String logout = '/delivery/auth/logout';
   static const String onlineStatus = '/delivery-session/session/online-status';
-
 // Orders
-
   static const String dashboardCounts = '/delivery-session/session/dashboard-counts';
   static const String deliveryOrders = '/delivery-session/session/delivery-orders';
   static const String pickupOrders = '/delivery-session/session/pickup-orders';

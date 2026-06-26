@@ -342,26 +342,146 @@ class AppToast {
     }
   }
 
-  /// Modern Success Toast with Mint-Green Gradient
-  static void showSuccess({required String message, BuildContext? context, required String title}) {
-    _showModernBottomToast(
-      message: "$message SUCCESS",
-      gradientColors: [const Color(0xFF42B883), const Color(0xFF3DE48A)],
-      icon: Icons.check_rounded,
-      iconThemeColor: const Color(0xFF42B883),
+  // /// Modern Success Toast with Mint-Green Gradient
+  // static void showSuccess({required String title, required String message, BuildContext? context}) {
+  //   if (context != null) {
+  //     _showPremiumToast(context, title: title, message: message, icon: Icons.check_rounded, backgroundColor: const Color(0xFF34C759), iconColor: const Color(0xFF34C759));
+  //   } else {
+  //     _showModernBottomToast(
+  //       message: "$message SUCCESS",
+  //       gradientColors: [const Color(0xFF42B883), const Color(0xFF3DE48A)],
+  //       icon: Icons.check_rounded,
+  //       iconThemeColor: const Color(0xFF42B883),
+  //     );
+  //   }
+  // }
+  static void showSuccess({
+  required BuildContext context,
+  required String title,
+  required String message,
+}) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF32C341),
+        elevation: 0,
+        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            InkWell(
+              onTap: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+              child: const Icon(
+                Icons.close,
+                color: Colors.white70,
+                size: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-  }
+}
+
+static void showError({
+  required BuildContext context,
+  required String title,
+  required String message,
+}) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFFD32F2F),
+        elevation: 4,
+        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+}
 
   /// Modern Error/Failure Toast with Rose-Red Gradient
-  static void showError({required String message, BuildContext? context, required String title}) {
-    _showModernBottomToast(
-      message: "$message FAILED",
-      gradientColors: [const Color(0xFFF04438), const Color(0xFFFE6B6B)],
-      icon: Icons.priority_high_rounded,
-      iconThemeColor: const Color(0xFFF04438),
-    );
-  }
-
   // ... existing code ...
 
   /// Shows a specialized warning toast with a toggle button to go online.

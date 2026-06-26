@@ -341,6 +341,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
     if (_isLoading) return;
     if (_selectedServiceIds.isEmpty || _selectedItem == null || _amountController.text.isEmpty) {
       AppToast.showError(
+        context: context,
         title: "Input Error",
         message: "Please select services, an item, and enter an amount.");
       return;
@@ -354,6 +355,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
     final double totalAmount = _calculateDerivedAmount(availableServices, serviceItemsMap);
     if (totalAmount <= 0) {
       AppToast.showError(
+        context: context,
         title: "Invalid Amount",
         message: "Unable to calculate amount for selected services and item.",
       );
@@ -372,6 +374,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
       
       if (_quantity <= 0) {
         AppToast.showError(
+          context: context,
           title: "Input Error",
           message: "Quantity must be at least 1",
         );

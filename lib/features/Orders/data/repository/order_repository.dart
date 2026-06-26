@@ -12,7 +12,7 @@ class OrderRepository {
   Future<bool> confirmPickupOrder(String orderId) => _service.confirmPickupOrder(orderId);
   Future<bool> verifyOrder(String orderId) => _service.verifyOrderApi(orderId);
   Future<bool> reportItemMismatch(String orderId, String details) => _service.reportMismatchApi(orderId, details);
-  Future<void> addItemToOrder(String orderId, Map<String, dynamic> payload) => _service.addItemApi(orderId, payload);
+  Future<Map<String, dynamic>?> addItemToOrder(String orderId, Map<String, dynamic> payload) => _service.addItemApi(orderId, payload);
   Future<void> deleteItemFromOrder(String orderId, String itemId) => _service.deleteItemApi(orderId, itemId);
   Future<Map<String, String>?> uploadOrderImage(String orderId, String imagePath) => _service.uploadOrderImageApi(orderId, imagePath);
   Future<bool> deleteOrderImage(String orderId, String imageId) => _service.deleteOrderImageApi(orderId, imageId);
