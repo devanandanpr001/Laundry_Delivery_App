@@ -45,7 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           await loginVM.clearAllSavedData(); 
         },
         page: const LoginScreen(),
-        message: "Logging out safely...",
       );
     }
   }

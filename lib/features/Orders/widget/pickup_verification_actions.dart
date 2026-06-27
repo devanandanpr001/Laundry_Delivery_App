@@ -7,6 +7,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/data/model/home_models.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/success_splash_screen.dart';
 
 class PickupVerificationActions extends StatefulWidget {
   final OrderModel order;
@@ -100,10 +101,9 @@ class _PickupVerificationActionsState extends State<PickupVerificationActions> {
           _reportSentSuccess = true;
           _lastSentReportText = reportText;
           _isUserEditing = false;
-          AppToast.showSuccess(
-            title: "Success",
+          SuccessSplashScreen.show(
+            context,
             message: "Mismatch report submitted successfully",
-            context: context,
           );
         } else {
           _reportSentFailed = true;

@@ -9,6 +9,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
 
@@ -26,8 +27,17 @@ import '../../Orders/data/model/order_model.dart';
     void initState() {
       super.initState();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<OrderViewModel>().fetchAllOrders();
+        _loadOrders();
       });
+    }
+
+    Future<void> _loadOrders() async {
+      AppLoader.show();
+      try {
+        await context.read<OrderViewModel>().fetchAllOrders();
+      } finally {
+        AppLoader.hide();
+      }
     }
 
     String _formatOrderDate(OrderModel order) {
@@ -121,9 +131,11 @@ import '../../Orders/data/model/order_model.dart';
                     onRefresh: () async {
                       final connectivity = context.read<ConnectivityViewModel>();
                       if (!await connectivity.refreshConnection()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(AppText.UrOffline)),
-                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(AppText.UrOffline)),
+                          );
+                        }
                         return;
                       }
                       await orderVM.fetchAllOrders();
@@ -328,5 +340,4 @@ import '../../Orders/data/model/order_model.dart';
         ),
       );
     }
-
   }

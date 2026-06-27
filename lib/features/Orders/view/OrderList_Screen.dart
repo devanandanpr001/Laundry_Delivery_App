@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:lottie/lottie.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/OrderCard.dart' as home_order_card;
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/success_splash_screen.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/data/model/order_model.dart';
@@ -220,6 +219,8 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
                             isPaid: order.isPaid,
                             isDetailsPage: true,
                             items: order.items,
+                            isOnline: isOnline,
+                            homeVM: homeVM,
                           ),
                         );
                       },
@@ -312,7 +313,7 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     }
   }
 
-  Future<void> _handleAcceptOrder(BuildContext context, HomeViewModel vm, OrderModel order, bool isOnline) async {
+Future<void> _handleAcceptOrder(BuildContext context, HomeViewModel vm, OrderModel order, bool isOnline) async {
     final connectivity = context.read<ConnectivityViewModel>();
     if (!await connectivity.refreshConnection()) {
       final messenger = ScaffoldMessenger.of(context);
@@ -320,35 +321,11 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
       return;
     }
 
-    // Capture the navigator reference BEFORE the async gap (await)
-    // to avoid the "deactivated widget's ancestor" error later.
-    final navigator = Navigator.of(context, rootNavigator: true);
-
     await context.read<OrderViewModel>().acceptOrder(order.orderId, order.orderType);
     context.read<HomeViewModel>().setSelectedFilter("assigned");
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(AppImages.successGif, height: 180.h, width: 180.w),
-            Text(
-              AppText.OrdrAssigned,
-              style: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.w600, color: AppColors.green),
-            )
-          ],
-        ),
-      ),
-    );
-
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // Use the captured navigator instead of looking it up again via context
     if (mounted) {
-      navigator.pop();
+      SuccessSplashScreen.show(context, message: AppText.OrdrAssigned);
     }
+    await Future.delayed(const Duration(milliseconds: 1500));
   }
- }
+}

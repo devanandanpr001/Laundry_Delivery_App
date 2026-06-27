@@ -1,15 +1,16 @@
-
+ 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
+import 'package:collection/collection.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/data/model/order_model.dart';
-import 'package:collection/collection.dart'; // Import for firstWhereOrNull
-import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/DeliveryStage.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/premium_dialog.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/view/DeliveryLocation_Screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/view/PickUp_location.dart';
@@ -17,8 +18,7 @@ import 'package:ziya_laundry_deliveryapp/features/Orders/view/Gallery_Screen.dar
 import 'package:ziya_laundry_deliveryapp/features/Orders/view/camera_capture_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/Bundle_Dialog.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/add_item_dialog.dart';
-import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
-import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_card_elements.dart'; // Keep this for UI elements
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_card_elements.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_item_verification_list.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/mismatch_reason_display.dart';
@@ -28,7 +28,7 @@ import 'package:ziya_laundry_deliveryapp/features/Orders/widget/pickup_verificat
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_header_section.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_customer_details.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_payment_info.dart';
-import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
+import 'package:ziya_laundry_deliveryapp/features/Orders/widget/success_splash_screen.dart';
 
 class OrderCard extends StatefulWidget {
   final String orderid;
@@ -42,6 +42,8 @@ class OrderCard extends StatefulWidget {
   final Function()? onAccept;
   final List<OrderItem> items;
   final VoidCallback? onViewTap;
+  final bool isOnline;
+  final HomeViewModel homeVM;
 
   const OrderCard({
     super.key,
@@ -56,6 +58,8 @@ class OrderCard extends StatefulWidget {
     this.onAccept,
     required this.items,
     this.onViewTap,
+    required this.isOnline,
+    required this.homeVM,
   });
 
   @override
@@ -104,16 +108,12 @@ class _OrderCardState extends State<OrderCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Optimized: Only rebuild if the specific order or online status changes
-    final homeVM = context.watch<HomeViewModel>();
     final orderVM = context.watch<OrderViewModel>();
-    final currentOrder = orderVM.orders.firstWhereOrNull((o) => o.orderId == widget.orderid); // Safely look up the order.
+    final currentOrder = orderVM.orders.firstWhereOrNull((o) => o.orderId == widget.orderid);
     
-    // If the order data is missing (e.g. after a logout or failed refresh), 
-    // don't try to render the card to avoid errors.
     if (currentOrder == null) return const SizedBox.shrink();
 
-    final isOnline = homeVM.isOnline;
+    final isOnline = widget.isOnline;
     
     final isPending = currentOrder.status == OrderStatus.pending;
     final stage = currentOrder.status == OrderStatus.completed 
@@ -271,7 +271,7 @@ class _OrderCardState extends State<OrderCard> {
                         AppToast.showOnlineAction(
                           context,
                           isOnline: isOnline,
-                          homeVM: homeVM,
+                          homeVM: widget.homeVM,
                         );
                       } else {
                         widget.onAccept?.call();
@@ -285,7 +285,7 @@ class _OrderCardState extends State<OrderCard> {
                         AppToast.showOnlineAction(
                           context,
                           isOnline: isOnline,
-                          homeVM: homeVM,
+                          homeVM: widget.homeVM,
                         );
                       } else {
                         widget.onAccept?.call();
@@ -317,7 +317,7 @@ class _OrderCardState extends State<OrderCard> {
                         try {
                           await orderVM.removeOrderBundle(widget.orderid, i);
                           if (!mounted) return;
-                          AppToast.showSuccess(context: context,title: "Success", message: "Bundle removed");
+                          SuccessSplashScreen.show(context, message: "Bundle removed");
                         } catch (e) {
                           if (!mounted) return;
                           AppToast.showError(
@@ -467,7 +467,7 @@ class _OrderCardState extends State<OrderCard> {
       // Connect to confirm-pickup API endpoint
       final success = await orderVM.confirmPickup(widget.orderid);
       if (success && mounted) {
-        await _showStatusDialog(context, AppImages.orderPickedGif, AppText.OrderPickedTitle);
+        SuccessSplashScreen.show(context, message: AppText.OrderPickedTitle);
         homeVM.setSelectedFilter("completed");
         homeVM.refreshOrders(); // Sync counts after state change
       }
@@ -476,7 +476,7 @@ class _OrderCardState extends State<OrderCard> {
       if (!context.mounted) return;
       if (result == true) {
         orderVM.updateOrderStage(widget.orderid, DeliveryStage.reachedDelivery);
-        AppToast.showSuccess(title: "Arrived", message: "You have reached the delivery location", context: context);
+        SuccessSplashScreen.show(context, message: "You have reached the delivery location");
       }
     } else if (stage == DeliveryStage.reachedDelivery) {
       // If OTP is not yet verified, attempt to verify it using the input from _otpController
@@ -507,28 +507,13 @@ class _OrderCardState extends State<OrderCard> {
 
       if (!mounted) return;
       if (!context.mounted) return;
-      await _showStatusDialog(context, AppImages.successGif, AppText.OrderDeliveredTitle); 
-
+      SuccessSplashScreen.show(context, message: AppText.OrderDeliveredTitle);
+      
       if (mounted) {
         homeVM.setSelectedFilter("completed");
         homeVM.refreshOrders();
       }
     }
-  }
-
-  Future<void> _showStatusDialog(BuildContext context, String asset, String text) async {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Image.asset(asset, height: 120.h),
-        SizedBox(height: 10.h),
-        Text(text, style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.w500, color: AppColors.green, decoration: TextDecoration.none)),
-      ])),
-    );
-    await Future.delayed(const Duration(seconds: 3));
-    if (context.mounted) Navigator.pop(context);
   }
 
   Future<void> _handleAddImage() async {

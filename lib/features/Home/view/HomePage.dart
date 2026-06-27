@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/online_toggle.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/widgets/order_type_toggle.dart';
@@ -20,8 +19,9 @@ import 'package:ziya_laundry_deliveryapp/core/widgets/no_internet_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import '../../../../common_widget/CustomSmartRefresher.dart';
-import '../viewmodel/home_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
 import '../../Orders/data/model/order_model.dart';
+import '../../Orders/widget/success_splash_screen.dart';
 
 class Homepage extends StatefulWidget {
   final VoidCallback onGoToOrders;
@@ -249,47 +249,35 @@ class _HomepageState extends State<Homepage> {
                                         isPaid: order.isPaid,
                                         isDetailsPage: false,
                                         items: order.items,
+                                        isOnline: homeVM.isOnline,
+                                        homeVM: homeVM,
                                         onViewTap: () {
                                           homeVM.setSelectedIndex(1);
                                           homeVM.setScrollToOrderId(order.orderId);
                                           widget.onGoToOrders();
                                         },
-                                        onAccept: () async {
-                                          if (_isAcceptingOrder) return;
-                                          final connectivity = context.read<ConnectivityViewModel>();
-                                          if (!await connectivity.refreshConnection() && mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text(AppText.UrOffline)),
-                                            );
-                                            return;
-                                          }
-                                          setState(() => _isAcceptingOrder = true);
-                                          final orderVM = context.read<OrderViewModel>();
-                                          final success = await orderVM.acceptOrder(order.orderId, order.orderType);
-                                          if (success && mounted) {
-                                            homeVM.setSelectedFilter("assigned");
-                                            showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (_) => Center(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Image(width: 200.w, height: 200.h, image: AssetImage(AppImages.successGif)),
-                                                    Text(AppText.OrdrAssigned, style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.w500, color: AppColors.green)),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                            await Future.delayed(const Duration(seconds: 2));
-                                            if (!mounted) return;
-                                            Navigator.of(context, rootNavigator: true).pop();
-                                            setState(() => _isAcceptingOrder = false);
-                                            widget.onGoToOrders();
-                                          } else if (mounted) {
-                                            setState(() => _isAcceptingOrder = false);
-                                          }
-                                        },
+onAccept: () async {
+                                           if (_isAcceptingOrder) return;
+                                           final connectivity = context.read<ConnectivityViewModel>();
+                                           if (!await connectivity.refreshConnection() && mounted) {
+                                             ScaffoldMessenger.of(context).showSnackBar(
+                                               SnackBar(content: Text(AppText.UrOffline)),
+                                             );
+                                             return;
+                                           }
+                                           setState(() => _isAcceptingOrder = true);
+                                           final orderVM = context.read<OrderViewModel>();
+                                           final success = await orderVM.acceptOrder(order.orderId, order.orderType);
+                                           if (success && mounted) {
+                                             homeVM.setSelectedFilter("assigned");
+                                              SuccessSplashScreen.show(context, message: AppText.OrdrAssigned);
+                                             await Future.delayed(const Duration(milliseconds: 1500));
+                                             setState(() => _isAcceptingOrder = false);
+                                             widget.onGoToOrders();
+                                           } else if (mounted) {
+                                             setState(() => _isAcceptingOrder = false);
+                                           }
+                                         },
                                       ),
                                     );
                                   }).toList(),

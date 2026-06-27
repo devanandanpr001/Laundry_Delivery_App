@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/profile_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
 
 class CmsPageScreen extends StatefulWidget {
   final String type; // 'PRIVACY', 'TERMS', 'ABOUT', 'FAQ'
@@ -28,17 +29,23 @@ class _CmsPageScreenState extends State<CmsPageScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchCmsPage();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchCmsPage();
+    });
   }
 
   Future<void> _fetchCmsPage() async {
+    AppLoader.show();
     final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
     final data = await profileVM.fetchCmsPage(widget.type);
-    setState(() {
-      _cmsData = data;
-      _isLoading = false;
-      _errorMessage = data == null ? 'Failed to load ${widget.title.toLowerCase()}' : null;
-    });
+    AppLoader.hide();
+    if (mounted) {
+      setState(() {
+        _cmsData = data;
+        _isLoading = false;
+        _errorMessage = data == null ? 'Failed to load ${widget.title.toLowerCase()}' : null;
+      });
+    }
   }
 
   @override
@@ -73,11 +80,7 @@ class _CmsPageScreenState extends State<CmsPageScreen> {
               ),
               Expanded(
                 child: _isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
-                      ),
-                    )
+                  ? const SizedBox.shrink()
                   : _errorMessage != null
                     ? Center(
                         child: Column(

@@ -84,7 +84,6 @@ class OrderViewModel extends ChangeNotifier {
       }
 
       if (success) {
-        await fetchAllOrders(); // Refresh to sync with server
         return true;
       } else {
         throw Exception("API failed to accept order");
@@ -375,7 +374,6 @@ class OrderViewModel extends ChangeNotifier {
 
       final success = await _repository.confirmPickupOrder(orderId);
       if (success) {
-        await fetchAllOrders(); // Professional sync: get final OrderStatus.completed from server
         return true;
       } else {
         // Revert optimistic update on failure
@@ -630,7 +628,6 @@ class OrderViewModel extends ChangeNotifier {
     try {
       final success = await _repository.verifyDeliveryOtp(orderId, otp);
       if (success) {
-        await fetchAllOrders(); // Refresh to get the updated status
         return true;
       }
       throw Exception("API failed to verify OTP");
