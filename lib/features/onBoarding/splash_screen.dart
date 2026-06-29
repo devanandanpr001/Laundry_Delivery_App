@@ -6,7 +6,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/features/Notification/data/Service/notification_service.dart';
 import 'package:ziya_laundry_deliveryapp/core/appUpdateService/AppUpdateService.dart';
 import 'package:ziya_laundry_deliveryapp/core/services/token_service.dart';
-import 'package:ziya_laundry_deliveryapp/features/onBoarding/onBoardingScreen.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/profile_viewmodel.dart';
@@ -239,7 +239,7 @@ Future<void> _navigateToNext() async {
         return;
       }
 
-      /// NORMAL HOME NAVIGATION
+      /// ALL CHECKS PASSED → HOME
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -257,41 +257,15 @@ Future<void> _navigateToNext() async {
 
       if (!mounted) return;
 
-      final errorMsg =
-          e.toString().toLowerCase();
-
-      final bool isNetworkError =
-          errorMsg.contains("socket") ||
-          errorMsg.contains("connection") ||
-          errorMsg.contains("internet") ||
-          errorMsg.contains("network") ||
-          errorMsg.contains("timeout");
-
-      /// OFFLINE USER
-      if (isNetworkError) {
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            settings: const RouteSettings(name: '/home'),
-            builder: (_) =>
-                const BottomNavigationPage(),
-          ),
-        );
-      }
-
-      /// INVALID TOKEN
-      else {
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            settings: const RouteSettings(name: '/onboarding'),
-            builder: (_) =>
-                const Onboardingscreen(),
-          ),
-        );
-      }
+      /// ANY FAILURE (NETWORK, 401, INVALID TOKEN, ETC.) → LOGIN
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          settings: const RouteSettings(name: '/login'),
+          builder: (_) =>
+              const LoginScreen(),
+        ),
+      );
     }
   }
 
@@ -303,9 +277,9 @@ Future<void> _navigateToNext() async {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        settings: const RouteSettings(name: '/onboarding'),
+        settings: const RouteSettings(name: '/login'),
         builder: (_) =>
-            const Onboardingscreen(),
+            const LoginScreen(),
       ),
     );
   }

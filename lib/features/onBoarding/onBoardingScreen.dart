@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ziya_laundry_deliveryapp/BottomNavigation/bottom_navigation_page.dart';
+import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/core/widgets/app_network_image.dart';
 
 class Onboardingscreen extends StatefulWidget {
@@ -24,8 +24,8 @@ class _OnboardingscreenState extends State<Onboardingscreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          settings: const RouteSettings(name: '/home'),
-          builder: (context) => BottomNavigationPage(),
+          settings: const RouteSettings(name: '/login'),
+          builder: (context) => const LoginScreen(),
         ),
       );
     }
