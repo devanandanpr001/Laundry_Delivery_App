@@ -201,35 +201,21 @@ class OrderViewModel extends ChangeNotifier {
       return;
     }
 
-    // Optimistic update
-    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
-    final optimisticItem = newItem.copyWith(id: tempId, qty: payload['quantity'].toString());
-    _orders[orderIndex] = _orders[orderIndex].copyWith(items: [..._orders[orderIndex].items, optimisticItem]);
-    notifyListeners();
-
     try {
       final response = await _repository.addItemToOrder(orderId, payload);
-      
-      // Update the temp item with the server-generated ID
-      if (response != null && response['data'] != null) {
-        final serverItemId = response['data']['id']?.toString() ?? response['data']['_id']?.toString() ?? tempId;
-        final updatedItems = _orders[orderIndex].items.map((item) {
-          if (item.id == tempId) {
-            return item.copyWith(id: serverItemId);
-          }
-          return item;
-        }).toList();
-        _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
+
+      if (response != null && response['success'] == true) {
+        _isLoading = false;
         notifyListeners();
+        try {
+          await fetchAllOrders();
+        } catch (e) {
+          debugPrint("CONSOLE: Post-add fetch failed: $e");
+        }
       }
-      
-      await fetchAllOrders();
     } catch (e) {
-      debugPrint("CONSOLE: Add Item Error: $e");
+      debugPrint("--- CONSOLE: Add Item Error: $e");
       _errorMessage = "Failed to add item: $e";
-      // Revert optimistic update
-      _orders[orderIndex] = _orders[orderIndex].copyWith(items: _orders[orderIndex].items.where((item) => item.id != tempId).toList());
-      notifyListeners();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -272,47 +258,21 @@ class OrderViewModel extends ChangeNotifier {
       return;
     }
 
-    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
-    final optimisticItem = newItem.copyWith(id: tempId, qty: payload['quantity'].toString());
-    _orders[orderIndex] = _orders[orderIndex].copyWith(
-      items: [..._orders[orderIndex].items, optimisticItem],
-    );
-    notifyListeners();
-
     try {
       final response = await _repository.addItemToOrder(orderId, payload);
-      
-      // Update the temp item with the full server data
-      if (response != null && response['data'] != null) {
-        final serverData = response['data'];
-        final serverItemId = serverData['id']?.toString() ?? serverData['_id']?.toString() ?? tempId;
-        final serverTitle = serverData['title']?.toString() ?? optimisticItem.name;
-        final serverQty = serverData['quantity']?.toString() ?? optimisticItem.qty;
-        final serverUnit = serverData['unitType']?.toString() ?? optimisticItem.unit;
-        
-        final updatedItems = _orders[orderIndex].items.map((item) {
-          if (item.id == tempId) {
-            return item.copyWith(
-              id: serverItemId,
-              name: serverTitle,
-              qty: serverQty,
-              unit: serverUnit,
-            );
-          }
-          return item;
-        }).toList();
-        _orders[orderIndex] = _orders[orderIndex].copyWith(items: updatedItems);
+
+      if (response != null && response['success'] == true) {
+        _isLoading = false;
         notifyListeners();
+        try {
+          await fetchAllOrders();
+        } catch (e) {
+          debugPrint("CONSOLE: Post-add fetch failed: $e");
+        }
       }
     } catch (e) {
       debugPrint("CONSOLE: Add Item NO-REFRESH Error: $e");
       _errorMessage = "Failed to add item: $e";
-      // Revert optimistic update
-      _orders[orderIndex] = _orders[orderIndex].copyWith(
-        items: _orders[orderIndex].items.where((item) => item.id != tempId).toList(),
-      );
-      notifyListeners();
-      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();

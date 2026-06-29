@@ -44,6 +44,7 @@ class OrderCard extends StatefulWidget {
   final VoidCallback? onViewTap;
   final bool isOnline;
   final HomeViewModel homeVM;
+  final bool fullBorder;
 
   const OrderCard({
     super.key,
@@ -60,6 +61,7 @@ class OrderCard extends StatefulWidget {
     this.onViewTap,
     required this.isOnline,
     required this.homeVM,
+    this.fullBorder = false,
   });
 
   @override
@@ -191,15 +193,19 @@ class _OrderCardState extends State<OrderCard> {
       decoration: BoxDecoration(
         color: AppColors.white, 
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-            spreadRadius: 1,
-          ),
-        ],
-        border: Border.all(color: AppColors.grey.withOpacity(0.15), width: 1),
+        boxShadow: widget.fullBorder
+            ? null
+            : [
+                BoxShadow(
+                  color: Color(0x40000000),
+                  blurRadius: 0,
+                  spreadRadius: 1,
+                  offset: Offset(0, 0),
+                ),
+              ],
+        border: widget.fullBorder
+            ? Border.all(color: Color(0x40000000), width: 1)
+            : Border.all(color: AppColors.grey.withOpacity(0.15), width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: isPending ? 14.h : 16.h),

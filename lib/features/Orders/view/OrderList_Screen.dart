@@ -29,6 +29,8 @@ class OrderlistScreen extends StatefulWidget {
 class _OrderlistScreenState extends State<OrderlistScreen> {
   OrderType _selectedType = OrderType.pickup;
   String? _fetchError;
+  bool _isManualRefreshing = false;
+
 
   @override
   void initState() {
@@ -55,16 +57,19 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
   }
 
   Future<void> _onRefresh() async {
-    final connectivity = context.read<ConnectivityViewModel>();
-    if (!await connectivity.refreshConnection()) {
-      if (mounted) setState(() => _fetchError = "No internet connection");
-      return;
-    }
-
-    final homeVM = context.read<HomeViewModel>();
-    final orderVM = context.read<OrderViewModel>();
+    if (_isManualRefreshing) return;
+    _isManualRefreshing = true;
 
     try {
+      final connectivity = context.read<ConnectivityViewModel>();
+      if (!await connectivity.refreshConnection()) {
+        if (mounted) setState(() => _fetchError = "No internet connection");
+        return;
+      }
+
+      final homeVM = context.read<HomeViewModel>();
+      final orderVM = context.read<OrderViewModel>();
+
       if (mounted) setState(() => _fetchError = null);
       await Future.wait([
         homeVM.refreshOrders(),
@@ -73,8 +78,11 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
     } catch (e) {
       if (mounted) setState(() => _fetchError = _parseError(e));
       debugPrint("OrderlistScreen: Error during _onRefresh: $e");
+    } finally {
+      _isManualRefreshing = false;
     }
   }
+
 
   String _parseError(dynamic e) {
     String msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
@@ -324,8 +332,7 @@ Future<void> _handleAcceptOrder(BuildContext context, HomeViewModel vm, OrderMod
     await context.read<OrderViewModel>().acceptOrder(order.orderId, order.orderType);
     context.read<HomeViewModel>().setSelectedFilter("assigned");
     if (mounted) {
-      SuccessSplashScreen.show(context, message: AppText.OrdrAssigned);
+      await SuccessSplashScreen.show(context, message: AppText.OrdrAssigned);
     }
-    await Future.delayed(const Duration(milliseconds: 1500));
   }
 }

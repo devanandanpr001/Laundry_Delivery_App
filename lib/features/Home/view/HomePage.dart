@@ -251,12 +251,13 @@ class _HomepageState extends State<Homepage> {
                                         items: order.items,
                                         isOnline: homeVM.isOnline,
                                         homeVM: homeVM,
+                                        fullBorder: true,
                                         onViewTap: () {
                                           homeVM.setSelectedIndex(1);
                                           homeVM.setScrollToOrderId(order.orderId);
                                           widget.onGoToOrders();
                                         },
-onAccept: () async {
+ onAccept: () async {
                                            if (_isAcceptingOrder) return;
                                            final connectivity = context.read<ConnectivityViewModel>();
                                            if (!await connectivity.refreshConnection() && mounted) {
@@ -270,10 +271,11 @@ onAccept: () async {
                                            final success = await orderVM.acceptOrder(order.orderId, order.orderType);
                                            if (success && mounted) {
                                              homeVM.setSelectedFilter("assigned");
-                                              SuccessSplashScreen.show(context, message: AppText.OrdrAssigned);
-                                             await Future.delayed(const Duration(milliseconds: 1500));
-                                             setState(() => _isAcceptingOrder = false);
-                                             widget.onGoToOrders();
+                                             await SuccessSplashScreen.show(context, message: AppText.OrdrAssigned);
+                                             if (mounted) {
+                                               setState(() => _isAcceptingOrder = false);
+                                               widget.onGoToOrders();
+                                             }
                                            } else if (mounted) {
                                              setState(() => _isAcceptingOrder = false);
                                            }

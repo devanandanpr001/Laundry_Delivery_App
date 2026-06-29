@@ -8,6 +8,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/data/model/home_models.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
+import 'package:quick_popup_manager/quick_popup_manager.dart';
 
 class OrderItemVerificationList extends StatefulWidget {
   final OrderModel order;
@@ -50,10 +51,19 @@ class _OrderItemVerificationListState extends State<OrderItemVerificationList> {
   @override
   Widget build(BuildContext context) {
     final isPickup = widget.order.orderType == OrderType.pickup;
+
+    // Use current view-model state to avoid stale widget.order values.
+    // This makes the delete confirmation appear immediately after add/delete without waiting for refresh.
+    final orderVM = context.watch<OrderViewModel>();
+    final currentOrder = orderVM.orders.firstWhere(
+      (o) => o.orderId == widget.orderId && o.orderType == widget.order.orderType,
+      orElse: () => widget.order,
+    );
+
     final isInteractive = !widget.isPending &&
-        widget.order.status == OrderStatus.assigned &&
+        currentOrder.status == OrderStatus.assigned &&
         isPickup &&
-        !widget.order.isVerified &&
+        !currentOrder.isVerified &&
         widget.isArrived;
 
     if (widget.displayItems.isEmpty) return const SizedBox.shrink();
@@ -215,6 +225,11 @@ class _OrderItemVerificationListState extends State<OrderItemVerificationList> {
                     OutlinedButton.icon(
                       onPressed: isInteractive
                           ? () async {
+                              // Ensure any existing popup stack is dismissed before opening confirmation.
+                              // This is required because QuickPopupManager popups can remain on top.
+                              // ignore: invalid_use_of_protected_member
+                              QuickPopupManager().dismissAll();
+
                               final orderVM = context.read<OrderViewModel>();
                               final stateMounted = mounted;
 

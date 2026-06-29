@@ -68,6 +68,7 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      // Refresh-only: do not reset user/session UI data here.
       if (!_isOnlineInitialized) {
         try {
           _isOnline = await _repository.getInitialOnlineStatus();
@@ -77,6 +78,7 @@ class HomeViewModel extends ChangeNotifier {
         }
       }
       _serviceRepository.hashCode; // Keep field usage reference
+
 
       final results = await Future.wait<dynamic>([
         _repository.getDashboardCounts().catchError((e) {
