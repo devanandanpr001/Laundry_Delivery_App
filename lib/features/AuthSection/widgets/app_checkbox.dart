@@ -33,8 +33,8 @@ class AppCheckbox extends StatelessWidget {
               width: 0.5.r,
               color: Colors.black54,
             ),
-            fillColor: MaterialStateProperty.resolveWith((states) {
-              if (states.contains(MaterialState.selected)) {
+            fillColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
                 return const Color(0xFF0064D7);
               }
               return Colors.transparent;

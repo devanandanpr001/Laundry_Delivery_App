@@ -54,8 +54,8 @@ class _AdvancedCachedImageState extends State<AdvancedCachedImage> {
   @override
   Widget build(BuildContext context) {
     if (widget.imageUrl.isEmpty) {
-      return CachedNetworkImage(
-        imageUrl: AppImages.defaultProfile,
+      return Image.asset(
+        AppImages.defaultProfile,
         fit: widget.fit,
         width: widget.width,
         height: widget.height,

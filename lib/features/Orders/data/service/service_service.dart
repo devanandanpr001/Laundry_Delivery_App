@@ -31,7 +31,7 @@ class ServiceService {
   Future<List<dynamic>> fetchItemsForServiceApi(String serviceId) async {
     try {
       final response = await _dioClient.get(
-        ApiConstants.selact_Items.replaceAll(':serviceId', serviceId),
+        ApiConstants.selectItems.replaceAll(':serviceId', serviceId),
       );
       if (response != null && response['success'] == true && response['data'] != null) {
         final List<dynamic> items = (response['data'] is Map) 

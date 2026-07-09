@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -311,12 +310,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 60.r,
                         borderRadius: BorderRadius.circular(60.r),
                       )
-                    : AdvancedCachedImage(
-                        imageUrl: AppImages.defaultProfile,
+                    : Image.asset(
+                        AppImages.defaultProfile,
                         fit: BoxFit.cover,
-                        width: 60.r,
-                        height: 60.r,
-                        borderRadius: BorderRadius.circular(60.r),
                       ),
           ),
         ),

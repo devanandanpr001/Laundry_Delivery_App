@@ -1,15 +1,18 @@
 class AppImages {
   // Network Images
-  static const String signupBg = 'https://www.shutterstock.com/image-photo/drycleaning-delivery-courier-giving-dress-600nw-2439026981.jpg';
-  static const String loginBg = 'https://media.istockphoto.com/id/2158161980/photo/smiling-woman-receiving-clean-clothes-on-a-hanger-in-a-plastic-bag-from-a-delivery-man-at-the.jpg?s=612x612&w=0&k=20&c=N3tZ4-qvsmWkS1DwIr_Sh5V7JzgjvIzrPxdotIing-c=';
-  static const String defaultProfile = 'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg';
+  static const String signupBg = 'assets/signupBg.png';
+  static const String loginBg = 'assets/loginBg.png';
+  static const String defaultProfile = 'assets/default-pfp-7.jpg';
+  static const String onBoarding1 = 'assets/onBoarding-1.png';
+    static const String onBoarding2 = 'assets/onBoarding-2.png';
+
 
   // Asset Icons
   static const String appLogo = 'assets/icons/laundry_logo.png';
   static const String iconAssigned = 'assets/icons/assigned_orders.png';
   static const String iconCompleted = 'assets/icons/completed_orders.png';
   static const String iconPackage = 'assets/icons/package.png';
-  static const String washingMachine = 'assets/icons/washingMachine.png';
+  static const String washingMachine = 'assets/icons/washingMachine.png'; 
   
   // Navigation Icons
   static const String navHome = 'assets/icons/home.png';

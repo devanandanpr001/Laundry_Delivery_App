@@ -67,7 +67,7 @@ class _StatusCountCardState extends State<StatusCountCard> with SingleTickerProv
             borderRadius: BorderRadius.circular(16.r),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withOpacity(0.4),
+                color: widget.color.withValues(alpha: 0.4),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -101,7 +101,7 @@ class _StatusCountCardState extends State<StatusCountCard> with SingleTickerProv
                       style: GoogleFonts.poppins(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         letterSpacing: 0.5,
                       ),
                     ),

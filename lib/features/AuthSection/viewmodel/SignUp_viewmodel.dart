@@ -87,7 +87,7 @@ class SignupViewModel extends BaseViewModel {
   }) async {
     setLoading(true);
     try {
-      // 1. Local Validations
+
       if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
         return "All fields are required";
       }
@@ -95,8 +95,7 @@ class SignupViewModel extends BaseViewModel {
       if (newPasswordError != null) return newPasswordError;
       
       if (newPassword != confirmPassword) return "Passwords do not match";
-
-      // 2. API Call
+  
       final response = await _authService.changePassword(
         currentPassword,
         newPassword,
@@ -104,7 +103,7 @@ class SignupViewModel extends BaseViewModel {
       );
 
       if (response['success'] == true) {
-        return null; // Success
+        return null; 
       } else {
         return response['msg'] ?? "Failed to change password";
       }
@@ -112,4 +111,4 @@ class SignupViewModel extends BaseViewModel {
       setLoading(false);
     }
   }
-}
+} 

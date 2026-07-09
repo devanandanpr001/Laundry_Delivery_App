@@ -25,7 +25,7 @@ class OrderCustomerDetails extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,7 +35,7 @@ class OrderCustomerDetails extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(8.r),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Image.asset(AppImages.iconProfile, height: 16.h, width: 16.w, color: Colors.blue),
@@ -52,7 +52,7 @@ class OrderCustomerDetails extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 8.h),
-            child: Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+            child: Divider(color: Colors.grey.withValues(alpha: 0.2), height: 1),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +61,7 @@ class OrderCustomerDetails extends StatelessWidget {
                 padding: EdgeInsets.all(8.r),
                 margin: EdgeInsets.only(top: 2.h),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Image.asset(AppImages.iconLocation, height: 16.h, width: 16.w, color: Colors.orange),

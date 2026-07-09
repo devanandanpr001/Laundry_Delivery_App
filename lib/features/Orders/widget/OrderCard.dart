@@ -205,7 +205,7 @@ class _OrderCardState extends State<OrderCard> {
               ],
         border: widget.fullBorder
             ? Border.all(color: Color(0x40000000), width: 1)
-            : Border.all(color: AppColors.grey.withOpacity(0.15), width: 1),
+            : Border.all(color: AppColors.grey.withValues(alpha: 0.15), width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: isPending ? 14.h : 16.h),

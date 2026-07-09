@@ -23,7 +23,7 @@ class CameraCaptureScreen extends StatefulWidget {
 
 class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraController? _cameraController;
-  List<XFile> _capturedPhotos = [];
+  final List<XFile> _capturedPhotos = [];
   bool _isInitializing = true;
   bool _isCapturing = false;
   bool _isUploading = false;
@@ -104,7 +104,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         setState(() {});
       }
     } catch (e) {
-      AppToast.showImageUploadFailed(context, error: 'Capture failed: $e');
+      if (mounted) {
+        AppToast.showImageUploadFailed(context, error: 'Capture failed: $e');
+      }
     } finally {
       if (mounted) setState(() => _isCapturing = false);
     }
@@ -182,7 +184,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                  colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
                 ),
               ),
               child: Row(
@@ -196,7 +198,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
@@ -220,7 +222,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                  colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
                 ),
               ),
               child: Column(

@@ -61,7 +61,7 @@ class ApiConstants {
   static const String verifyItems = '/delivery-session/session/orders';
 
   static const String serviceAvailability = '/delivery-session/services/available';
-  static const String selact_Items ='/delivery-session/services/:serviceId/items';
+  static const String selectItems ='/delivery-session/services/:serviceId/items';
   static const String multipleServiceItems = '/delivery-session/services/items/multiple';
   static const String deliverysendotp = '/delivery-session/session/delivery/send-delivery-otp/:orderId';
   static const String  deliveryverifyotp = '/delivery-session/session/delivery/verify-delivery-otp/:orderId';

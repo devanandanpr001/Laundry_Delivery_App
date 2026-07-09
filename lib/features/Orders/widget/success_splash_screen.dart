@@ -314,7 +314,7 @@ class ConfettiBackgroundPainter extends CustomPainter {
 
     for (int i = 0; i < 45; i++) {
       final paint = Paint()
-        ..color = colors[random.nextInt(colors.length)].withOpacity(0.65)
+        ..color = colors[random.nextInt(colors.length)].withValues(alpha: 0.65)
         ..style = PaintingStyle.fill
         ..strokeWidth = 3;
 
@@ -357,7 +357,6 @@ class ConfettiBackgroundPainter extends CustomPainter {
       canvas.restore();
     }
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

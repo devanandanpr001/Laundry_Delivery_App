@@ -191,7 +191,7 @@ class AddItemSubmitButton extends StatelessWidget {
           backgroundColor: AppColors.primaryBlue,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
           elevation: 0,
-          disabledBackgroundColor: AppColors.primaryBlue.withOpacity(0.6),
+          disabledBackgroundColor: AppColors.primaryBlue.withValues(alpha: 0.6),
         ),
         child: isLoading
             ? LoadingAnimationWidget.waveDots(color: Colors.white, size: 20.sp)

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback? onPressed; // Made nullable to allow disabling the button
+  final VoidCallback? onPressed;
   final Color? backgroundColor;
-  final Color? textColor; // Added textColor parameter
+  final Color? textColor;
   final FontWeight? fontWeight;
   final double? height;
   final double? borderRadius;
@@ -28,7 +29,7 @@ class CustomButton extends StatelessWidget {
     this.loading = false,
   });
 
-  
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -41,16 +42,21 @@ class CustomButton extends StatelessWidget {
           ),
           elevation: elevation,
         ),
-        onPressed: onPressed,
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: fontWeight ?? FontWeight.w600,
-            color: textColor ?? AppColors.white, // Use textColor if provided, else default to white
-            fontFamily: fontFamily,
-          ),
-        ),
+        onPressed: loading ? null : onPressed,
+        child: loading
+            ? LoadingAnimationWidget.waveDots(
+                color: AppColors.white,
+                size: 24.h,
+              )
+            : Text(
+                text,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: fontWeight ?? FontWeight.w600,
+                  color: textColor ?? AppColors.white,
+                  fontFamily: fontFamily,
+                ),
+              ),
       ),
     );
   }

@@ -29,7 +29,7 @@ class OrderPaymentInfo extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -41,7 +41,7 @@ class OrderPaymentInfo extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(6.r),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.1),
+                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Image.asset(AppImages.iconPay, height: 16.h, width: 16.w, color: AppColors.primaryBlue),
@@ -61,7 +61,7 @@ class OrderPaymentInfo extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 10.h),
-            child: Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+            child: Divider(color: Colors.grey.withValues(alpha: 0.2), height: 1),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -94,7 +94,7 @@ class OrderPaymentInfo extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                 decoration: BoxDecoration(
-                  color: (payableAmount > 0 ? AppColors.errorRed : AppColors.green).withOpacity(0.1),
+                  color: (payableAmount > 0 ? AppColors.errorRed : AppColors.green).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4.r),
                 ),
                 child: Text(

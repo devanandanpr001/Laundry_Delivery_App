@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/api_constants.dart';
-import 'package:http_parser/http_parser.dart'; // Import MediaType
 import 'package:ziya_laundry_deliveryapp/core/network/dio_client.dart';
 
 class ProfileService {

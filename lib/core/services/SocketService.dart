@@ -1,4 +1,4 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:ziya_laundry_deliveryapp/Constants/api_constants.dart';
 import 'dart:developer' as dev;
 
@@ -7,7 +7,7 @@ import 'dart:async';
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
-  IO.Socket? _socket;
+  io.Socket? _socket;
   final TokenService _tokenService = TokenService();
 
   String? _userId;
@@ -69,9 +69,9 @@ class SocketService {
 
     dev.log('🔌 Connecting Socket to: $socketUrl', name: 'SocketService');
 
-    _socket = IO.io(
+    _socket = io.io(
       socketUrl,
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
@@ -94,7 +94,6 @@ class SocketService {
         '✅ Socket Connected',
         name: 'SocketService',
       );
-      print('✅ Socket Connected');
 
       joinRoom();
 
@@ -111,7 +110,6 @@ class SocketService {
         '🔁 Socket Reconnected',
         name: 'SocketService',
       );
-      print('🔁 Socket Reconnected');
 
       joinRoom();
     });
@@ -119,20 +117,17 @@ class SocketService {
     /// ❌ DISCONNECT
     _socket!.on('disconnect', (_) {
       dev.log('❌ Socket Disconnected', name: 'SocketService');
-      print('❌ Socket Disconnected');
     });
 
     /// ⚠️ ERRORS
     _socket!.on('connect_error', (err) {
       dev.log('⚠️ Socket Connection Error: $err', name: 'SocketService');
-      print('⚠️ Socket Connection Error: $err');
     });
     _socket!.on('reconnect_error', (err) {
       dev.log(
         '⚠️ Reconnect Error: $err',
         name: 'SocketService',
       );
-      print('⚠️ Reconnect Error: $err');
     });
 
     _socket!.on('reconnect_failed', (err) {
@@ -140,12 +135,10 @@ class SocketService {
         '❌ Reconnect Failed: $err',
         name: 'SocketService',
       );
-      print('❌ Reconnect Failed: $err');
     });
 
     _socket!.on('error', (err) {
       dev.log('⚠️ Socket Error: $err', name: 'SocketService');
-      print('⚠️ Socket Error: $err');
     });
   }
 

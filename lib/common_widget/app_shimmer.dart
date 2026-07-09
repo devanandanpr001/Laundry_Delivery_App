@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
-// Moved to lib/core/utils/app_shimmer.dart
-
-/// Centralized shimmer loading effects for the entire app
 class AppShimmer {
   static const Color _baseColor = Color(0xFFEFF6FF);
   static const Color _highlightColor = Color(0xFFDCEEFF);

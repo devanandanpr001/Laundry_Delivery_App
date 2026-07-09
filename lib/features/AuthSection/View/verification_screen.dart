@@ -175,26 +175,30 @@ class _VerificationScreenState extends State<VerificationScreen> {
                             // Explicitly check for true to avoid Map vs Bool type issues
                             final bool isVerified = result == true;
 
-                            if (isVerified) {
-                              setState(() {
-                                _isLoading = false;
-                              });
-                              _focusNode.unfocus();
-                              // Signal success to the calling screen so it can navigate to ResetPasswordScreen
-                              Navigator.pop(context, true);
-                            } else {
-                              // If verification fails, show red borders and then clear.
-                              setState(() {
-                                _isLoading = false;
-                                _error = AppText.InvalidOtp;
-                              });
-                              // A delay to allow the user to see the red borders.
-                              await Future.delayed(const Duration(seconds: 1));
-                              if (mounted) {
-                                _pinController.clear();
-                                _focusNode.requestFocus();
-                              }
-                            }
+if (isVerified) {
+                               if (!mounted) return;
+                               setState(() {
+                                 _isLoading = false;
+                               });
+                               _focusNode.unfocus();
+                               // Signal success to the calling screen so it can navigate to ResetPasswordScreen
+                               if (mounted) {
+                                 Navigator.pop(context, true);
+                               }
+                             } else {
+                               // If verification fails, show red borders and then clear.
+                               if (!mounted) return;
+                               setState(() {
+                                 _isLoading = false;
+                                 _error = AppText.InvalidOtp;
+                               });
+                               // A delay to allow the user to see the red borders.
+                               await Future.delayed(const Duration(seconds: 1));
+                               if (mounted) {
+                                 _pinController.clear();
+                                 _focusNode.requestFocus();
+                               }
+                             }
                           });
                         }
                       },

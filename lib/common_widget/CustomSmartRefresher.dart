@@ -98,9 +98,7 @@ class _CustomSmartRefresherState extends State<CustomSmartRefresher> {
       edgeOffset: 8.0,
       strokeWidth: 2.5,
       notificationPredicate: (ScrollNotification notification) {
-        // Only trigger refresh when the primary vertical scroll view (depth == 0)
-        // is overscrolled at the top. This prevents nested horizontal item lists
-        // or inner scrolling sections from accidentally triggering the refresh.
+
         return notification.depth == 0;
       },
       child: widget.child,

@@ -21,15 +21,15 @@ class ProfileAvatar extends StatelessWidget {
               ? AppNetworkImage(
                   imageUrl: homeVM.profileImage,
                   fit: BoxFit.cover,
-                  errorWidget: Image.network(AppImages.defaultProfile, fit: BoxFit.cover),
+                  errorWidget: Image.asset(AppImages.defaultProfile, fit: BoxFit.cover),
                 )
               : (profileProvider.profileImageUrl.isNotEmpty)
                   ? AppNetworkImage(
                       imageUrl: profileProvider.profileImageUrl,
                       fit: BoxFit.cover,
-                      errorWidget: Image.network(AppImages.defaultProfile, fit: BoxFit.cover),
+                      errorWidget: Image.asset(AppImages.defaultProfile, fit: BoxFit.cover),
                     )
-                  : Image.network(AppImages.defaultProfile, fit: BoxFit.cover);
+                  : Image.asset(AppImages.defaultProfile, fit: BoxFit.cover);
 
       return Container(
         height: 50.w,

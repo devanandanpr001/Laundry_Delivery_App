@@ -102,7 +102,7 @@ class _OfflineIndicatorWrapperState extends State<OfflineIndicatorWrapper> {
                   height: 45.h,
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   decoration: BoxDecoration(
-                    color: AppColors.grey.withOpacity(0.9),
+                    color: AppColors.grey.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(12.r),
                     boxShadow: const [ // Added const and corrected closing bracket
                       BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))

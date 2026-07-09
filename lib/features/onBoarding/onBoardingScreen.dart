@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.dart';
-import 'package:ziya_laundry_deliveryapp/core/widgets/app_network_image.dart';
+import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 
 class Onboardingscreen extends StatefulWidget {
   const Onboardingscreen({super.key});
@@ -43,8 +43,8 @@ class _OnboardingscreenState extends State<Onboardingscreen> {
 
             },
             children: [
-              _imagePage("https://www.shutterstock.com/image-photo/drycleaning-delivery-courier-giving-dress-600nw-2439026981.jpg"),
-              _imagePage('https://media.istockphoto.com/id/2158161980/photo/smiling-woman-receiving-clean-clothes-on-a-hanger-in-a-plastic-bag-from-a-delivery-man-at-the.jpg?s=612x612&w=0&k=20&c=N3tZ4-qvsmWkS1DwIr_Sh5V7JzgjvIzrPxdotIing-c='),
+              _imagePage(AppImages.onBoarding1),
+              _imagePage(AppImages.onBoarding2),
             ],
           ),
           Positioned(
@@ -89,10 +89,10 @@ class _OnboardingscreenState extends State<Onboardingscreen> {
                   height: 50.w,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10.r),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       width: 1.w,
                     ),
                   ),
@@ -113,13 +113,11 @@ class _OnboardingscreenState extends State<Onboardingscreen> {
     );
   }
 
-  Widget _imagePage(String ntwrk) {
+  Widget _imagePage(String imagePath) {
     return SizedBox.expand(
-      child: AppNetworkImage(
-        imageUrl: ntwrk,
+      child: Image.asset(
+        imagePath,
         fit: BoxFit.cover,
-        placeholder: const Center(child: CircularProgressIndicator()),
-        errorWidget: Container(color: Colors.black12),
       ),
     );
   }

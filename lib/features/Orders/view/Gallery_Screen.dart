@@ -32,7 +32,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
       confirmText: 'Yes',
       cancelText: 'No',
     );
-    if (!confirmed) return;
+    if (!confirmed || !mounted) return;
 
     final orderVM = context.read<OrderViewModel>();
     List<int> sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
@@ -50,7 +50,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
       }
     }
     
-    setState(() => _selectedIndices.clear());
+    if (mounted) {
+      setState(() => _selectedIndices.clear());
+    }
   }
 
   bool _isLocalFileValid(String path) {
@@ -125,8 +127,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     final images = order.pickedImages;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFbEEF2F7
-),
+      backgroundColor: const Color(0xFFBEEF2F7),
       body: SafeArea(
         child: Column(
           children: [

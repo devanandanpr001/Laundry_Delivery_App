@@ -98,7 +98,7 @@ class BundleSection extends StatelessWidget {
                           onTap: () => onDelete(index),
                           child: Container(
                             padding: EdgeInsets.all(4.w),
-                            decoration: BoxDecoration(color: AppColors.errorRed.withOpacity(0.1), shape: BoxShape.circle),
+                            decoration: BoxDecoration(color: AppColors.errorRed.withValues(alpha: 0.1), shape: BoxShape.circle),
                             child: Icon(Icons.delete_outline, color: AppColors.errorRed, size: 16.sp),
                           ),
                         ),

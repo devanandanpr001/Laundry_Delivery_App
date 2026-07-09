@@ -88,16 +88,15 @@ class _ChangeprofileimageState extends State<Changeprofileimage> {
                                       provider.profileImageUrl,
                                       fit: BoxFit.cover,
                                       errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Image.network(
-                                                AppImages.defaultProfile,
-                                                fit: BoxFit.cover,
-                                              ),
+                                          (context, error, stackTrace) => Image.asset(
+                                        AppImages.defaultProfile,
+                                        fit: BoxFit.cover,
+                                      ),
                                     )
-                                  : Image.network(
-                                      AppImages.defaultProfile,
-                                      fit: BoxFit.cover,
-                                    ),
+                                  : Image.asset(
+                                AppImages.defaultProfile,
+                                fit: BoxFit.cover,
+                              ),
                       ),
                     ),
                   );
@@ -109,7 +108,7 @@ class _ChangeprofileimageState extends State<Changeprofileimage> {
               CustomButton(
                 text: AppText.BtnProfile,
                 onPressed: _pickImage,
-                backgroundColor: AppColors.grey.withOpacity(0.2),
+                backgroundColor: AppColors.grey.withValues(alpha: 0.2),
                 textColor: AppColors.black, // Now supported by CustomButton
                 fontWeight: FontWeight.w500,
                 height: 42.h,

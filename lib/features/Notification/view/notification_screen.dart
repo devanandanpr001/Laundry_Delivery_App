@@ -35,16 +35,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     super.dispose();
   }
 
-  String _formatDate(String createdAt) {
-    final parts = createdAt.split(' ');
-    return parts.isNotEmpty ? parts.first : createdAt;
-  }
-
-  String _formatTime(String createdAt) {
-    final parts = createdAt.split(' ');
-    return parts.length > 1 ? parts.sublist(1).join(' ') : '';
-  }
-
   @override
   Widget build(BuildContext context) {
     final notificationVM = context.watch<NotificationViewModel>();
@@ -102,24 +92,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ),
                       backgroundColor: isSelectionMode
                           ? AppColors.red
-                          : AppColors.red.withOpacity(0.35),
+                          : AppColors.red.withValues(alpha: 0.35),
                       minimumSize: Size(55.w, 32.h),
                     ),
-                    onPressed: isSelectionMode
+onPressed: isSelectionMode
                         ? () {
                             setState(() {
                               if (!isDeleteMode) {
                                 isDeleteMode = true;
-                                } else {
-                                  notificationVM.deleteSelected().then((deletedIds) {
-                                    if (deletedIds.isNotEmpty && mounted) {
-                                      AppToast.showNotificationDeleted(context, onUndo: () async {
-                                        await notificationVM.undoMultipleClear(deletedIds);
-                                      });
-                                    }
-                                  });
-                                  isDeleteMode = false;
-                                }
+                              } else {
+                                notificationVM.deleteSelected().then((deletedIds) {
+                                  if (deletedIds.isNotEmpty && mounted) {
+                                    AppToast.showNotificationDeleted(context, onUndo: () async {
+                                      await notificationVM.undoMultipleClear(deletedIds);
+                                    });
+                                  }
+                                });
+                                isDeleteMode = false;
+                              }
                             });
                           }
                         : null,
@@ -208,8 +198,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 if (isSelectionMode) {
                                   notificationVM.toggleSelection(index);
                                 } else {
-                                  if (!notification.isRead)
+                                  if (!notification.isRead) {
                                     await notificationVM.markAsReadAt(index);
+                                  }
                                   // Toggle expansion on single tap
                                   setState(() {
                                     if (!_expandedIds.contains(

@@ -53,7 +53,6 @@ class ApiException implements Exception {
         break;
 
       case DioExceptionType.unknown:
-      default:
         if (dioError.error is NoInternetException) {
           message = (dioError.error as NoInternetException).message;
         } else {

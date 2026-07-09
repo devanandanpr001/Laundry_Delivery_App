@@ -8,7 +8,6 @@ import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/BottomNavigation/bottom_navigation_page.dart';
-import 'package:ziya_laundry_deliveryapp/core/widgets/app_network_image.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/forgot_password_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/widgets/app_checkbox.dart';
@@ -48,13 +47,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     left: 0,
                     right: 0,
                     height: 0.55.sh,
-                    child: AppNetworkImage(
-                      imageUrl: AppImages.loginBg,
+                    child: Image.asset(
+                      AppImages.loginBg,
                       width: double.infinity,
                       height: 0.55.sh,
                       fit: BoxFit.cover,
-                      placeholder: Container(color: AppColors.loginGradientStart),
-                      errorWidget: Container(color: AppColors.loginGradientEnd),
                     ),
                   ),
 
@@ -97,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 color: AppColors.white,
                                 child: Consumer<LoginViewModel>(
-                                  builder: (_, vm, __) {
+                                  builder: (_, vm, _) {
                                     return Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,

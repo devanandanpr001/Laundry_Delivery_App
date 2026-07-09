@@ -317,7 +317,7 @@ Future<void> _navigateToNext() async {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primaryBlue.withOpacity(
+                                    color: AppColors.primaryBlue.withValues(alpha: 
                                       0.25 * _glowAnimation.value,
                                     ),
                                     blurRadius: 30 + 20 * _glowAnimation.value,

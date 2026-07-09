@@ -93,7 +93,7 @@ class _HelpsupportScreenState extends State<HelpsupportScreen> {
                                       color: AppColors.primaryBlue),
                                 ),
                                 SizedBox(height: 20.h),
-                                ...supportItems.map((item) => _buildFaqItem(item)).toList(),
+                                ...supportItems.map((item) => _buildFaqItem(item)),
                                 SizedBox(height: 20.h),
                               ],
                             ),

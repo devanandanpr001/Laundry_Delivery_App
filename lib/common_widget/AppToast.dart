@@ -1,12 +1,9 @@
 import 'dart:ui';
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/material.dart';
 import 'package:quick_popup_manager/quick_popup_manager.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-/// A helper class to show consistent, highly professional toast messages throughout the app.
 class AppToast {
   static final _animationConfig = AnimationConfig(
     type: AnimationType.slideFromTop,
@@ -14,9 +11,6 @@ class AppToast {
     curve: Curves.easeInOutQuad,
   );
 
-  /// ---------------------------------------------------------
-  /// PREMIUM STANDARD OVERLAY TOASTS (Custom UI)
-  /// ---------------------------------------------------------
   static void _showPremiumToast(
     BuildContext context, {
     required String title,
@@ -76,23 +70,23 @@ class AppToast {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: backgroundColor.withOpacity(0.15),
+                            color: backgroundColor.withValues(alpha: 0.15),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
                         ],
-                        border: Border.all(color: backgroundColor.withOpacity(0.2), width: 1.5),
+                        border: Border.all(color: backgroundColor.withValues(alpha: 0.2), width: 1.5),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: backgroundColor.withOpacity(0.12),
+                              color: backgroundColor.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(icon, color: iconColor, size: 24),
@@ -137,9 +131,9 @@ class AppToast {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: backgroundColor.withOpacity(0.1),
+                                  color: backgroundColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: backgroundColor.withOpacity(0.3)),
+                                  border: Border.all(color: backgroundColor.withValues(alpha: 0.3)),
                                 ),
                                 child: Text(
                                   "Undo",
@@ -243,88 +237,11 @@ class AppToast {
   // 7. Notification Deleted
   static void showNotificationDeleted(BuildContext context, {required VoidCallback onUndo}) {
     _showPremiumToast(context, title: "Notification Deleted", message: "The notification was removed.", icon: Icons.delete_outline_rounded, backgroundColor: const Color(0xFF8E8E93), iconColor: const Color(0xFF8E8E93), onUndo: onUndo);
-  }
+}
 
   /// ---------------------------------------------------------
   /// LEGACY METHODS (Fallback for existing code without context)
   /// ---------------------------------------------------------
-  
-  /// Modern 2026-style Bottom Toast Helper
-  static void _showModernBottomToast({
-    required String message,
-    required List<Color> gradientColors,
-    required IconData icon,
-    required Color iconThemeColor,
-  }) {
-    QuickPopupManager().showDialogPopup(
-      barrierColor: Colors.transparent,
-      barrierDismissible: true,
-      animation: const AnimationConfig(
-        type: AnimationType.slideFromBottom,
-        duration: Duration(milliseconds: 600),
-        curve: Curves.easeOutQuart,
-      ),
-      style: PopupStyle(
-        dialogAlignment: Alignment.bottomCenter,
-      ),
-      content: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 32.h),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12.r),
-            boxShadow: [
-              BoxShadow(
-                color: gradientColors.first.withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconThemeColor, size: 18.sp),
-              ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Text(
-                  message,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => QuickPopupManager().dismissAll(),
-                child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    // Simulate toast auto-dismiss behavior for the dialog popup
-    Future.delayed(const Duration(seconds: 4), () {
-      QuickPopupManager().dismissAll();
-    });
-  }
-
-  // ... existing code ...
 
   static void showWarning({required String title, required String message, BuildContext? context}) {
     if (context != null) {
@@ -342,19 +259,6 @@ class AppToast {
     }
   }
 
-  // /// Modern Success Toast with Mint-Green Gradient
-  // static void showSuccess({required String title, required String message, BuildContext? context}) {
-  //   if (context != null) {
-  //     _showPremiumToast(context, title: title, message: message, icon: Icons.check_rounded, backgroundColor: const Color(0xFF34C759), iconColor: const Color(0xFF34C759));
-  //   } else {
-  //     _showModernBottomToast(
-  //       message: "$message SUCCESS",
-  //       gradientColors: [const Color(0xFF42B883), const Color(0xFF3DE48A)],
-  //       icon: Icons.check_rounded,
-  //       iconThemeColor: const Color(0xFF42B883),
-  //     );
-  //   }
-  // }
   static void showError({
   required BuildContext context,
   required String title,
@@ -500,8 +404,8 @@ class AppToast {
                             ? const CupertinoActivityIndicator(color: Colors.white)
                             : CupertinoSwitch(
                                 value: _localOnline,
-                                activeColor: Colors.white,
-                                trackColor: Colors.black.withOpacity(0.1),
+                                activeTrackColor: Colors.white,
+                                inactiveTrackColor: Colors.black.withValues(alpha: 0.1),
                                 onChanged: (value) async {
                                   _overlaySetState?.call(() => _isLoading = true);
                                   bool success = await homeVM.toggleOnlineStatus();
