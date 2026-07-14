@@ -6,6 +6,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/data/model/home_models.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 import 'package:quick_popup_manager/quick_popup_manager.dart';
 
@@ -33,6 +34,7 @@ class OrderItemVerificationList extends StatefulWidget {
 
 class _OrderItemVerificationListState extends State<OrderItemVerificationList> {
   final Set<int> _selectedIndexes = {};
+  bool _isDeleting = false;
 
   @override
   void didUpdateWidget(covariant OrderItemVerificationList oldWidget) {
@@ -222,7 +224,7 @@ class _OrderItemVerificationListState extends State<OrderItemVerificationList> {
                     ),
                     
                     OutlinedButton.icon(
-                      onPressed: isInteractive
+                      onPressed: isInteractive && !_isDeleting
                           ? () async {
                               // Ensure any existing popup stack is dismissed before opening confirmation.
                               // This is required because QuickPopupManager popups can remain on top.
@@ -246,19 +248,26 @@ class _OrderItemVerificationListState extends State<OrderItemVerificationList> {
 
                               if (!confirmed) return;
 
+                              setState(() => _isDeleting = true);
+
                               try {
                                 for (final itemId in idsToDelete) {
                                   await orderVM.deleteItemFromOrderNoRefresh(widget.orderId, itemId);
                                 }
                               } catch (e) {
-                                // Error is handled gracefully by the viewmodel
-                              }
-                              if (stateMounted) {
-                                setState(() => _selectedIndexes.clear());
+                              } finally {
+                                if (stateMounted) {
+                                  setState(() {
+                                    _selectedIndexes.clear();
+                                    _isDeleting = false;
+                                  });
+                                }
                               }
                             }
                           : null,
-                      icon: Icon(Icons.delete_outline, size: 14.r, color: AppColors.errorRed),
+                      icon: _isDeleting 
+                          ? LoadingAnimationWidget.progressiveDots(color: AppColors.errorRed, size: 14.r)
+                          : Icon(Icons.delete_outline, size: 14.r, color: AppColors.errorRed),
                       label: Text(
                         'Delete Selected',
                         maxLines: 1,

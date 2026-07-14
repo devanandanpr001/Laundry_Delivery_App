@@ -22,6 +22,7 @@ class LoginViewModel extends BaseViewModel {
   String? loginNameError;
   String? loginMobileError;
   String? loginPasswordError;
+  String otp = '';
 
   bool get isRememberMe => _isRememberMe;
   String get loginName => nameController.text.trim();
@@ -108,6 +109,7 @@ class LoginViewModel extends BaseViewModel {
       debugPrint("LOGIN RESPONSE: $result");
 
       if (result['success'] == true) {
+        otp = (result['otp'] ?? '').toString();
         await _saveCredentialsIfNeeded(); // Save credentials if Remember Me is checked
         return true;
       } else {

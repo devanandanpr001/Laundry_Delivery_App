@@ -84,6 +84,7 @@ class _OrderCardState extends State<OrderCard> {
   bool _otpVerified = false; // State for OTP verification status
   bool _isOpeningAddItem = false; // Guard to prevent multiple dialogs
   bool _isVerifyingOtp = false; // Local state for verifying OTP
+  bool _isActionLoading = false; // For main progress button
 
   // Baseline tracking to detect additions or deletions professionally
   int? _baselineItemCount;
@@ -143,20 +144,18 @@ class _OrderCardState extends State<OrderCard> {
                                              effectiveStage == DeliveryStage.orderPicked && 
                                              currentOrder.pickedImages.isEmpty;
 
-    // NEW LOGIC FOR BY WEIGHT VERIFICATION
-    // Automatically mark 'By Weight' pickup orders as verified once images are uploaded
-    // and the driver has arrived, if not already verified.
-    if (currentOrder.orderType == OrderType.pickup &&
-        currentOrder.by == "By Weight" &&
-        isArrivedForPickup &&
-        !isWeightPickupMissingImages &&
-        !currentOrder.isVerified) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.read<OrderViewModel>().verifyOrder(widget.orderid);
-        }
-      });
-    }
+    
+    // if (currentOrder.orderType == OrderType.pickup &&
+    //     currentOrder.by == "By Weight" &&
+    //     isArrivedForPickup &&
+    //     !isWeightPickupMissingImages &&
+    //     !currentOrder.isVerified) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     if (mounted) {
+    //       context.read<OrderViewModel>().verifyOrder(widget.orderid);
+    //     }
+    //   });
+    // }
 
     // Mismatch report required if items were changed
     final bool isMismatchReportRequired = isModified || currentOrder.isMismatch;
@@ -182,7 +181,8 @@ class _OrderCardState extends State<OrderCard> {
     final bool isActionDisabled = 
         (currentOrder.orderType == OrderType.delivery && 
          effectiveStage == DeliveryStage.reachedDelivery && 
-         !_otpVerified && (_otpController.text.length != 4 || _isVerifyingOtp)) ||
+         (!_otpVerified && (_otpController.text.length != 4 || _isVerifyingOtp))) ||
+        _isActionLoading || // Disable when any action is loading
         (isArrivedForPickup && !currentOrder.isVerified) || // Disable if not verified
         disableOrderPickedDueToMismatch || // Disable if mismatch report is pending for Order Picked stage
         isWeightPickupMissingImages;
@@ -349,10 +349,13 @@ class _OrderCardState extends State<OrderCard> {
                   onShowAddItemDialog: () => _showAddItemDialog(context),
                 ),
               ],
-
+              
               if (currentOrder.orderType == OrderType.delivery &&
-                  stage == DeliveryStage.reachedDelivery)
-                DeliveryOtpSection(order: currentOrder, orderId: widget.orderid, otpController: _otpController, otpVerified: _otpVerified, onOtpVerifiedChanged: (value) => setState(() => _otpVerified = value)),
+                  stage == DeliveryStage.reachedDelivery) ...[
+                  SizedBox(height: 10.h),
+                  DeliveryOtpSection(order: currentOrder, orderId: widget.orderid, otpController: _otpController, otpVerified: _otpVerified, onOtpVerifiedChanged: (value) => setState(() => _otpVerified = value)),
+                ],
+                
 
               SizedBox(height: 15.h),
               if (currentOrder.pickedImages.isNotEmpty)
@@ -400,6 +403,7 @@ class _OrderCardState extends State<OrderCard> {
                         opacity: isActionDisabled ? 0.5 : 1.0,
                         child: OrderProgressButton(
                           stage: effectiveStage, 
+                          isLoading: _isActionLoading,
                           onPressed: isActionDisabled ? () {
                             if (isMismatchReportPending && currentOrder.deliveryStage == DeliveryStage.orderPicked) {
                               AppToast.showInfo(
@@ -444,6 +448,9 @@ class _OrderCardState extends State<OrderCard> {
     final orderVM = context.read<OrderViewModel>();
     final currentOrder = orderVM.orders.firstWhere((o) => o.orderId == widget.orderid);
     
+    setState(() => _isActionLoading = true);
+    try {
+
     // Use effective logic to determine what action to take
     DeliveryStage stage = currentOrder.deliveryStage;
     if (stage == DeliveryStage.uploadImages && currentOrder.pickedImages.isNotEmpty) {
@@ -485,7 +492,6 @@ class _OrderCardState extends State<OrderCard> {
         SuccessSplashScreen.show(context, message: "You have reached the delivery location");
       }
     } else if (stage == DeliveryStage.reachedDelivery) {
-      // If OTP is not yet verified, attempt to verify it using the input from _otpController
       if (!_otpVerified) {
         if (_otpController.text.length != 4) {
           AppToast.showError(
@@ -495,9 +501,11 @@ class _OrderCardState extends State<OrderCard> {
           );
           return;
         }
-        setState(() => _isVerifyingOtp = true); // Set local loading state for the main button
-        final success = await orderVM.verifyDeliveryOtp(currentOrder.orderId, _otpController.text); // Use orderVM
+        setState(() => _isVerifyingOtp = true); 
+        final success = await orderVM.verifyDeliveryOtp(context, currentOrder.orderId, _otpController.text);
+
         if (mounted) {
+
          setState(() => _isVerifyingOtp = false);
           if (!success) {
             AppToast.showError(
@@ -520,6 +528,11 @@ class _OrderCardState extends State<OrderCard> {
         homeVM.refreshOrders();
       }
     }
+    } finally {
+      if(mounted) {
+        setState(() => _isActionLoading = false);
+      }
+    }
   }
 
   Future<void> _handleAddImage() async {
@@ -528,7 +541,7 @@ class _OrderCardState extends State<OrderCard> {
       CameraCaptureScreen(orderId: widget.orderid),
     );
     if (didUpload == true && mounted) {
-      context.read<OrderViewModel>().fetchAllOrders(); // Refresh in background
+      context.read<OrderViewModel>().fetchAllOrders(); 
       AppToast.showImageUploadSuccess(context);
     }
   }

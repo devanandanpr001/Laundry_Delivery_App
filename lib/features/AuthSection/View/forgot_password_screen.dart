@@ -112,40 +112,39 @@ class ForgotPassword extends StatelessWidget {
                         height: 40.h,
                         borderRadius: 10.r,
                         backgroundColor: AppColors.primaryBlue,
+                        loading: provider.isLoading,
                         fontFamily: GoogleFonts.roboto().fontFamily,
-                        onPressed: provider.isLoading
-                            ? () {}
-                            : () async {
-                                final success = await provider.sendOtp();
-                                if (success && context.mounted) {
-                                  final verified = await Navigator.push<bool>(
-                                    context,
-                                    MaterialPageRoute(
-                                      settings: const RouteSettings(name: '/verification'),
-                                      builder: (context) => VerificationScreen(
-                                        title: AppText.VrfTitle,
-                                        subtitle: AppText.VrfSubtitle,
-                                        onCompleted: (pin) async => await provider.verifyOtp(pin),
-                                        onResend: () => provider.resendOtp(),
-                                      ),
-                                    ),
-                                  );
+                        onPressed: () async {
+                            final success = await provider.sendOtp(context);
+                            if (success && context.mounted) {
+                              final verified = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  settings: const RouteSettings(name: '/verification'),
+                                  builder: (context) => VerificationScreen(
+                                    title: AppText.VrfTitle,
+                                    subtitle: AppText.VrfSubtitle,
+                                    onCompleted: (pin) async => await provider.verifyOtp(pin),
+                                    onResend: () => provider.resendOtp(),
+                                  ),
+                                ),
+                              );
 
-                                  if (verified == true && context.mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        settings: const RouteSettings(name: '/new-password'),
-                                        builder: (context) => NewPasswordScreen(
-                                          phone: provider.mobileController.text,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } else if (context.mounted) {
-                                  AppToast.showOtpSentFailed(context, error: provider.errorMessage);
-                                }
-                              },
+                              if (verified == true && context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(name: '/new-password'),
+                                    builder: (context) => NewPasswordScreen(
+                                      phone: provider.mobileController.text,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } else if (context.mounted) {
+                              AppToast.showOtpSentFailed(context, error: provider.errorMessage);
+                            }
+                          },
                       )
                     ],
                   );

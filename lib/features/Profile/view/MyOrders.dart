@@ -6,12 +6,12 @@ import 'package:intl/intl.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
-import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/core/connectivity_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/CustomSmartRefresher.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/AppLoader.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/app_shimmer.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/widget/order_empty_state.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/my_orders_viewmodel.dart';
 
 import '../../Orders/data/model/order_model.dart';
 
@@ -32,12 +32,7 @@ import '../../Orders/data/model/order_model.dart';
     }
 
     Future<void> _loadOrders() async {
-      AppLoader.show();
-      try {
-        await context.read<OrderViewModel>().fetchAllOrders();
-      } finally {
-        AppLoader.hide();
-      }
+      await context.read<MyOrdersViewModel>().fetchMyOrders();
     }
 
     String _formatOrderDate(OrderModel order) {
@@ -67,23 +62,8 @@ import '../../Orders/data/model/order_model.dart';
 
     @override
     Widget build(BuildContext context) {
-      final orderVM = context.watch<OrderViewModel>();
-
-      // Filter completed orders and ensure each Order ID is unique in the list.
-      // If a driver handles both Pickup and Delivery for the same order, we merge them into one card.
-      final Map<String, OrderModel> uniqueOrdersMap = {};
-      for (var o in orderVM.orders) {
-        if (o.status == OrderStatus.completed) {
-          // If we find a duplicate orderId, prioritize the one with 'PICKUP_AND_DELIVERY' roleType.
-          if (!uniqueOrdersMap.containsKey(o.orderId) || o.roleType == "PICKUP_AND_DELIVERY") {
-            uniqueOrdersMap[o.orderId] = o;
-          }
-        }
-      }
-
-      final orders = uniqueOrdersMap.values.toList();
-      // Sort by updated time descending to show newest activity at the top
-      orders.sort((a, b) => (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
+      final myOrdersVM = context.watch<MyOrdersViewModel>();
+      final orders = myOrdersVM.orders;
 
       return Scaffold(
         backgroundColor: AppColors.bg,
@@ -138,9 +118,9 @@ import '../../Orders/data/model/order_model.dart';
                         }
                         return;
                       }
-                      await orderVM.fetchAllOrders();
+                      await myOrdersVM.fetchMyOrders();
                     },
-                    child: orderVM.isLoading
+                    child: myOrdersVM.isLoading && orders.isEmpty
                         ? ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
                             itemCount: 6,
@@ -218,6 +198,30 @@ import '../../Orders/data/model/order_model.dart';
       required this.orderId,
       required this.address,
     });
+
+    String _getRoleText(String role) {
+      switch (role.toUpperCase()) {
+        case "PICKUP_AND_DELIVERY":
+          return "Pickup & Delivery";
+        case "PICKUP":
+          return "Pickup";
+        case "DELIVERY":
+          return "Delivery";
+        default:
+          return "Delivery";
+      }
+    }
+
+    Color _getRoleColor(String role) {
+      switch (role.toUpperCase()) {
+        case "PICKUP_AND_DELIVERY":
+          return AppColors.primaryBlue;
+        case "PICKUP":
+          return Colors.orange.shade700;
+        default:
+          return AppColors.green;
+      }
+    }
 
     @override
     Widget build(BuildContext context) {
@@ -333,6 +337,24 @@ import '../../Orders/data/model/order_model.dart';
                     ),
                   ),
                   // SizedBox(height: 8.h),
+                  SizedBox(height: 8.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: _getRoleColor(roleType),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(8.r),
+                      ),
+                    ),
+                    child: Text(
+                      _getRoleText(roleType),
+                      style: GoogleFonts.poppins(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
+                  ),
                 ],
               ),
             ),

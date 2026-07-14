@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
-import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/testing_toast.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/BottomNavigation/bottom_navigation_page.dart';
@@ -12,6 +12,7 @@ import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/forgot_passwo
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/verification_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/widgets/app_checkbox.dart';
 import '../widgets/custom_button.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import '../viewmodel/login_viewmodel.dart';
 import '../widgets/Reusable_inputfield.dart';
 import '../widgets/TopRightCurveClipper.dart';
@@ -173,9 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                           height: 48.h,
                                           borderRadius: 12.r,
                                           backgroundColor: AppColors.primaryBlue,
-                                          onPressed: vm.isLoading ? () {} : () async {
+                                          loading: vm.isLoading,
+                                          onPressed: () async {
                                             if (await vm.submitLogin()) {
                                               if (!context.mounted) return;
+                                              // Temporarily show OTP in a toast for 30 seconds for debugging
+                                              if (vm.otp.isNotEmpty && context.mounted) {
+                                                TestingToast.showTestOtp(context, vm.otp);
+                                              }
                                               final verified = await Navigator.push<bool>(
                                                 context,
                                                 MaterialPageRoute(
@@ -215,18 +221,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
-                            child: GradientLogo(),
-                          ),
-                        ],
-                      )
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-  }
-}
+                        Padding(
+                         padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+                         child: GradientLogo(),
+                       ),
+                     ],
+                   )
+                 ],
+               ),
+             ],
+           ),
+         ),
+       ),
+     );
+   }
+ }

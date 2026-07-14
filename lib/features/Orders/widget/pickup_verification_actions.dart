@@ -31,7 +31,6 @@ class PickupVerificationActions extends StatefulWidget {
 }
 
 class _PickupVerificationActionsState extends State<PickupVerificationActions> {
-  bool _isVerifying = false;
   final TextEditingController _mismatchController = TextEditingController();
   bool _isSendingReport = false;
   bool _reportSentSuccess = false;
@@ -119,6 +118,8 @@ class _PickupVerificationActionsState extends State<PickupVerificationActions> {
 
   @override
   Widget build(BuildContext context) {
+    final orderVM = context.watch<OrderViewModel>();
+
     final bool isVerified = widget.order.isVerified;
     // Show mismatch section ONLY if items were modified (locally or on backend)
     final bool shouldShowMismatchSection =
@@ -179,17 +180,9 @@ class _PickupVerificationActionsState extends State<PickupVerificationActions> {
                 child: SizedBox(
                   height: 32.h,
                   child: ElevatedButton(
-                    onPressed: (!isVerified && !_isVerifying)
-                        ? () async {
-                            final orderVM = context.read<OrderViewModel>();
-                            setState(() => _isVerifying = true);
-                            try {
-                              await orderVM.verifyOrder(widget.orderId);
-                              if (mounted) setState(() {});
-                            } finally {
-                              if (mounted) setState(() => _isVerifying = false);
-                            }
-                          }
+                    onPressed: (!isVerified && !orderVM.isVerifying)
+                        ? () async =>
+                            await context.read<OrderViewModel>().verifyOrder(widget.orderId)
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isVerified
@@ -205,7 +198,7 @@ class _PickupVerificationActionsState extends State<PickupVerificationActions> {
                       ),
                       padding: EdgeInsets.all(8.w),
                     ),
-                    child: _isVerifying
+                    child: orderVM.isVerifying
                         ? LoadingAnimationWidget.waveDots(
                             color: Colors.white,
                             size: 18.sp,

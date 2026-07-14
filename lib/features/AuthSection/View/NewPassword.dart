@@ -114,14 +114,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                             width: 2,
                           ),
                         ),
-                        suffixIcon: GestureDetector(
-                          onTapDown: (_) =>
-                              setState(() => _isNewPasswordObscured = false),
-                          onTapUp: (_) =>
-                              setState(() => _isNewPasswordObscured = true),
-                          onTapCancel: () =>
-                              setState(() => _isNewPasswordObscured = true),
-                          child: Icon(
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(
+                            () => _isNewPasswordObscured =
+                                !_isNewPasswordObscured,
+                          ),
+                          icon: Icon(
                             _isNewPasswordObscured
                                 ? Icons.visibility_off
                                 : Icons.visibility,
@@ -191,15 +189,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                             width: 2,
                           ),
                         ),
-                        suffixIcon: GestureDetector(
-                          onTapDown: (_) => setState(
-                            () => _isConfirmPasswordObscured = false,
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(
+                            () => _isConfirmPasswordObscured =
+                                !_isConfirmPasswordObscured,
                           ),
-                          onTapUp: (_) =>
-                              setState(() => _isConfirmPasswordObscured = true),
-                          onTapCancel: () =>
-                              setState(() => _isConfirmPasswordObscured = true),
-                          child: Icon(
+                          icon: Icon(
                             _isConfirmPasswordObscured
                                 ? Icons.visibility_off
                                 : Icons.visibility,
@@ -214,6 +209,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                 _buildSubmitButton(
                   isLoading: provider.isLoading,
                   onPressed: () async {
+                    if (provider.isLoading) return;
+
                     // 1. Validate Empty
                     final passErr = Validators.validatePassword(
                       provider.newPasswordController.text,
@@ -231,6 +228,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                     if (await provider.submitReset(widget.phone)) {
                       if (!context.mounted) return;
                       AppToast.showPasswordChangedSuccess(context);
+                      // Professional Fix: Clear controllers after successful submission
+                      provider.clearAllFields();
 
                       Future.delayed(const Duration(seconds: 2), () {
                         if (context.mounted) {
@@ -276,6 +275,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       ),
       child: CustomButton(
         text: AppText.SubmitButton,
+        loading: isLoading,
         onPressed: isLoading ? () {} : onPressed,
         height: 48.h,
         elevation: 0,

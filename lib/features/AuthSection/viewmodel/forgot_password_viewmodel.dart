@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/data/repositories/auth_repository.dart';
 import 'base_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/testing_toast.dart';
 
 class ForgotPasswordViewModel extends BaseViewModel {
   final AuthRepository _repository = AuthRepository();
@@ -9,17 +10,27 @@ class ForgotPasswordViewModel extends BaseViewModel {
   final TextEditingController newPasswordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   String? _verifiedOtp;
+  String? _otp; // To store the OTP for testing toast
   String? _resetToken;
 
-  Future<bool> sendOtp() async {
+  Future<bool> sendOtp(BuildContext context) async {
     final String phoneNumber = mobileController.text.trim();
 
     if (phoneNumber.isEmpty || phoneNumber.length < 10) return false;
+
+    // Clear previous OTP for a fresh request
+    _otp = null;
+    notifyListeners();
 
     setLoading(true);
     try {
       final result = await _repository.forgotPassword(phoneNumber);
       if (result['success'] == true) {
+        // Store OTP for testing toast if available in the response
+        if (result['otp'] != null) {
+          _otp = result['otp'].toString();
+          TestingToast.showTestOtp(context, _otp!);
+        }
         return true;
       } else {
         setError(result['msg'] ?? "Failed to send OTP");
@@ -112,5 +123,14 @@ class ForgotPasswordViewModel extends BaseViewModel {
     }
 
     return null;
+  }
+
+  /// Clears all text controllers and resets internal state.
+  void clearAllFields() {
+    mobileController.clear();
+    newPasswordController.clear();
+    confirmPasswordController.clear();
+    _verifiedOtp = null;
+    _resetToken = null;
   }
 }

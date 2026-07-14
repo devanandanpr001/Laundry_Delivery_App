@@ -7,6 +7,9 @@ import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/login_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/SignUp_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/forgot_password_viewmodel.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/data/repository/my_orders_repository.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/data/service/my_orders_service.dart';
+import 'package:ziya_laundry_deliveryapp/features/Profile/viewmodel/my_orders_viewmodel.dart';
 import 'package:ziya_laundry_deliveryapp/features/onBoarding/splash_screen.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/data/repository/service_repository.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/viewmodel/home_viewmodel.dart';
@@ -119,12 +122,24 @@ class MyApp extends StatelessWidget {
                create: (context) => OrderViewModel(context.read<OrderRepository>()),
                update: (_, repository, previous) => previous ?? OrderViewModel(repository),
              ),
+
+             // My Orders (Profile) Dependencies
+             Provider(create: (_) => MyOrdersService()),
+             ProxyProvider<MyOrdersService, MyOrdersRepository>(
+               update: (_, service, __) => MyOrdersRepository(service),
+             ),
+
+                          ChangeNotifierProxyProvider<MyOrdersRepository, MyOrdersViewModel>(
+               create: (context) => MyOrdersViewModel(context.read<MyOrdersRepository>()),
+               update: (_, repository, previous) => previous ?? MyOrdersViewModel(repository),
+             ),
              // Connectivity management
              Provider(create: (_) => ConnectivityService.instance),
              ChangeNotifierProxyProvider<ConnectivityService, ConnectivityViewModel>(
                create: (context) => ConnectivityViewModel(context.read<ConnectivityService>()),
                update: (_, service, previous) => previous ?? ConnectivityViewModel(service),
              ),
+             
              // Service Section Dependencies (Moved from Orders to Services)
              Provider(create: (_) => ServiceService()),
              ProxyProvider<ServiceService, ServiceRepository>(

@@ -7,6 +7,7 @@ import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
 import '../data/model/Bundle_Model.dart';
 import '../viewmodel/DeliveryStage.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Section displaying the Bundle management (Add/List)
@@ -285,8 +286,9 @@ class OrderProgressButton extends StatelessWidget {
   final DeliveryStage stage;
   final VoidCallback onPressed;
   final String? text;
+  final bool isLoading;
 
-  const OrderProgressButton({super.key, required this.stage, required this.onPressed, this.text});
+  const OrderProgressButton({super.key, required this.stage, required this.onPressed, this.text, this.isLoading = false});
 
   String get buttonText {
     if (text != null) return text!;
@@ -323,14 +325,21 @@ class OrderProgressButton extends StatelessWidget {
       ),
       onPressed: onPressed,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (buttonIcon.isNotEmpty) ...[
-            Image.asset(buttonIcon, color: AppColors.white, height: 24.h, width: 24.w),
-            SizedBox(width: 6.w),
-          ],
-          Text(buttonText, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w500, color: AppColors.white)),
-        ],
+        mainAxisAlignment: MainAxisAlignment.center, 
+        children: isLoading
+          ? [
+              LoadingAnimationWidget.progressiveDots(
+                color: AppColors.white,
+                size: 30.h,
+              ),
+            ]
+          : [
+              if (buttonIcon.isNotEmpty) ...[
+                Image.asset(buttonIcon, color: AppColors.white, height: 24.h, width: 24.w),
+                SizedBox(width: 6.w),
+              ],
+              Text(buttonText, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w500, color: AppColors.white)),
+            ],
       ),
     );
   }

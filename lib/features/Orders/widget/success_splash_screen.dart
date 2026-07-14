@@ -153,6 +153,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 
 class SuccessSplashScreen extends StatefulWidget {
   final String? message;
@@ -250,31 +251,15 @@ class _SuccessSplashScreenState extends State<SuccessSplashScreen>
                   padding: EdgeInsets.symmetric(horizontal: 32.w),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Double Circle Success Checkmark
+                    children: [                      
                       Container(
-                        height: 180.w,
-                        width: 180.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFE8F9E9), // Light mint ring
-                        ),
-                        alignment: Alignment.center,
-                        child: Container(
-                          height: 110.w,
-                          width: 110.w,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF22C55E), // Vibrant green core
-                          ),
-                          child: Icon(
-                            Icons.check_rounded,
-                            size: 65.w,
-                            color: Colors.white,
-                          ),
+                        height: 200.w,
+                        width: 200.w,
+                        child: Lottie.asset(
+                          "assets/gifs/successful.json",
+                          repeat: false,
                         ),
                       ),
-                      
                       SizedBox(height: 45.h),
 
                       // Success Title / Message
@@ -304,12 +289,12 @@ class ConfettiBackgroundPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Random random = Random(42); // Stable seed for deterministic layout
     final List<Color> colors = [
-      const Color(0xFFFF6B6B), // Red/Coral
-      const Color(0xFF4D96FF), // Blue
-      const Color(0xFF6BCB77), // Green
-      const Color(0xFFFFD93D), // Yellow
-      const Color(0xFF9B5DE5), // Purple
-      const Color(0xFFFF9F1C), // Orange
+      const Color(0xFFFF6B6B),
+      const Color(0xFF4D96FF),
+      const Color(0xFF6BCB77),
+      const Color(0xFFFFD93D),
+      const Color(0xFF9B5DE5),
+      const Color(0xFFFF9F1C),
     ];
 
     for (int i = 0; i < 45; i++) {

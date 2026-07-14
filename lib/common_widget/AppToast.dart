@@ -259,6 +259,11 @@ class AppToast {
     }
   }
 
+  // Generic Success
+  static void showSuccess({required BuildContext context, required String title, required String message}) {
+    _showPremiumToast(context, title: title, message: message, icon: Icons.check_circle_outline_rounded, backgroundColor: const Color(0xFF34C759), iconColor: const Color(0xFF34C759));
+  }
+
   static void showError({
   required BuildContext context,
   required String title,

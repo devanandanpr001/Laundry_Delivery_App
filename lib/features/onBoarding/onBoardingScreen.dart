@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/View/LogIn_screen.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_images.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Onboardingscreen extends StatefulWidget {
   const Onboardingscreen({super.key});
@@ -14,20 +15,26 @@ class Onboardingscreen extends StatefulWidget {
 class _OnboardingscreenState extends State<Onboardingscreen> {
   final PageController _controller = PageController();
   int _currentIndex = 0;
-  void _next() {
+  Future<void> _next() async {
     if (_currentIndex < 1) {
       _controller.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          settings: const RouteSettings(name: '/login'),
-          builder: (context) => const LoginScreen(),
-        ),
-      );
+      // Mark onboarding as completed
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'onboardingCompleted', value: 'true');
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            settings: const RouteSettings(name: '/login'),
+            builder: (context) => const LoginScreen(),
+          ),
+        );
+      }
     }
   }
   @override
