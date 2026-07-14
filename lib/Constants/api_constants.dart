@@ -1,9 +1,9 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants {
-  static const String baseUrl = 'http://192.168.1.63:5001/api';
+  // static const String baseUrl = 'http://192.168.1.63:5001/api';
   // static const String mediaBaseUrl = 'http://192.168.0.105:5001/';
-    // static final String baseUrl = dotenv.env['BASE_URL'] ?? '';
+    static final String baseUrl = dotenv.env['BASE_URL'] ?? '';
 
     static String get mediaBaseUrl {
       final env = dotenv.env['MEDIA_BASE_URL'];

@@ -34,6 +34,8 @@ class OrderRepository {
   Future<List<OrderModel>> getAllOrders() => _service.fetchAllOrders();
   Future<List<OrderModel>> getPickupAssignedOrders() => _service.fetchPickupAssignedOrders();
   Future<List<OrderModel>> getDeliveryAssignedOrders() => _service.fetchDeliveryAssignedOrders();
+  Future<List<OrderModel>> getPickupOrders() => _service.fetchOrdersFromApi(OrderType.pickup);
+  Future<List<OrderModel>> getDeliveryOrders() => _service.fetchOrdersFromApi(OrderType.delivery);
   Future<List<OrderModel>> getPickupCompletedOrders() => _service.fetchPickupCompletedOrders();
   Future<List<OrderModel>> getDeliveryCompletedOrders() => _service.fetchDeliveryCompletedOrders();
 
@@ -47,6 +49,6 @@ class OrderRepository {
   Future<Map<String, String>?> uploadOrderImage(String orderId, String imagePath) => _service.uploadOrderImageApi(orderId, imagePath);
   Future<bool> deleteOrderImage(String orderId, String imageId) => _service.deleteOrderImageApi(orderId, imageId);
   Future<void> addOrderBundle(String orderId, Map<String, dynamic> payload) => _service.addItemApi(orderId, payload); // Reusing addItemApi for bundles
-  Future<bool> sendDeliveryOtp(String orderId) => _service.sendDeliveryOtpApi(orderId);
-  Future<bool> verifyDeliveryOtp(String orderId, String otp) => _service.verifyDeliveryOtpApi(orderId, otp);
+  Future<Map<String, dynamic>> sendDeliveryOtp(String orderId) => _service.sendDeliveryOtpApi(orderId);
+  Future<Map<String, dynamic>> verifyDeliveryOtp(String orderId, String otp) => _service.verifyDeliveryOtpApi(orderId, otp);
 }

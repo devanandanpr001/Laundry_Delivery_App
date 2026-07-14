@@ -340,18 +340,18 @@ class OrderService {
     return response != null && response['success'] == true;
   }
 
-  Future<bool> sendDeliveryOtpApi(String orderId) async {
+  Future<Map<String, dynamic>> sendDeliveryOtpApi(String orderId) async {
     final response = await _dioClient.post(
       ApiConstants.deliverysendotp.replaceAll(':orderId', orderId),
     );
-    return response != null && response['success'] == true;
+    return response;
   }
 
-  Future<bool> verifyDeliveryOtpApi(String orderId, String otp) async {
+  Future<Map<String, dynamic>> verifyDeliveryOtpApi(String orderId, String otp) async {
     final response = await _dioClient.post(
       ApiConstants.deliveryverifyotp.replaceAll(':orderId', orderId),
       data: {'otp': otp},
     );
-    return response != null && response['success'] == true;
+    return response;
   }
 }

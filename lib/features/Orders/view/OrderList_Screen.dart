@@ -27,7 +27,6 @@ class OrderlistScreen extends StatefulWidget {
 }
 
 class _OrderlistScreenState extends State<OrderlistScreen> {
-  OrderType _selectedType = OrderType.pickup;
   String? _fetchError;
   bool _isManualRefreshing = false;
 
@@ -106,7 +105,7 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
 
     // Compute filtered list efficiently
     final filteredOrders = orderVM.orders.where((order) {
-      final typeMatch = order.orderType == _selectedType;
+      final typeMatch = order.orderType == orderVM.selectedOrderType;
       if (!typeMatch) return false;
 
       if (selectedFilter == "all") return order.status == OrderStatus.pending;
@@ -242,13 +241,13 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
   }
 
   Widget _buildTypeToggle(OrderType type, String label) {
-    final isActive = _selectedType == type;
+    final orderVM = context.watch<OrderViewModel>();
+    final isActive = orderVM.selectedOrderType == type;
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          setState(() => _selectedType = type);
           final homeVM = context.read<HomeViewModel>();
-          final orderVM = context.read<OrderViewModel>();
+          orderVM.setSelectedOrderType(type);
           Future.wait([homeVM.refreshOrders(), orderVM.fetchAllOrders()]);
         },
         child: Container(
@@ -308,15 +307,21 @@ class _OrderlistScreenState extends State<OrderlistScreen> {
   }
 
   (String title, String subtitle) _resolvePageInfo(HomeViewModel vm, OrderViewModel orderVm, String filter) {
+    final int count;
+    final String suffix;
+
     switch (filter) {
       case "assigned":
-        return (AppText.ActiveOrders, "${vm.assignedCount} ${AppText.ActiveTasks}");
+        count = orderVm.assignedOrders.length;
+        suffix = AppText.ActiveTasks;
+        return (AppText.ActiveOrders, "$count $suffix");
       case "completed":
-        return (AppText.CompletedOrders, "${vm.completedCount} ${AppText.Delivered}");
+        count = orderVm.completedOrders.length;
+        suffix = count == 1 ? AppText.OrderSingle : AppText.OrderPlural;
+        return (AppText.CompletedOrders, "$count $suffix ${AppText.Delivered}");
       default:
-        // Filter header count by order type (Pickup/Delivery) for consistency with the list.
-        final count = orderVm.pendingOrders.where((o) => o.orderType == _selectedType).length;
-        final suffix = count == 1 ? AppText.OrderSingle : AppText.OrderPlural;
+        count = orderVm.pendingOrders.length;
+        suffix = count == 1 ? AppText.OrderSingle : AppText.OrderPlural;
         return (AppText.NewOrders, "$count $suffix ${AppText.ReviewedConfirmed}");
     }
   }

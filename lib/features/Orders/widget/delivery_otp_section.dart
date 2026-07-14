@@ -240,6 +240,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/features/Home/data/model/home_models.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/testing_toast.dart';
 import 'package:ziya_laundry_deliveryapp/features/Orders/viewmodel/order_viewmodel.dart';
 
 class DeliveryOtpSection extends StatefulWidget {
@@ -310,14 +311,18 @@ class _DeliveryOtpSectionState extends State<DeliveryOtpSection> {
     });
 
     try {
-      final success = await orderVM.sendDeliveryOtp(context, widget.orderId);
+      final result = await orderVM.sendDeliveryOtp(context, widget.orderId);
 
-      if (success && mounted) {
+      if (result['success'] == true && mounted) {
         setState(() {
           _otpSent = true;
         });
 
         _startCooldown();
+
+        if (result['otp'] != null) {
+          TestingToast.showTestOtp(context, result['otp'].toString());
+        }
 
         // AppToast.showOrderDelivered(context, orderId: widget.order.orderId);
       }

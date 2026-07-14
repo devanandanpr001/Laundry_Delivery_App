@@ -6,6 +6,7 @@ import 'package:ziya_laundry_deliveryapp/features/AuthSection/widgets/Reusable_i
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/widgets/custom_button.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_colors.dart';
 import 'package:ziya_laundry_deliveryapp/Constants/app_strings.dart';
+import 'package:ziya_laundry_deliveryapp/common_widget/AppToast.dart';
 import 'package:ziya_laundry_deliveryapp/features/AuthSection/viewmodel/SignUp_viewmodel.dart';
 
 class ChangepasswordScreen extends StatefulWidget {
@@ -104,14 +105,9 @@ class _ChangepasswordScreenState extends State<ChangepasswordScreen> {
                         if (!mounted) return;
 
                         if (error != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(error)),
-                          );
+                          AppToast.showPasswordChangedFailed(context, error: error);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text(AppText.SuccessPass)),
-                          );
-
+                          AppToast.showPasswordChangedSuccess(context);
                           Navigator.pop(context);
                         }
                       },
